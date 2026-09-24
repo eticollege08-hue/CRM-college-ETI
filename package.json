@@ -1,0 +1,57 @@
+{
+  "name": "CRM",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start:dev": "nodemon --watch src --ext ts --legacy-watch --exec tsx src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "docker:dev": "docker compose -f docker-compose.dev.yaml up --build",
+    "docker:dev:down": "docker compose -f docker-compose.dev.yaml down",
+    "docker:dev:migrate": "docker compose -f docker-compose.dev.yaml exec app npx prisma migrate dev",
+    "docker:prod": "docker compose -f docker-compose.yaml up --build -d",
+    "docker:prod:down": "docker compose -f docker-compose.yaml down"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "multer": "^2.3.0",
+    "nunjucks": "^3.2.4",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/express-session": "^1.19.0",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^26.4.1",
+    "@types/nunjucks": "^3.2.6",
+    "nodemon": "^3.1.14",
+    "prisma": "^5.22.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "imports": {
+    "#config/*": "./src/config/*",
+    "#utils/*": "./src/utils/*",
+    "#middlewares/*": "./src/middlewares/*",
+    "#modules/*": "./src/modules/*",
+    "#public/*": "./src/public/*",
+    "#routes/*": "./src/routes/*",
+    "#views/*": "./src/views/*",
+    "#constants/*": "./src/constants/*",
+    "#schemas/*": "./src/schemas/*",
+    "#types/*": "./src/types/*",
+    "#scripts/*": "./src/scripts/*",
+    "#example/*": "./src/modules/example/*"
+  }
+}
