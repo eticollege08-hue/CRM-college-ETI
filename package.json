@@ -6,6 +6,9 @@
     "start:dev": "nodemon --watch src --ext ts --legacy-watch --exec tsx src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:typecheck": "tsc --project tests/tsconfig.json --noEmit",
     "docker:dev": "docker compose -f docker-compose.dev.yaml up --build",
     "docker:dev:down": "docker compose -f docker-compose.dev.yaml down",
     "docker:dev:migrate": "docker compose -f docker-compose.dev.yaml exec app npx prisma migrate dev",
@@ -25,6 +28,7 @@
     "express-session": "^1.19.0",
     "multer": "^2.3.0",
     "nunjucks": "^3.2.4",
+    "vitest": "^5.0.3",
     "zod": "^4.5.4"
   },
   "devDependencies": {
