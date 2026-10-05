@@ -178,6 +178,8 @@ src/modules/customer/
 
 | Команда                      | Дія                                                                     |
 | ---------------------------- | ----------------------------------------------------------------------- |
+| `npm run lint`               | Перевірка JavaScript/TypeScript через ESLint 9.                         |
+| `npm run format`             | Форматування коду, конфігурацій і документації через Prettier.          |
 | `npm run start:dev`          | Локальний запуск із перезапуском після змін.                            |
 | `npx tsc --noEmit`           | Перевірка типів production-коду.                                        |
 | `npm run build`              | Компіляція `src` у `dist`.                                              |
@@ -231,3 +233,19 @@ Vitest виконує TypeScript без перевірки типів, тому 
 
 - Production Dockerfile копіює `src/views` і `src/public` для шаблонів та статичних файлів. Порожні каталоги можуть бути відсутні після клонування; перед збіркою переконайтеся, що вони існують. Окремого етапу збірки assets у проєкті немає.
 - SSR-шаблон `error`, який використовує обробник помилок, ще не створено. Сесії використовують стандартне сховище express-session у пам'яті процесу.
+
+## Стиль коду та CI
+
+ESLint 9 використовує Flat Config у `eslint.config.js` з рекомендаціями для JavaScript і TypeScript. Явний `any` заборонено; імпорти, які потрібні тільки для типів, оформлюйте через `import type`. Prettier налаштовано в `.prettierrc`: подвійні лапки, 4 пробіли, крапки з комою, завершальні коми та ширина рядка 100. `eslint-config-prettier` вимикає конфліктні правила форматування.
+
+Перед відправленням змін виконайте `npm run lint`, `npx tsc --noEmit` і `npm run test:typecheck`. `npm run format` переписує всі підтримувані файли, крім виключень у `.prettierignore`; перед комітом перевірте diff. TypeScript використовує сумісну з typescript-eslint гілку 6.0.
+
+GitHub Actions у `.github/workflows/ci.yml` перевіряє push і pull request для `main` та `staging`: Node.js 24, установлення через `npm ci`, генерація Prisma Client, lint і обидві перевірки типів. БД для цих кроків не потрібна. Крок `npm test` закоментований до появи перших тестових файлів.
+
+### Автоматичне форматування pull request
+
+Для PR із гілки цього репозиторію в `main` або `staging` CI запускає `npm run format`. Після успішної перевірки форматування, lint і типів бот додає коміт `style: format with Prettier` у вихідну гілку PR, якщо є зміни. Завантажте цей коміт через `git pull` перед наступними локальними змінами.
+
+Для push у main/staging, PR із forks і Dependabot CI тільки перевіряє форматування через `npx prettier --check .`; автоматичний запис у чужі гілки не виконується. Токен workflow має `contents: write` для запису коміту, але правила захисту гілок можуть забороняти push. Використовується звичайний push без force: нові зміни автора не перезаписуються.
+
+Після оновлення PR через `GITHUB_TOKEN` GitHub може вимагати схвалення нового запуску Actions: у PR потрібно натиснути **Approve workflows to run**, якщо з'явиться відповідний банер. Див. [документацію GitHub](https://docs.github.com/en/actions/concepts/security/github_token).

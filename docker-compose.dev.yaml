@@ -1,37 +1,37 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: app-crm-dev
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@db:5432/${DATABASE_DB}?schema=public
-    volumes:
-      - .:/app
-      - /app/node_modules
-    depends_on:
-      db:
-        condition: service_healthy
-    command: npm run start:dev
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile.dev
+        container_name: app-crm-dev
+        ports:
+            - "3000:3000"
+        environment:
+            DATABASE_URL: postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@db:5432/${DATABASE_DB}?schema=public
+        volumes:
+            - .:/app
+            - /app/node_modules
+        depends_on:
+            db:
+                condition: service_healthy
+        command: npm run start:dev
 
-  db:
-    image: postgres:17-alpine
-    container_name: db-crm-dev
-    environment:
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_DB}
-    ports:
-      - "${DATABASE_PORT}:5432"
-    volumes:
-      - crm_db_dev_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    db:
+        image: postgres:17-alpine
+        container_name: db-crm-dev
+        environment:
+            POSTGRES_USER: ${DATABASE_USER}
+            POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+            POSTGRES_DB: ${DATABASE_DB}
+        ports:
+            - "${DATABASE_PORT}:5432"
+        volumes:
+            - crm_db_dev_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_DB}"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
 
 volumes:
-  crm_db_dev_data:
+    crm_db_dev_data:

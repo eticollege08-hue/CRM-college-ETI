@@ -37,7 +37,7 @@
 | `npm run docker:prod:down`              | Зупинити production-оточення без видалення volume.                                        |
 | `npx prisma validate`                   | Перевірити Prisma-схему; потрібен заданий `DATABASE_URL`.                                 |
 
-Юніт-тести використовують Vitest у `dependencies`. Команд `lint` і `format` та їх конфігурацій наразі немає. Не звітуй про неіснуючі перевірки. Не запускай production, міграції чи зупинку сервісів як звичайну перевірку зміни коду.
+Юніт-тести використовують Vitest у `dependencies`. ESLint 9 перевіряє код через `npm run lint`; Prettier форматує через `npm run format`. Не звітуй про неіснуючі перевірки. Не запускай production, міграції чи зупинку сервісів як звичайну перевірку зміни коду.
 
 ## Межі шарів і нові модулі
 
@@ -104,32 +104,41 @@
 
 1. Визнач модуль/шар задачі за картою вище. Почни з `rg --files src prisma` або адресного `rg -n <symbol> src`; читай лише знайдені файли й прямі залежності. Не скануй `node_modules`, `dist`, `.git`, lock-файл чи весь репозиторій без потреби.
 2. Перед редагуванням перевір `git status --short`; збережи сторонні зміни. Обери найменшу зміну, що повністю вирішує задачу; не додавай залежності, фреймворки чи нові архітектурні шари без потреби.
-3. Для TypeScript-змін виконай `npx tsc --noEmit`. Для змін збірки — `npm run build`; для Prisma-схеми — `npx prisma validate` і `npx prisma generate --allow-no-models`. Перевірки без змін коду не потребують запуску БД.
+3. Для змін JavaScript/TypeScript виконай `npm run lint`; для TypeScript також `npx tsc --noEmit`. Для змін збірки — `npm run build`; для Prisma-схеми — `npx prisma validate` і `npx prisma generate --allow-no-models`. Перевірки без змін коду не потребують запуску БД.
 4. Для зміни поведінки API перевір релевантні сценарії: успіх, неправильне тіло/id, відсутній запис. Використовуй Vitest для юніт-тестів, а перевірку HTTP/БД виконуй окремо в dev-оточенні. Не вигадуй результатів і не встановлюй тестовий стек для дрібного рефакторингу.
 5. Якщо перевірка заблокована середовищем, повідом точну причину; не встановлюй інструменти й не міняй конфігурацію лише заради документаційної задачі. Повідомлення Node shim про відсутність активної версії Node.js означає проблему середовища, а не діагностику помилки коду.
 6. Перед завершенням перевір diff, випадкові файли й секрети. У відповіді коротко зазнач зміни, виконані перевірки та реальні обмеження. Не повторюй повний аналіз архітектури.
 7. Якщо задача змінює структуру, scripts, контракт або описані особливості, онови відповідний пункт цього `AGENTS.md`. Зберігай його коротким: правила й карта, а не журнал кожної виконаної задачі.
 
+## ESLint, Prettier і CI
+
+- `npm run lint` — ESLint 9 із JS/TS recommended і eslint-config-prettier. Конфіг: `eslint.config.js`; `dist`, `node_modules`, `coverage` та кеш npm виключено.
+- `@typescript-eslint/no-explicit-any` і `@typescript-eslint/consistent-type-imports` — errors. Використовуй `unknown` зі звуженням типів та `import type`; не вимикай правила заради проходження CI. Невикористані обов'язкові аргументи middleware позначай префіксом `_`.
+- `npm run format` — Prettier із `.prettierrc`: semi true, singleQuote false, tabWidth 4, trailingComma all, printWidth 100. Виключення — у `.prettierignore`. Для локальної зміни формату можна запускати Prettier тільки для змінених файлів; не переформатовуй сторонній код без потреби.
+- TypeScript зафіксовано в сумісній гілці 6.0: поточний typescript-eslint не підтримує TypeScript 7. Не обходь peer dependencies через force/legacy-peer-deps.
+- CI автоматично форматує PR із гілок цього репозиторію через npm run format; після успішних перевірок комітить зміни у гілку PR. Forks, Dependabot і push у main/staging проходять лише prettier --check. Не додавай pull_request_target чи force push для обходу обмежень. Після коміту бота синхронізуй локальну гілку.
+- `.github/workflows/ci.yml` запускається для push і pull request у main/staging. Кроки: Node.js 24 → npm ci → генерація Prisma → lint → типи src → типи тестів. Запуск npm test закоментовано до появи тестових файлів; тоді його потрібно ввімкнути.
+
 ## Юніт-тести (Vitest)
 
 Vitest встановлено в `dependencies` за вимогою користувача. Середовище — Node.js; конфігурація шукає тільки `tests/**/*.test.ts`. Імпортуй `describe`, `it`, `expect`, `vi` явно з `vitest`; глобальні функції вимкнені. Моки очищуються й spies відновлюються після кожного тесту.
 
-| Що тестуємо | Шлях |
-| --- | --- |
-| Шар доменного модуля | `tests/<module>/<module>.<layer>.test.ts` |
-| Middleware | `tests/middleware/<name>.middleware.test.ts` |
-| Script | `tests/script/<name>.script.test.ts` |
-| Utils | `tests/utils/<name>.utils.test.ts` |
+| Що тестуємо              | Шлях                                         |
+| ------------------------ | -------------------------------------------- |
+| Шар доменного модуля     | `tests/<module>/<module>.<layer>.test.ts`    |
+| Middleware               | `tests/middleware/<name>.middleware.test.ts` |
+| Script                   | `tests/script/<name>.script.test.ts`         |
+| Utils                    | `tests/utils/<name>.utils.test.ts`           |
 | Інший спільний компонент | `tests/<category>/<name>.<category>.test.ts` |
 
 Наприклад: `tests/customer/customer.service.test.ts`, `tests/customer/customer.repository.test.ts`, `tests/middleware/validate.middleware.test.ts`, `tests/script/import.script.test.ts`, `tests/utils/error.utils.test.ts`. Не розміщуй тести у `src`, не використовуй `.spec.ts` і не відновлюй демонстраційний модуль заради тестів.
 
-| Команда | Призначення |
-| --- | --- |
-| `npm test` | Одноразово запустити всі юніт-тести. |
-| `npm run test:watch` | Запустити тести у watch-режимі. |
-| `npm test -- tests/customer/customer.service.test.ts` | Запустити конкретний файл. |
-| `npm run test:typecheck` | Перевірити типи тестів і конфігурації без генерації файлів. |
+| Команда                                               | Призначення                                                 |
+| ----------------------------------------------------- | ----------------------------------------------------------- |
+| `npm test`                                            | Одноразово запустити всі юніт-тести.                        |
+| `npm run test:watch`                                  | Запустити тести у watch-режимі.                             |
+| `npm test -- tests/customer/customer.service.test.ts` | Запустити конкретний файл.                                  |
+| `npm run test:typecheck`                              | Перевірити типи тестів і конфігурації без генерації файлів. |
 
 - Тестуй поведінку: успіх, граничні значення й очікувані помилки. Використовуй зрозумілі назви сценаріїв; дотримуйся порядку підготовка → дія → перевірка.
 - Юніт-тести не запускають сервер, Docker, міграції та не підключаються до справжньої БД. Не імпортуй `src/app.ts`.
@@ -152,34 +161,34 @@ import type { UUID } from "node:crypto";
 import type { ExampleCreateInput, ExampleUpdateInput } from "./example.types";
 
 export class ExampleRepository {
-  constructor(private readonly db: PrismaClient = prisma) {}
+    constructor(private readonly db: PrismaClient = prisma) {}
 
-  async create(data: ExampleCreateInput) {
-    return await this.db.example.create({ data });
-  }
+    async create(data: ExampleCreateInput) {
+        return await this.db.example.create({ data });
+    }
 
-  async update(id: UUID, data: ExampleUpdateInput) {
-    return await this.db.example.update({
-      where: { id },
-      data,
-    });
-  }
+    async update(id: UUID, data: ExampleUpdateInput) {
+        return await this.db.example.update({
+            where: { id },
+            data,
+        });
+    }
 
-  async delete(id: UUID) {
-    return await this.db.example.delete({
-      where: { id },
-    });
-  }
+    async delete(id: UUID) {
+        return await this.db.example.delete({
+            where: { id },
+        });
+    }
 
-  async getAll() {
-    return await this.db.example.findMany();
-  }
+    async getAll() {
+        return await this.db.example.findMany();
+    }
 
-  async getById(id: UUID) {
-    return await this.db.example.findUnique({
-      where: { id },
-    });
-  }
+    async getById(id: UUID) {
+        return await this.db.example.findUnique({
+            where: { id },
+        });
+    }
 }
 
 export const exampleRepository = new ExampleRepository();
@@ -194,59 +203,45 @@ import { HttpStatus } from "#constants/http-status.constants.js";
 import { EXAMPLE_FAILURE_MESSAGES } from "./example.constants.js";
 
 import type { UUID } from "node:crypto";
-import type {
-  ExampleCreateInput,
-  ExampleUpdateInput,
-} from "./example.types.js";
+import type { ExampleCreateInput, ExampleUpdateInput } from "./example.types.js";
 
 export class ExampleService {
-  constructor(
-    private readonly repository: ExampleRepository = exampleRepository,
-  ) {}
+    constructor(private readonly repository: ExampleRepository = exampleRepository) {}
 
-  async create(data: ExampleCreateInput) {
-    return await this.repository.create(data);
-  }
-
-  async getAll() {
-    return await this.repository.getAll();
-  }
-
-  async getById(id: UUID) {
-    const item = await this.repository.getById(id);
-    if (!item) {
-      throw new ApiError(
-        HttpStatus.NOT_FOUND,
-        EXAMPLE_FAILURE_MESSAGES.NOT_FOUND,
-      );
+    async create(data: ExampleCreateInput) {
+        return await this.repository.create(data);
     }
 
-    return item;
-  }
-
-  async update(id: UUID, data: ExampleUpdateInput) {
-    const isExist = await this.repository.getById(id);
-    if (!isExist) {
-      throw new ApiError(
-        HttpStatus.NOT_FOUND,
-        EXAMPLE_FAILURE_MESSAGES.NOT_FOUND,
-      );
+    async getAll() {
+        return await this.repository.getAll();
     }
 
-    return await this.repository.update(id, data);
-  }
+    async getById(id: UUID) {
+        const item = await this.repository.getById(id);
+        if (!item) {
+            throw new ApiError(HttpStatus.NOT_FOUND, EXAMPLE_FAILURE_MESSAGES.NOT_FOUND);
+        }
 
-  async delete(id: UUID) {
-    const isExist = await this.repository.getById(id);
-    if (!isExist) {
-      throw new ApiError(
-        HttpStatus.NOT_FOUND,
-        EXAMPLE_FAILURE_MESSAGES.NOT_FOUND,
-      );
+        return item;
     }
 
-    return await this.repository.delete(id);
-  }
+    async update(id: UUID, data: ExampleUpdateInput) {
+        const isExist = await this.repository.getById(id);
+        if (!isExist) {
+            throw new ApiError(HttpStatus.NOT_FOUND, EXAMPLE_FAILURE_MESSAGES.NOT_FOUND);
+        }
+
+        return await this.repository.update(id, data);
+    }
+
+    async delete(id: UUID) {
+        const isExist = await this.repository.getById(id);
+        if (!isExist) {
+            throw new ApiError(HttpStatus.NOT_FOUND, EXAMPLE_FAILURE_MESSAGES.NOT_FOUND);
+        }
+
+        return await this.repository.delete(id);
+    }
 }
 
 export const exampleService = new ExampleService();
@@ -263,63 +258,63 @@ import type { Request, Response } from "express";
 import type { UUID } from "node:crypto";
 
 export class ExampleController {
-  constructor(private readonly service: ExampleService = exampleService) {
-    this.create = this.create.bind(this);
-    this.getAll = this.getAll.bind(this);
-    this.getById = this.getById.bind(this);
-    this.update = this.update.bind(this);
-    this.delete = this.delete.bind(this);
-  }
+    constructor(private readonly service: ExampleService = exampleService) {
+        this.create = this.create.bind(this);
+        this.getAll = this.getAll.bind(this);
+        this.getById = this.getById.bind(this);
+        this.update = this.update.bind(this);
+        this.delete = this.delete.bind(this);
+    }
 
-  async create(req: Request, res: Response) {
-    const example = await this.service.create(req.body);
+    async create(req: Request, res: Response) {
+        const example = await this.service.create(req.body);
 
-    res.status(HttpStatus.CREATED).json({
-      success: true,
-      message: EXAMPLE_SUCCESSFUL_MESSAGES.CREATED,
-      example,
-    });
-  }
+        res.status(HttpStatus.CREATED).json({
+            success: true,
+            message: EXAMPLE_SUCCESSFUL_MESSAGES.CREATED,
+            example,
+        });
+    }
 
-  async getAll(req: Request, res: Response) {
-    const examples = await this.service.getAll();
+    async getAll(req: Request, res: Response) {
+        const examples = await this.service.getAll();
 
-    res.status(HttpStatus.OK).json({
-      success: true,
-      examples,
-    });
-  }
+        res.status(HttpStatus.OK).json({
+            success: true,
+            examples,
+        });
+    }
 
-  async getById(req: Request, res: Response) {
-    const { id } = req.params as { id: UUID };
-    const example = await this.service.getById(id);
+    async getById(req: Request, res: Response) {
+        const { id } = req.params as { id: UUID };
+        const example = await this.service.getById(id);
 
-    res.status(HttpStatus.OK).json({
-      success: true,
-      example,
-    });
-  }
+        res.status(HttpStatus.OK).json({
+            success: true,
+            example,
+        });
+    }
 
-  async update(req: Request, res: Response) {
-    const { id } = req.params as { id: UUID };
-    const example = await this.service.update(id, req.body);
+    async update(req: Request, res: Response) {
+        const { id } = req.params as { id: UUID };
+        const example = await this.service.update(id, req.body);
 
-    res.status(HttpStatus.OK).json({
-      success: true,
-      message: EXAMPLE_SUCCESSFUL_MESSAGES.UPDATED,
-      example,
-    });
-  }
+        res.status(HttpStatus.OK).json({
+            success: true,
+            message: EXAMPLE_SUCCESSFUL_MESSAGES.UPDATED,
+            example,
+        });
+    }
 
-  async delete(req: Request, res: Response) {
-    const { id } = req.params as { id: UUID };
-    await this.service.delete(id);
+    async delete(req: Request, res: Response) {
+        const { id } = req.params as { id: UUID };
+        await this.service.delete(id);
 
-    res.status(HttpStatus.OK).json({
-      success: true,
-      message: EXAMPLE_SUCCESSFUL_MESSAGES.DELETED,
-    });
-  }
+        res.status(HttpStatus.OK).json({
+            success: true,
+            message: EXAMPLE_SUCCESSFUL_MESSAGES.DELETED,
+        });
+    }
 }
 
 export const exampleController = new ExampleController();
@@ -332,39 +327,24 @@ import express from "express";
 import { exampleController } from "./example.controller.js";
 import { exampleCreateSchema, exampleUpdateSchema } from "./example.schema.js";
 import { uuidSchema } from "#schemas/id.schema.js";
-import {
-  validateBody,
-  validateParams,
-} from "../../middlewares/validate.middleware.js";
+import { validateBody, validateParams } from "../../middlewares/validate.middleware.js";
 import { asyncCatch } from "#middlewares/asyncCatch.middleware.js";
 
 const router = express.Router();
 
 router.get("/", asyncCatch(exampleController.getAll));
-router.get(
-  "/:id",
-  validateParams(uuidSchema),
-  asyncCatch(exampleController.getById),
-);
+router.get("/:id", validateParams(uuidSchema), asyncCatch(exampleController.getById));
 
-router.post(
-  "/",
-  validateBody(exampleCreateSchema),
-  asyncCatch(exampleController.create),
-);
+router.post("/", validateBody(exampleCreateSchema), asyncCatch(exampleController.create));
 
 router.patch(
-  "/:id",
-  validateParams(uuidSchema),
-  validateBody(exampleUpdateSchema),
-  asyncCatch(exampleController.update),
+    "/:id",
+    validateParams(uuidSchema),
+    validateBody(exampleUpdateSchema),
+    asyncCatch(exampleController.update),
 );
 
-router.delete(
-  "/:id",
-  validateParams(uuidSchema),
-  asyncCatch(exampleController.delete),
-);
+router.delete("/:id", validateParams(uuidSchema), asyncCatch(exampleController.delete));
 
 export default router;
 ```
@@ -375,8 +355,8 @@ export default router;
 import { z } from "zod";
 
 export const exampleCreateSchema = z.object({
-  name: z.string().min(1, "Name must have at least 1 character"),
-  description: z.string().min(1, "Description must have at least 1 character"),
+    name: z.string().min(1, "Name must have at least 1 character"),
+    description: z.string().min(1, "Description must have at least 1 character"),
 });
 
 export const exampleUpdateSchema = exampleCreateSchema.partial();
@@ -396,13 +376,13 @@ export type ExampleUpdateInput = z.infer<typeof exampleUpdateSchema>;
 
 ```ts
 export const EXAMPLE_FAILURE_MESSAGES = {
-  NOT_FOUND: "Example not found",
+    NOT_FOUND: "Example not found",
 };
 
 export const EXAMPLE_SUCCESSFUL_MESSAGES = {
-  CREATED: "Example was created",
-  UPDATED: "Example was updated",
-  DELETED: "Example was deleted",
+    CREATED: "Example was created",
+    UPDATED: "Example was updated",
+    DELETED: "Example was deleted",
 };
 ```
 
