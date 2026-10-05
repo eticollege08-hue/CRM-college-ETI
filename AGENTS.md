@@ -96,7 +96,7 @@
 - `package.json#imports` спрямовані на `./src/`. Production Dockerfile замінює їх на `./dist/` у контейнері. Локальний `npm start` такої заміни не робить; успішна компіляція не гарантує успішний запуск.
 - У старому коді є імпорти без `.js` (зокрема в `app.ts`) і прямі імпорти Prisma runtime. Якщо задача стосується production/ESM, перевір їх разом з aliases; для інших задач не розширюй scope автоматично.
 - `dotenv.config()` викликається в `app.ts` після статичних імпортів; Prisma ініціалізується при імпорті. Для локального запуску перевір доступність `DATABASE_URL` у момент ініціалізації. Compose передає його через environment.
-- Production Dockerfile копіює `src/views`, `src/public`, `src/scripts/assets`. Останнього каталогу зараз немає; порожні views/public не зберігаються Git. Перед задачею Docker-збірки перевір ці COPY, не вважай збірку вже справною.
+- Production Dockerfile копіює `src/views` і `src/public`; окремого етапу збірки assets немає. Порожні views/public не зберігаються Git. Перед задачею Docker-збірки перевір наявність цих каталогів.
 - `errorHandler` рендерить SSR-шаблон `error`, якого наразі немає. Наявність Nunjucks не означає завершений SSR.
 - Сесії використовують стандартне сховище express-session; secure cookie вмикається в production, `trust proxy` дорівнює 1. Не вважай поточну конфігурацію готовим масштабованим auth-рішенням.
 

@@ -22,7 +22,6 @@ COPY --from=builder /app/prisma ./prisma
 
 COPY --from=builder /app/src/views ./src/views
 COPY --from=builder /app/src/public ./src/public
-COPY --from=builder /app/src/scripts/assets ./src/scripts/assets
 
 COPY package.json ./
 
