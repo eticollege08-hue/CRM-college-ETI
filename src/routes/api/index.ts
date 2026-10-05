@@ -1,9 +1,5 @@
-import express from "express"
+import express from "express";
 
-import exampleRoutes from "#example/example.router.js"
+const router = express.Router();
 
-const router = express.Router()
-
-router.use('/example', exampleRoutes)
-
-export default router
+export default router;

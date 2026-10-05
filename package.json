@@ -51,7 +51,6 @@
     "#constants/*": "./src/constants/*",
     "#schemas/*": "./src/schemas/*",
     "#types/*": "./src/types/*",
-    "#scripts/*": "./src/scripts/*",
-    "#example/*": "./src/modules/example/*"
+    "#scripts/*": "./src/scripts/*"
   }
 }

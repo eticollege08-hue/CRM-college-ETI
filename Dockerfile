@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npx prisma generate
+RUN npx prisma generate --allow-no-models
 RUN npm run build
 
 FROM node:24-bookworm-slim AS runtime
@@ -26,7 +26,6 @@ COPY --from=builder /app/src/scripts/assets ./src/scripts/assets
 
 COPY package.json ./
 
-# Змінюємо шлях у subpath imports з ./src/ на ./dist/ для продакшн-оточення
 RUN sed -i 's|\./src/|\./dist/|g' package.json
 
 EXPOSE 3000
