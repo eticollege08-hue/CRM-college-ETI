@@ -7,7 +7,7 @@ import session from "express-session";
 import apiRoutes from "#routes/api/index.js";
 import ssrRoutes from "#routes/ssr/index.js";
 
-import { errorHandler } from './middlewares/error.middleware';
+import { errorHandler } from './middlewares/error.middleware.js';
 
 dotenv.config();
 
