@@ -1,0 +1,235 @@
+# CRM
+
+## Сетап проєкту
+
+Для локальної розробки потрібні Node.js 24 і npm. Якщо базу даних запускатимете в контейнері, також установіть Docker із Docker Compose та запустіть Docker Engine. Без Docker потрібен доступний PostgreSQL; у контейнерах проєкт використовує PostgreSQL 17.
+
+Усі команди нижче виконуйте з кореня репозиторію.
+
+### 1. Створіть свій `.env`
+
+Скопіюйте `.env.example` у `.env`:
+
+```powershell
+# PowerShell
+Copy-Item .env.example .env
+```
+
+```sh
+# Linux / macOS
+cp .env.example .env
+```
+
+Змініть значення під своє оточення. `.env.example` — шаблон конфігурації, `.env` — ваш локальний файл; він виключений із Git. Задайте власний `SESSION_SECRET`, а приклад пароля БД замініть своїм.
+
+| Змінна | Для чого потрібна |
+| --- | --- |
+| `PORT` | Порт локального Express-сервера; у прикладі — 3000. |
+| `NODE_ENV` | Режим роботи; для розробки — `development`. |
+| `SESSION_SECRET` | Секрет для підпису cookie сесій. |
+| `DATABASE_URL` | Рядок підключення Prisma до PostgreSQL. Для запуску застосунку на комп'ютері використовуйте `localhost` і порт БД. |
+| `DATABASE_USER` | Користувач PostgreSQL у Docker Compose. |
+| `DATABASE_PASSWORD` | Пароль користувача PostgreSQL у Docker Compose. |
+| `DATABASE_DB` | Назва бази, яку створює контейнер PostgreSQL. |
+| `DATABASE_PORT` | Порт БД на комп'ютері; у прикладі — 5433. Усередині контейнера PostgreSQL працює на 5432. |
+
+Для локального застосунку значення користувача, пароля, назви БД та порту в `DATABASE_URL` мають відповідати налаштуванням вашої бази. Якщо пароль містить спеціальні символи, кодуйте їх для використання в URL.
+
+### 2. Установіть залежності
+
+```sh
+npm ci
+npx prisma generate --allow-no-models
+```
+
+`npm ci` встановлює версії з `package-lock.json`. Друга команда генерує Prisma Client. Прапорець `--allow-no-models` потрібен, бо схема наразі не містить моделей: демонстраційний модуль видалено.
+
+### 3. Запустіть розробку
+
+**Варіант A: застосунок локально, PostgreSQL у Docker.** Це зручно для роботи з кодом та локальними інструментами.
+
+```sh
+docker compose -f docker-compose.dev.yaml up -d db
+npm run start:dev
+```
+
+Якщо вже маєте PostgreSQL, пропустіть Docker-команду і вкажіть підключення до нього в `DATABASE_URL`. Nodemon автоматично перезапускає застосунок після змін TypeScript-файлів у `src`.
+
+**Варіант B: застосунок і PostgreSQL у Docker.**
+
+```sh
+npm run docker:dev
+```
+
+Docker збере dev-образ, установлює залежності та генерує Prisma Client усередині образу. Каталог проєкту підключається до контейнера, тому зміни коду доступні без повторної збірки. Після зміни залежностей перебудуйте контейнер.
+
+Compose задає для застосунку власний `DATABASE_URL` з адресою `db:5432`: `localhost` усередині контейнера не є адресою контейнера БД. Dev-застосунок читає решту налаштувань із підключеного `.env` через dotenv.
+
+За стандартних налаштувань сервер доступний за адресою `http://localhost:3000`. API підключено під `/api`, SSR — під `/`. Наразі обидва реєстри маршрутів порожні: відповідь 404 на `/` очікувана і не означає, що сервер не запустився.
+
+Compose публікує порт застосунку як `3000:3000`. Якщо змінюєте `PORT` для контейнерного запуску, узгодьте також це відображення портів у Compose.
+
+### 4. Перевірте налаштування
+
+```sh
+npx tsc --noEmit
+npm run test:typecheck
+```
+
+Для запуску юніт-тестів використовуйте `npm test`. Зараз файлів `*.test.ts` у репозиторії немає, тому Vitest повідомить про відсутність тестів і завершиться з ненульовим кодом. Після додавання тестів команда запускатиме їх без сервера та БД.
+
+## Структура проєкту
+
+```text
+CRM/
+├── src/
+│   ├── config/
+│   ├── constants/
+│   ├── middlewares/
+│   ├── modules/
+│   ├── public/
+│   ├── routes/
+│   │   ├── api/index.ts
+│   │   └── ssr/index.ts
+│   ├── schemas/
+│   ├── types/
+│   ├── utils/
+│   ├── views/
+│   └── app.ts
+├── prisma/
+│   ├── migrations/
+│   └── schema.prisma
+├── tests/
+│   └── tsconfig.json
+├── .env.example
+├── .gitignore
+├── .dockerignore
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+├── vitest.config.ts
+├── Dockerfile
+├── Dockerfile.dev
+├── docker-compose.yaml
+├── docker-compose.dev.yaml
+├── AGENTS.md
+└── README.md
+```
+
+Частина каталогів `src` поки порожня. Git не зберігає порожні каталоги, тому після нового клонування вони можуть бути відсутні. `dist` створюється під час збірки, `node_modules` — після встановлення залежностей; обидва виключені з Git.
+
+### Що знаходиться в `src`
+
+| Файл / каталог | Призначення |
+| --- | --- |
+| `app.ts` | Точка входу: створює Express-застосунок, налаштовує JSON, статичні файли, сесії та Nunjucks, підключає маршрути й обробник помилок, запускає сервер. |
+| `config/` | Конфігурація зовнішніх сервісів та інфраструктури. Зараз `prisma.config.ts` створює спільний PrismaClient і перевіряє з'єднання під час імпорту. |
+| `constants/` | Спільні константи застосунку, наприклад HTTP-статуси. Повідомлення конкретного домену зберігаються всередині його модуля. |
+| `middlewares/` | Обробники Express між отриманням запиту й controller: валідація тіла/параметрів, передавання async-помилок, формування відповідей на помилки. |
+| `modules/` | Доменні модулі CRM: кожен об'єднує маршрути, бізнес-логіку й доступ до даних своєї сутності. |
+| `public/` | Статичні файли, доступні браузеру: CSS, JavaScript та зображення. |
+| `routes/` | Реєстри маршрутів: `api/index.ts` підключає API-модулі, `ssr/index.ts` — маршрути сторінок. |
+| `schemas/` | Спільні Zod-схеми, наприклад перевірка UUID у параметрах. Схеми конкретної сутності належать її модулю. |
+| `types/` | Спільні TypeScript-типи та інтерфейси, зокрема типи помилок. |
+| `utils/` | Невеликі спільні допоміжні компоненти без HTTP-обробки, наприклад клас `ApiError`. |
+| `views/` | Nunjucks-шаблони `.njk` для серверного рендерингу сторінок. |
+
+### Структура доменного модуля
+
+Модуль розміщується в `src/modules/<module>/`. Наприклад, модуль клієнтів може мати таку структуру; це схема організації, а не вже реалізований функціонал:
+
+```text
+src/modules/customer/
+├── customer.router.ts
+├── customer.controller.ts
+├── customer.service.ts
+├── customer.repository.ts
+├── customer.schema.ts
+├── customer.types.ts
+└── customer.constants.ts
+```
+
+| Шар | Що робить |
+| --- | --- |
+| `router` | Визначає HTTP-методи та шляхи, підключає валідацію й controller. |
+| `controller` | Отримує валідовані дані запиту, викликає service, задає статус і формує HTTP-відповідь. |
+| `service` | Реалізує бізнес-правила, перевіряє існування записів та працює з repository. Не залежить від Express Request/Response. |
+| `repository` | Виконує Prisma-запити до БД. Не формує HTTP-відповіді. |
+| `schema` | Описує допустимі вхідні дані за допомогою Zod. |
+| `types` | Містить типи даних модуля; типи вхідних даних виводяться із Zod-схем через `z.infer`. |
+| `constants` | Зберігає повідомлення й константи цього домену. |
+
+Шлях запиту: `router → validation → controller → service → repository → Prisma`. Для асинхронних controller використовується `asyncCatch`, а помилки обробляє спільний `errorHandler`.
+
+Новий API-router підключайте в `src/routes/api/index.ts`, маршрути сторінок — у `src/routes/ssr/index.ts`. Усередині модуля використовуйте відносні імпорти, для спільних компонентів — aliases на зразок `#config/prisma.config.js`. У внутрішніх ESM-імпортах указуйте `.js`, хоча вихідні файли мають розширення `.ts`.
+
+### Кореневі файли та налаштування
+
+- `package.json` містить npm-команди, залежності, режим ESM (`type: module`) і aliases у секції `imports`. `dependencies` містить бібліотеки застосунку та Vitest; `devDependencies` — TypeScript, tsx, Nodemon, Prisma CLI і пакети типів.
+- `package-lock.json` фіксує точні версії всього дерева залежностей для відтворюваного встановлення через `npm ci`.
+- `tsconfig.json` задає строгий режим TypeScript і компіляцію тільки `src/**/*.ts` у `dist`.
+- `vitest.config.ts` задає Node.js-середовище, пошук `tests/**/*.test.ts`, явні імпорти функцій Vitest та очищення моків.
+- `tests/tsconfig.json` розширює основний конфіг для перевірки типів тестів і конфігурації Vitest; файли при цьому не генеруються.
+- `.gitignore` виключає локальні налаштування, залежності, кеш npm і результати збірки; `.dockerignore` визначає, що не потрапляє в контекст Docker-збірки.
+- `Dockerfile.dev` і `docker-compose.dev.yaml` описують dev-запуск; `Dockerfile` і `docker-compose.yaml` — production-збірку та запуск із PostgreSQL.
+- `AGENTS.md` містить правила для АІ та повні приклади шарів видаленого демонстраційного модуля. Цей `README.md` пояснює роботу з проєктом розробникам.
+
+## Команди розробника
+
+| Команда | Дія |
+| --- | --- |
+| `npm run start:dev` | Локальний запуск із перезапуском після змін. |
+| `npx tsc --noEmit` | Перевірка типів production-коду. |
+| `npm run build` | Компіляція `src` у `dist`. |
+| `npm start` | Запуск `dist/app.js`; врахуйте обмеження ESM нижче. |
+| `npm test` | Одноразовий запуск усіх юніт-тестів. |
+| `npm run test:watch` | Запуск тестів у watch-режимі. |
+| `npm run test:typecheck` | Перевірка типів тестів і конфігурації Vitest. |
+| `npm run docker:dev` | Збірка та запуск dev-оточення. |
+| `npm run docker:dev:down` | Зупинка dev-оточення зі збереженням даних у volume. |
+| `npm run docker:dev:migrate` | Створення/застосування dev-міграцій у запущеному контейнері застосунку. |
+| `npm run docker:prod` | Збірка та запуск production-оточення у background. |
+| `npm run docker:prod:down` | Зупинка production-оточення зі збереженням даних у volume. |
+
+### База даних
+
+Моделі описуються в `prisma/schema.prisma`, зміни структури зберігаються SQL-міграціями в `prisma/migrations`. Наразі схема без моделей і доменних таблиць, які створюють міграції цього репозиторію. Генерація клієнта сама по собі не видаляє таблиці з раніше створеної БД.
+
+Після додавання моделі для локального застосунку зі доступною dev-БД:
+
+```sh
+npx prisma validate
+npx prisma migrate dev --name add_customers
+npx prisma generate --allow-no-models
+```
+
+Назву міграції обирайте відповідно до зміни. Для контейнерного застосунку використовуйте `npm run docker:dev:migrate -- --name add_customers`. Міграції змінюють БД; не використовуйте dev-команди для production. Production-контейнер при старті виконує `prisma migrate deploy`.
+
+### Юніт-тести
+
+Структура файлів:
+
+```text
+tests/<module>/<module>.<layer>.test.ts
+tests/middleware/<name>.middleware.test.ts
+tests/script/<name>.script.test.ts
+tests/utils/<name>.utils.test.ts
+tests/<category>/<name>.<category>.test.ts
+```
+
+Наприклад: `tests/customer/customer.service.test.ts` або `tests/middleware/validate.middleware.test.ts`. Імпортуйте `describe`, `it`, `expect`, `vi` з `vitest`. У юніт-тестах підміняйте зовнішні залежності: repository для service, service для controller, PrismaClient для repository. Не запускайте сервер і не використовуйте справжню БД.
+
+Конкретний тест запускається так:
+
+```sh
+npm test -- tests/customer/customer.service.test.ts
+```
+
+Vitest виконує TypeScript без перевірки типів, тому окремо запускайте `npm run test:typecheck`.
+
+## Поточні обмеження запуску
+
+- `npm run build` компілює код, але локальний `npm start` потребує узгоджених ESM-імпортів: aliases у `package.json` зараз спрямовані на `src`, а в `app.ts` є імпорт без `.js`. Production Dockerfile змінює aliases на `dist`, але не виправляє імпорти у вихідному коді.
+- Production Dockerfile копіює `src/views`, `src/public` і `src/scripts/assets`. Останнього каталогу наразі немає; порожні каталоги також можуть бути відсутні після клонування. Перед production-збіркою потрібно узгодити ці `COPY` з фактичними assets.
+- SSR-шаблон `error`, який використовує обробник помилок, ще не створено. Сесії використовують стандартне сховище express-session у пам'яті процесу.
+- PrismaClient ініціалізується під час імпорту. При додаванні модулів, які його використовують, забезпечте завантаження `DATABASE_URL` до цієї ініціалізації: поточний `dotenv.config()` у `app.ts` виконується після статичних імпортів.
