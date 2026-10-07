@@ -33,6 +33,8 @@ jobs:
               run: npm run format
             - name: Check formatting
               run: npx prettier --check .
+            - name: Validate OpenAPI specification
+              run: npm run lint:openapi
             - run: npx prisma generate --allow-no-models
             - run: npm run lint
             - run: npx tsc --noEmit
