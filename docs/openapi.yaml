@@ -1,36 +1,17 @@
 openapi: 3.0.3
-
 info:
     title: CRM Authentication API
     version: 0.1.0
-    description: |
-        Draft authentication contract for the CRM frontend and backend.
-
-        This document describes the intended API contract.
-        Documented operations are not necessarily implemented yet.
-
-        Error responses always contain code, message and details.
-        Clients use code for application logic and message for display.
-        Field validation errors use details[].field to identify input fields.
-
-        Fields that the viewer is not authorized to access are omitted
-        entirely from response objects. They are not returned as null,
-        empty strings or masked values. This applies to salary and bonuses.
-
-        Passwords, password hashes and internal secrets are never returned.
-        The accessToken field in the login response is an explicit,
-        endpoint-specific exception for authentication credentials.
+    description: "Authentication API contract. Auth endpoints are not implemented yet. Errors use {
+        success: false, code, message, details }; details is an array of field errors."
     license:
         name: Proprietary
-
 servers:
     - url: /api
       description: API on the current application origin
-
 tags:
     - name: Auth
       description: Account registration, login and logout
-
 paths:
     /auth/register:
         post:
@@ -38,23 +19,9 @@ paths:
                 - Auth
             operationId: register
             summary: Register an account
-            description: |
-                Creates an active account with the OWNER role.
-                Account status and role are assigned by the server.
-                The user can sign in immediately through POST /auth/login.
-
-                Registration does not sign the user in automatically.
-                No access token or authentication cookie is issued.
-
-                The request accepts only name, email and password.
-                The client cannot assign roles, permissions or account status.
-                Additional request properties are rejected.
-
-                This endpoint is public. Authentication cookies are ignored.
-
-                The 401 and 404 responses are reserved entries from the
-                required shared error catalog. They are not account lookup
-                outcomes in the normal registration flow.
+            description:
+                Creates an account. Sign in separately after registration. Existing authentication
+                cookies are ignored.
             security: []
             requestBody:
                 required: true
@@ -62,13 +29,9 @@ paths:
                     application/json:
                         schema:
                             $ref: "#/components/schemas/RegisterRequest"
-                        example:
-                            name: Olena Kovalenko
-                            email: olena@example.com
-                            password: ExamplePassword123!
             responses:
                 "201":
-                    description: Active account created with the OWNER role. The user must sign in separately.
+                    description: Account created.
                     content:
                         application/json:
                             schema:
@@ -81,7 +44,8 @@ paths:
                                 properties:
                                     success:
                                         type: boolean
-                                        enum: [true]
+                                        enum:
+                                            - true
                                     message:
                                         type: string
                                         enum:
@@ -97,51 +61,23 @@ paths:
                                     email: olena@example.com
                 "400":
                     $ref: "#/components/responses/BadRequest"
-                "401":
-                    $ref: "#/components/responses/Unauthorized"
                 "403":
                     $ref: "#/components/responses/Forbidden"
-                "404":
-                    $ref: "#/components/responses/NotFound"
                 "409":
                     $ref: "#/components/responses/RegistrationConflict"
                 "422":
-                    $ref: "#/components/responses/RegistrationValidationError"
+                    $ref: "#/components/responses/ValidationError"
                 "429":
                     $ref: "#/components/responses/TooManyAttempts"
-
     /auth/login:
         post:
             tags:
                 - Auth
             operationId: login
             summary: Sign in
-            description: |
-                Authenticates the account and issues an access token.
-
-                Returns the token in the JSON body and sets the same token
-                in the crm_access_token HttpOnly cookie.
-                Token lifetime and cookie Max-Age are 3600 seconds.
-
-                Browser clients authenticate subsequent requests using
-                the cookie. They must not persist the JSON accessToken
-                in localStorage or sessionStorage.
-
-                HttpOnly protects access to the cookie itself.
-                The accessToken returned in JSON remains readable by
-                JavaScript and must be treated as sensitive data.
-
-                This endpoint is public. Existing authentication cookies,
-                including expired cookies, do not prevent a new login.
-
-                Incorrect email, incorrect password, missing account and
-                deactivated account all return the same 401 UNAUTHORIZED
-                response with the message "Invalid email or password."
-                and an empty details array.
-
-                The 404 and 409 responses are reserved entries from the
-                required shared error catalog. A missing account never
-                produces 404, and an existing session does not produce 409.
+            description:
+                Signs in and sets the authentication cookie. No token is returned in JSON. Existing
+                cookies do not prevent login.
             security: []
             requestBody:
                 required: true
@@ -149,78 +85,52 @@ paths:
                     application/json:
                         schema:
                             $ref: "#/components/schemas/LoginRequest"
-                        example:
-                            email: olena@example.com
-                            password: ExamplePassword123!
             responses:
                 "200":
                     description: Signed in. The authentication cookie is set.
                     headers:
                         Set-Cookie:
                             required: true
-                            description: |
-                                Sets the authentication token.
-                                Production uses Secure, HttpOnly,
-                                SameSite=Lax, Path=/api and Max-Age=3600.
-                                Domain is omitted, creating a host-only cookie.
-                                Secure may be omitted only for local HTTP development.
+                            description:
+                                Sets the HttpOnly authentication cookie for 3600 seconds. Secure is omitted only for
+                                local HTTP development.
                             schema:
                                 type: string
-                            example: "crm_access_token=example-access-token-not-a-real-credential; Path=/api; Max-Age=3600; HttpOnly; Secure; SameSite=Lax"
+                            example:
+                                crm_access_token=example-access-token-not-a-real-credential; Path=/api; Max-Age=3600;
+                                HttpOnly; Secure; SameSite=Lax
                         Cache-Control:
                             required: true
-                            description: Prevents storage of the token-bearing response.
+                            description: Do not cache the response.
                             schema:
                                 type: string
-                                enum: [no-store]
+                                enum:
+                                    - no-store
                             example: no-store
                     content:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/LoginResponse"
-                            example:
-                                accessToken: example-access-token-not-a-real-credential
-                                expiresIn: 3600
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
                     $ref: "#/components/responses/LoginUnauthorized"
                 "403":
                     $ref: "#/components/responses/Forbidden"
-                "404":
-                    $ref: "#/components/responses/NotFound"
-                "409":
-                    $ref: "#/components/responses/Conflict"
                 "422":
-                    $ref: "#/components/responses/LoginValidationError"
+                    $ref: "#/components/responses/ValidationError"
                 "429":
                     $ref: "#/components/responses/TooManyAttempts"
-
     /auth/logout:
         post:
             tags:
                 - Auth
             operationId: logout
             summary: Sign out
-            description: |
-                Revokes the current access token on the server and clears
-                its cookie. Other tokens are not revoked.
-
-                The request has no body.
-                A successfully parsed JSON body, including {}, produces
-                422 VALIDATION_ERROR with field "$".
-                Malformed JSON produces 400 BAD_REQUEST.
-
-                A missing or invalid token returns 401 UNAUTHORIZED.
-                An expired or revoked token returns 401 TOKEN_STALE.
-                Authentication failures also clear the cookie.
-
-                Repeating logout after the cookie has been cleared returns
-                401 UNAUTHORIZED. The frontend treats this as signed out.
-
-                The 404 and 409 responses are reserved entries from the
-                required shared error catalog. Repeated logout does not
-                produce either status.
+            description:
+                Revokes the current token and clears its cookie. Send no request body. Missing or
+                invalid tokens return UNAUTHORIZED; expired or revoked tokens return TOKEN_STALE.
+                Repeated logout returns UNAUTHORIZED.
             security:
                 - cookieAuth: []
             responses:
@@ -240,7 +150,8 @@ paths:
                                 properties:
                                     success:
                                         type: boolean
-                                        enum: [true]
+                                        enum:
+                                            - true
                                     message:
                                         type: string
                                         enum:
@@ -268,67 +179,39 @@ paths:
                                     $ref: "#/components/examples/TokenStale"
                 "403":
                     $ref: "#/components/responses/Forbidden"
-                "404":
-                    $ref: "#/components/responses/NotFound"
-                "409":
-                    $ref: "#/components/responses/Conflict"
-                "422":
-                    $ref: "#/components/responses/LogoutValidationError"
                 "429":
                     $ref: "#/components/responses/TooManyAttempts"
-
 components:
     securitySchemes:
         cookieAuth:
             type: apiKey
             in: cookie
             name: crm_access_token
-            description: |
-                Access token issued by POST /auth/login.
-                The cookie value is the same token returned as accessToken.
+            description: >-
+                Token transport: cookie only; no token in JSON or Authorization headers.
 
-                Production attributes:
-                HttpOnly; Secure; SameSite=Lax; Path=/api; Max-Age=3600.
-                Domain is omitted.
-                Secure may be omitted only for local HTTP development.
+                HttpOnly; Secure; SameSite=Lax; Path=/api; Max-Age=3600; no Domain attribute.
 
-                The token lifetime is 3600 seconds.
-                Expiry is absolute, not extended by ordinary API requests.
-                No refresh-token endpoint is defined in this contract.
-                After expiration the user must sign in again.
+                Secure is omitted only for local HTTP development. expiresIn is in seconds.
 
-                Fetch clients use credentials: "include".
-                Axios clients use withCredentials: true.
+                Use Fetch credentials: include or Axios withCredentials: true.
 
-                This draft targets a same-site frontend and API.
-                A cross-site deployment requires revisiting SameSite and
-                CSRF protection before implementation.
+                Same-site deployment. Cross-origin requests require an explicitly allowed origin and
+                credentialed CORS.
 
-                For cross-origin requests, the server must explicitly allow
-                the frontend origin and credentials. A wildcard origin
-                cannot be used with credentialed requests.
+                All auth POST requests require an allowed Origin, or an allowed Referer if Origin is
+                absent; otherwise return 403.
 
-                State-changing browser requests require an allowed Origin.
-                When Origin is absent, an allowed Referer is required.
-                Requests with neither header, or with a disallowed origin,
-                receive 403 FORBIDDEN. Non-browser clients must supply an
-                allowed Origin. This policy also applies to login and register.
-
-                Browser requests use the cookie rather than an Authorization
-                header. Swagger UI must rely on a browser-managed cookie;
-                its Authorize dialog cannot manually set an HttpOnly cookie.
-
+                Expiration is absolute. Sign in again after expiry.
     headers:
         ClearAuthCookie:
             required: true
-            description: |
-                Expires the authentication cookie using the same name,
-                Path and host-only scope used when issuing it.
-                Secure may be omitted only for local HTTP development.
+            description:
+                Clears the same host-only cookie using Path=/api and Max-Age=0. Secure is omitted only
+                for local HTTP development.
             schema:
                 type: string
-            example: "crm_access_token=; Path=/api; Max-Age=0; HttpOnly; Secure; SameSite=Lax"
-
+            example: crm_access_token=; Path=/api; Max-Age=0; HttpOnly; Secure; SameSite=Lax
     schemas:
         PublicUser:
             type: object
@@ -347,28 +230,12 @@ components:
                 email:
                     type: string
                     format: email
-            example:
-                id: 550e8400-e29b-41d4-a716-446655440000
-                name: Olena Kovalenko
-                email: olena@example.com
-
         RegisterRequest:
             type: object
             additionalProperties: false
-            description: |
-                All fields are required and must be strings.
-                Null values and additional properties are rejected.
-
-                Before validation, trim leading and trailing whitespace
-                from name and email, then lowercase email.
-                Do not modify password.
-
-                String length limits apply after normalization.
-                Length is measured in Unicode code points.
-                Password additionally has a maximum UTF-8 size of 72 bytes.
-
-                Invalid fields produce 422 VALIDATION_ERROR.
-                The client cannot assign roles or account status.
+            description:
+                Required strings; extra fields rejected. Trim name/email and lowercase email before
+                validation. Do not alter passwords.
             required:
                 - name
                 - email
@@ -378,68 +245,33 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 100
-                    description: |
-                        Display name with leading and trailing whitespace removed.
-                        Preserve internal spaces and letter case.
+                    description: Trim outer whitespace; preserve internal spaces.
                 email:
-                    type: string
-                    format: email
-                    maxLength: 254
-                    description: |
-                        Email address after trimming and lowercasing.
-                        Use this normalized value for account lookup and uniqueness.
+                    $ref: "#/components/schemas/Email"
                 password:
-                    type: string
-                    format: password
-                    minLength: 12
-                    maxLength: 72
-                    writeOnly: true
-                    description: |
-                        Between 12 and 72 Unicode code points, inclusive,
-                        and at most 72 bytes when encoded as UTF-8.
-                        Do not trim, lowercase, normalize or truncate.
-                        No additional character-composition rules apply.
+                    allOf:
+                        - $ref: "#/components/schemas/Password"
+                        - type: string
+                          minLength: 12
+                    description: 12-72 Unicode code points and at most 72 UTF-8 bytes.
             example:
                 name: Olena Kovalenko
                 email: olena@example.com
                 password: ExamplePassword123!
-
         LoginRequest:
             type: object
             additionalProperties: false
-            description: |
-                Both fields are required and must be strings.
-                Null values and additional properties are rejected.
-
-                Trim and lowercase email before validation and lookup.
-                Do not modify password.
-
-                Login does not enforce the registration minimum password
-                length. A non-empty password within the size limits is
-                checked against the stored credentials.
-
-                Invalid request fields produce 422 VALIDATION_ERROR.
-                Validly structured but incorrect credentials produce the
-                generic 401 UNAUTHORIZED response.
+            description:
+                Required strings; extra fields rejected. Trim and lowercase email. Do not alter
+                passwords.
             required:
                 - email
                 - password
             properties:
                 email:
-                    type: string
-                    format: email
-                    maxLength: 254
-                    description: Email address after trimming and lowercasing.
+                    $ref: "#/components/schemas/Email"
                 password:
-                    type: string
-                    format: password
-                    minLength: 1
-                    maxLength: 72
-                    writeOnly: true
-                    description: |
-                        Non-empty password, at most 72 Unicode code points
-                        and at most 72 bytes when encoded as UTF-8.
-                        Do not trim, lowercase, normalize or truncate.
+                    $ref: "#/components/schemas/Password"
             example:
                 email: olena@example.com
                 password: ExamplePassword123!
@@ -447,29 +279,16 @@ components:
             type: object
             additionalProperties: false
             required:
-                - accessToken
                 - expiresIn
             properties:
-                accessToken:
-                    type: string
-                    minLength: 1
-                    readOnly: true
-                    description: |
-                        Access token issued after successful authentication.
-                        Clients must treat its contents as opaque.
-                        Its presence does not imply a specific token format,
-                        such as JWT.
                 expiresIn:
                     type: integer
-                    enum: [3600]
+                    enum:
+                        - 3600
                     readOnly: true
-                    description: |
-                        Token lifetime in seconds from issuance.
-                        Cookie Max-Age is also 3600 seconds.
+                    description: Token lifetime in seconds; equals cookie Max-Age.
             example:
-                accessToken: example-access-token-not-a-real-credential
                 expiresIn: 3600
-
         ErrorDetail:
             type: object
             additionalProperties: false
@@ -480,11 +299,7 @@ components:
                 field:
                     type: string
                     minLength: 1
-                    description: |
-                        Request field name, such as name, email or password.
-                        Nested fields use dot notation.
-                        The reserved value "$" identifies the entire request
-                        body and must be displayed as a form-level error.
+                    description: Request field name. Unknown fields are displayed as form-level errors.
                 message:
                     type: string
                     minLength: 1
@@ -492,15 +307,19 @@ components:
             example:
                 field: email
                 message: Enter a valid email address.
-
         ErrorResponse:
             type: object
             additionalProperties: false
             required:
+                - success
                 - code
                 - message
                 - details
             properties:
+                success:
+                    type: boolean
+                    enum:
+                        - false
                 code:
                     type: string
                     description: Stable machine-readable error code.
@@ -509,7 +328,6 @@ components:
                         - UNAUTHORIZED
                         - TOKEN_STALE
                         - FORBIDDEN
-                        - NOT_FOUND
                         - CONFLICT
                         - VALIDATION_ERROR
                         - TOO_MANY_ATTEMPTS
@@ -519,18 +337,26 @@ components:
                     description: Message suitable for direct display to the user.
                 details:
                     type: array
-                    description: |
-                        Field-level validation errors.
-                        An empty array is returned when there are no
-                        field-level details.
-                        Submitted passwords and tokens must never be echoed.
+                    description: Field errors; empty when no field details apply. Never echo credentials.
                     items:
                         $ref: "#/components/schemas/ErrorDetail"
             example:
                 code: BAD_REQUEST
                 message: Invalid request.
                 details: []
-
+                success: false
+        Email:
+            type: string
+            format: email
+            maxLength: 254
+            description: "Trim and lowercase. Invalid format: Enter a valid email address."
+        Password:
+            type: string
+            format: password
+            minLength: 1
+            maxLength: 72
+            writeOnly: true
+            description: "Do not modify or truncate. Maximum 72 UTF-8 bytes. Empty: Password is required."
     examples:
         BadRequest:
             summary: Malformed request
@@ -538,63 +364,43 @@ components:
                 code: BAD_REQUEST
                 message: Invalid request.
                 details: []
-
+                success: false
         Unauthorized:
             summary: Missing or invalid authentication
             value:
                 code: UNAUTHORIZED
                 message: Authentication is required.
                 details: []
-
+                success: false
         InvalidCredentials:
             summary: Generic login failure
-            description: |
-                The exact same response is used for an incorrect email,
-                incorrect password, missing account or deactivated account.
-                Neither message nor details reveals which condition occurred.
+            description: Identical for wrong email/password, missing account and deactivated account.
             value:
                 code: UNAUTHORIZED
                 message: Invalid email or password.
                 details: []
-
+                success: false
         TokenStale:
-            summary: Token is no longer accepted
+            summary: Expired or revoked token
             value:
                 code: TOKEN_STALE
                 message: Your session is no longer valid. Please sign in again.
                 details: []
-
+                success: false
         Forbidden:
             summary: Operation is not allowed
             value:
                 code: FORBIDDEN
                 message: You do not have permission to perform this action.
                 details: []
-
-        NotFound:
-            summary: Requested resource was not found
-            description: |
-                This response must not be used to report a missing account
-                during login. Login uses the generic InvalidCredentials response.
-            value:
-                code: NOT_FOUND
-                message: The requested resource was not found.
-                details: []
-
-        Conflict:
-            summary: Request conflicts with the current state
-            value:
-                code: CONFLICT
-                message: The request conflicts with the current state.
-                details: []
-
+                success: false
         EmailAlreadyRegistered:
             summary: Email address is already registered
             value:
                 code: CONFLICT
                 message: An account with this email already exists.
                 details: []
-
+                success: false
         ValidationError:
             summary: Request field validation failed
             value:
@@ -603,126 +409,17 @@ components:
                 details:
                     - field: email
                       message: Enter a valid email address.
+                success: false
         TooManyAttempts:
             summary: Request rate limit exceeded
             value:
                 code: TOO_MANY_ATTEMPTS
                 message: Too many attempts. Please try again later.
                 details: []
-
+                success: false
     responses:
-        LoginValidationError:
-            description: |
-                The login request contains valid JSON, but its fields
-                fail validation.
-
-                Missing body, malformed JSON or a non-object JSON root
-                produces 400 BAD_REQUEST.
-                An empty object produces 422 with missing-field errors.
-
-                Return at most one error per field.
-                Apply checks in this order:
-                missing field, incorrect type, required value,
-                length limit, UTF-8 byte limit, email format.
-                Skip checks that do not apply to the field.
-
-                Trim and lowercase email before checking its value.
-                Do not modify password.
-
-                Exact field messages:
-
-                email:
-                - Missing or empty after trimming: "Email is required."
-                - Wrong type, including null: "Email must be a string."
-                - More than 254 code points: "Email must be at most 254 characters."
-                - Invalid format: "Enter a valid email address."
-
-                password:
-                - Missing or empty: "Password is required."
-                - Wrong type, including null: "Password must be a string."
-                - More than 72 code points: "Password must be at most 72 characters."
-                - UTF-8 size above 72 bytes:
-                  "Password must be at most 72 bytes in UTF-8."
-
-                Additional properties:
-                - Use the property name as field.
-                - Message: "This field is not allowed."
-
-                Clients must map details by field, not by array position.
-                Unknown field names must be displayed as form-level errors.
-                Never include submitted values in error messages.
-
-                A non-empty password within the size limits proceeds to
-                credential verification regardless of registration minimum
-                length. Incorrect credentials then produce 401, not 422.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        invalidEmail:
-                            $ref: "#/components/examples/ValidationError"
-                        missingLoginFields:
-                            summary: Login request is an empty object
-                            value:
-                                code: VALIDATION_ERROR
-                                message: Please correct the highlighted fields.
-                                details:
-                                    - field: email
-                                      message: Email is required.
-                                    - field: password
-                                      message: Password is required.
-                        invalidPasswordType:
-                            summary: Password is not a string
-                            value:
-                                code: VALIDATION_ERROR
-                                message: Please correct the highlighted fields.
-                                details:
-                                    - field: password
-                                      message: Password must be a string.
-                        unexpectedField:
-                            summary: Login request contains an additional property
-                            value:
-                                code: VALIDATION_ERROR
-                                message: Please correct the highlighted fields.
-                                details:
-                                    - field: rememberMe
-                                      message: This field is not allowed.
-
-        LogoutValidationError:
-            description: |
-                Logout does not accept a request body.
-                Send the request with no body, not an empty JSON object.
-
-                Any successfully parsed JSON body, including an empty object,
-                array, scalar or null, produces 422 VALIDATION_ERROR.
-                Malformed JSON produces 400 BAD_REQUEST.
-
-                The field value "$" identifies an error for the entire body.
-                Clients must display it as a form-level or operation-level
-                error rather than attach it to an input.
-
-                A rejected request does not revoke the token or clear
-                the authentication cookie.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        unexpectedBody:
-                            summary: Logout request contains a JSON body
-                            value:
-                                code: VALIDATION_ERROR
-                                message: Please correct the highlighted fields.
-                                details:
-                                    - field: "$"
-                                      message: Request body is not allowed.
-
         BadRequest:
-            description: |
-                The request cannot be parsed or has an invalid transport-level
-                structure, for example malformed JSON.
-                Field validation failures use 422 instead.
+            description: Missing or malformed JSON, or a non-object body for register/login.
             content:
                 application/json:
                     schema:
@@ -730,22 +427,10 @@ components:
                     examples:
                         badRequest:
                             $ref: "#/components/examples/BadRequest"
-
-        Unauthorized:
-            description: Authentication is missing or invalid.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        unauthorized:
-                            $ref: "#/components/examples/Unauthorized"
-
         LoginUnauthorized:
-            description: |
-                Invalid credentials or an unavailable account.
-                Incorrect email, incorrect password, missing account and
-                deactivated account produce the exact same response.
+            description:
+                Wrong email, wrong password, missing account and deactivated account all return this
+                identical response.
             content:
                 application/json:
                     schema:
@@ -753,9 +438,8 @@ components:
                     examples:
                         invalidCredentials:
                             $ref: "#/components/examples/InvalidCredentials"
-
         Forbidden:
-            description: The operation is not allowed.
+            description: Origin/Referer is missing or not allowed.
             content:
                 application/json:
                     schema:
@@ -763,31 +447,8 @@ components:
                     examples:
                         forbidden:
                             $ref: "#/components/examples/Forbidden"
-
-        NotFound:
-            description: |
-                The requested resource was not found.
-                This response does not indicate that a login account is missing.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        notFound:
-                            $ref: "#/components/examples/NotFound"
-
-        Conflict:
-            description: The request conflicts with the current state.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        conflict:
-                            $ref: "#/components/examples/Conflict"
-
         RegistrationConflict:
-            description: An account with this email already exists.
+            description: Email is already registered.
             content:
                 application/json:
                     schema:
@@ -795,92 +456,8 @@ components:
                     examples:
                         emailAlreadyRegistered:
                             $ref: "#/components/examples/EmailAlreadyRegistered"
-
-        RegistrationValidationError:
-            description: |
-                The request contains valid JSON, but its fields fail validation.
-
-                For registration:
-                - Missing body, malformed JSON or a non-object JSON root
-                  produces 400 BAD_REQUEST.
-                - An empty object produces 422 with missing-field errors.
-                - Missing fields, nulls, wrong types, invalid values and
-                  additional properties produce 422 VALIDATION_ERROR.
-
-                Return at most one error per field.
-                Apply checks in this order:
-                missing field, incorrect type, required value,
-                length limit, UTF-8 byte limit, email format.
-                Skip checks that do not apply to that field or operation.
-
-                Exact field messages:
-
-                name:
-                - Missing or empty after trimming: "Name is required."
-                - Wrong type, including null: "Name must be a string."
-                - More than 100 code points: "Name must be at most 100 characters."
-
-                email:
-                - Missing or empty after trimming: "Email is required."
-                - Wrong type, including null: "Email must be a string."
-                - More than 254 code points: "Email must be at most 254 characters."
-                - Invalid format: "Enter a valid email address."
-
-                password:
-                - Missing or empty: "Password is required."
-                - Wrong type, including null: "Password must be a string."
-                - Registration length outside 12-72 code points:
-                  "Password must be between 12 and 72 characters."
-                - UTF-8 size above 72 bytes:
-                  "Password must be at most 72 bytes in UTF-8."
-
-                Additional properties:
-                - Use the property name as field.
-                - Message: "This field is not allowed."
-
-                Clients must map details by field, not by array position.
-                Unknown field names must be displayed as form-level errors.
-                Never include submitted values in error messages.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        invalidEmail:
-                            $ref: "#/components/examples/ValidationError"
-                        missingRegistrationFields:
-                            summary: Registration request is an empty object
-                            value:
-                                code: VALIDATION_ERROR
-                                message: Please correct the highlighted fields.
-                                details:
-                                    - field: name
-                                      message: Name is required.
-                                    - field: email
-                                      message: Email is required.
-                                    - field: password
-                                      message: Password is required.
-                        shortRegistrationPassword:
-                            summary: Registration password has fewer than 12 characters
-                            value:
-                                code: VALIDATION_ERROR
-                                message: Please correct the highlighted fields.
-                                details:
-                                    - field: password
-                                      message: Password must be between 12 and 72 characters.
-                        unexpectedField:
-                            summary: Request attempts to supply a role
-                            value:
-                                code: VALIDATION_ERROR
-                                message: Please correct the highlighted fields.
-                                details:
-                                    - field: role
-                                      message: This field is not allowed.
         TooManyAttempts:
-            description: |
-                Too many attempts were made.
-                Retry-After specifies the number of seconds to wait
-                before making another attempt.
+            description: Request limit exceeded. Wait Retry-After seconds.
             headers:
                 Retry-After:
                     description: Waiting time in seconds.
@@ -896,3 +473,14 @@ components:
                     examples:
                         tooManyAttempts:
                             $ref: "#/components/examples/TooManyAttempts"
+        ValidationError:
+            description:
+                Invalid fields or extra properties. An empty object reports required fields. Map
+                details by field, not array position.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        invalidEmail:
+                            $ref: "#/components/examples/ValidationError"

@@ -9,6 +9,7 @@
 - `src/routes/api/index.ts` — реєстр API-модулів під `/api`; підключає документацію `/docs`.
 - `src/modules/docs/docs.router.ts` — Swagger UI на `/api/docs`; специфікація доступна на `/api/docs/openapi.yaml`. Try it out вимкнено, поки auth не реалізовано.
 - `docs/openapi.yaml` — чернетка контракту auth; єдине джерело для Swagger UI. Production Dockerfile копіює каталог `docs` у runtime-образ.
+- Контракт auth у Swagger: помилки `{ success: false, code, message, details }`; токен лише в HttpOnly cookie, JSON login містить `expiresIn`. Специфікація описує лише застосовні відповіді; реалізацію auth ще не додано.
 - `src/routes/ssr/index.ts` — реєстр SSR-маршрутів під `/`, наразі порожній.
 - `src/modules/` — каталог доменних модулів. Демонстраційний модуль видалено; повні приклади семи його шарів збережено лише нижче в цьому документі.
 - `src/config/prisma.config.ts` — спільний PrismaClient; під час імпорту перевіряє з'єднання та логує запити.
