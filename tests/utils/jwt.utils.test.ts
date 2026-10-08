@@ -26,7 +26,7 @@ describe("generateToken", () => {
         const verified = verifyToken(token);
 
         const after = Math.floor(Date.now() / 1000);
-        
+
         expect(verified.userId).toBe(payload.userId);
         expect(verified.role).toBe(payload.role);
         expect(verified.exp).toBeGreaterThanOrEqual(before + 3600);
