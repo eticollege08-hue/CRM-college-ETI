@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import nunjucks from "nunjucks";
 import dotenv from "dotenv";
-import session from "express-session";
+import cookieParser from "cookie-parser";
 
 import apiRoutes from "#routes/api/index.js";
 import ssrRoutes from "#routes/ssr/index.js";
@@ -16,19 +16,7 @@ app.set("trust proxy", 1);
 
 app.use(express.json());
 app.use(express.static(path.join(process.cwd(), "src", "public")));
-app.use(
-    session({
-        secret: process.env.SESSION_SECRET!,
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 24 * 60 * 60 * 1000,
-        },
-    }),
-);
+app.use(cookieParser());
 
 const viewsPath = path.join(process.cwd(), "src", "views");
 
