@@ -1,0 +1,13 @@
+extends:
+    - minimal
+
+rules:
+    no-unresolved-refs: error
+    no-unused-components: error
+    no-invalid-media-type-examples: error
+    no-required-schema-properties-undefined: error
+    operation-operationId: error
+    operation-operationId-unique: error
+    operation-summary: error
+    operation-2xx-response: error
+    security-defined: error

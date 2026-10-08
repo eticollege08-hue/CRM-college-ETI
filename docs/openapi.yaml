@@ -1,0 +1,486 @@
+openapi: 3.0.3
+info:
+    title: CRM Authentication API
+    version: 0.1.0
+    description: "Authentication API contract. Auth endpoints are not implemented yet. Errors use {
+        success: false, code, message, details }; details is an array of field errors."
+    license:
+        name: Proprietary
+servers:
+    - url: /api
+      description: API on the current application origin
+tags:
+    - name: Auth
+      description: Account registration, login and logout
+paths:
+    /auth/register:
+        post:
+            tags:
+                - Auth
+            operationId: register
+            summary: Register an account
+            description:
+                Creates an account. Sign in separately after registration. Existing authentication
+                cookies are ignored.
+            security: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/RegisterRequest"
+            responses:
+                "201":
+                    description: Account created.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: false
+                                required:
+                                    - success
+                                    - message
+                                    - user
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                                        enum:
+                                            - Account created successfully.
+                                    user:
+                                        $ref: "#/components/schemas/PublicUser"
+                            example:
+                                success: true
+                                message: Account created successfully.
+                                user:
+                                    id: 550e8400-e29b-41d4-a716-446655440000
+                                    name: Olena Kovalenko
+                                    email: olena@example.com
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "409":
+                    $ref: "#/components/responses/RegistrationConflict"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "429":
+                    $ref: "#/components/responses/TooManyAttempts"
+    /auth/login:
+        post:
+            tags:
+                - Auth
+            operationId: login
+            summary: Sign in
+            description:
+                Signs in and sets the authentication cookie. No token is returned in JSON. Existing
+                cookies do not prevent login.
+            security: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/LoginRequest"
+            responses:
+                "200":
+                    description: Signed in. The authentication cookie is set.
+                    headers:
+                        Set-Cookie:
+                            required: true
+                            description:
+                                Sets the HttpOnly authentication cookie for 3600 seconds. Secure is omitted only for
+                                local HTTP development.
+                            schema:
+                                type: string
+                            example:
+                                crm_access_token=example-access-token-not-a-real-credential; Path=/api; Max-Age=3600;
+                                HttpOnly; Secure; SameSite=Lax
+                        Cache-Control:
+                            required: true
+                            description: Do not cache the response.
+                            schema:
+                                type: string
+                                enum:
+                                    - no-store
+                            example: no-store
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/LoginResponse"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/LoginUnauthorized"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "429":
+                    $ref: "#/components/responses/TooManyAttempts"
+    /auth/logout:
+        post:
+            tags:
+                - Auth
+            operationId: logout
+            summary: Sign out
+            description:
+                Revokes the current token and clears its cookie. Send no request body. Missing or
+                invalid tokens return UNAUTHORIZED; expired or revoked tokens return TOKEN_STALE.
+                Repeated logout returns UNAUTHORIZED.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Current token revoked and cookie cleared.
+                    headers:
+                        Set-Cookie:
+                            $ref: "#/components/headers/ClearAuthCookie"
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: false
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                                        enum:
+                                            - Signed out successfully.
+                            example:
+                                success: true
+                                message: Signed out successfully.
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    description: |
+                        Authentication is missing, invalid, expired or revoked.
+                        The authentication cookie is cleared.
+                    headers:
+                        Set-Cookie:
+                            $ref: "#/components/headers/ClearAuthCookie"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                            examples:
+                                unauthorized:
+                                    $ref: "#/components/examples/Unauthorized"
+                                tokenStale:
+                                    $ref: "#/components/examples/TokenStale"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "429":
+                    $ref: "#/components/responses/TooManyAttempts"
+components:
+    securitySchemes:
+        cookieAuth:
+            type: apiKey
+            in: cookie
+            name: crm_access_token
+            description: >-
+                Token transport: cookie only; no token in JSON or Authorization headers.
+
+                HttpOnly; Secure; SameSite=Lax; Path=/api; Max-Age=3600; no Domain attribute.
+
+                Secure is omitted only for local HTTP development. expiresIn is in seconds.
+
+                Use Fetch credentials: include or Axios withCredentials: true.
+
+                Same-site deployment. Cross-origin requests require an explicitly allowed origin and
+                credentialed CORS.
+
+                All auth POST requests require an allowed Origin, or an allowed Referer if Origin is
+                absent; otherwise return 403.
+
+                Expiration is absolute. Sign in again after expiry.
+    headers:
+        ClearAuthCookie:
+            required: true
+            description:
+                Clears the same host-only cookie using Path=/api and Max-Age=0. Secure is omitted only
+                for local HTTP development.
+            schema:
+                type: string
+            example: crm_access_token=; Path=/api; Max-Age=0; HttpOnly; Secure; SameSite=Lax
+    schemas:
+        PublicUser:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - name
+                - email
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                name:
+                    type: string
+                email:
+                    type: string
+                    format: email
+        RegisterRequest:
+            type: object
+            additionalProperties: false
+            description:
+                Required strings; extra fields rejected. Trim name/email and lowercase email before
+                validation. Do not alter passwords.
+            required:
+                - name
+                - email
+                - password
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                    description: Trim outer whitespace; preserve internal spaces.
+                email:
+                    $ref: "#/components/schemas/Email"
+                password:
+                    allOf:
+                        - $ref: "#/components/schemas/Password"
+                        - type: string
+                          minLength: 12
+                    description: 12-72 Unicode code points and at most 72 UTF-8 bytes.
+            example:
+                name: Olena Kovalenko
+                email: olena@example.com
+                password: ExamplePassword123!
+        LoginRequest:
+            type: object
+            additionalProperties: false
+            description:
+                Required strings; extra fields rejected. Trim and lowercase email. Do not alter
+                passwords.
+            required:
+                - email
+                - password
+            properties:
+                email:
+                    $ref: "#/components/schemas/Email"
+                password:
+                    $ref: "#/components/schemas/Password"
+            example:
+                email: olena@example.com
+                password: ExamplePassword123!
+        LoginResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - expiresIn
+            properties:
+                expiresIn:
+                    type: integer
+                    enum:
+                        - 3600
+                    readOnly: true
+                    description: Token lifetime in seconds; equals cookie Max-Age.
+            example:
+                expiresIn: 3600
+        ErrorDetail:
+            type: object
+            additionalProperties: false
+            required:
+                - field
+                - message
+            properties:
+                field:
+                    type: string
+                    minLength: 1
+                    description: Request field name. Unknown fields are displayed as form-level errors.
+                message:
+                    type: string
+                    minLength: 1
+                    description: Message suitable for display beside the field.
+            example:
+                field: email
+                message: Enter a valid email address.
+        ErrorResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - code
+                - message
+                - details
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - false
+                code:
+                    type: string
+                    description: Stable machine-readable error code.
+                    enum:
+                        - BAD_REQUEST
+                        - UNAUTHORIZED
+                        - TOKEN_STALE
+                        - FORBIDDEN
+                        - CONFLICT
+                        - VALIDATION_ERROR
+                        - TOO_MANY_ATTEMPTS
+                message:
+                    type: string
+                    minLength: 1
+                    description: Message suitable for direct display to the user.
+                details:
+                    type: array
+                    description: Field errors; empty when no field details apply. Never echo credentials.
+                    items:
+                        $ref: "#/components/schemas/ErrorDetail"
+            example:
+                code: BAD_REQUEST
+                message: Invalid request.
+                details: []
+                success: false
+        Email:
+            type: string
+            format: email
+            maxLength: 254
+            description: "Trim and lowercase. Invalid format: Enter a valid email address."
+        Password:
+            type: string
+            format: password
+            minLength: 1
+            maxLength: 72
+            writeOnly: true
+            description: "Do not modify or truncate. Maximum 72 UTF-8 bytes. Empty: Password is required."
+    examples:
+        BadRequest:
+            summary: Malformed request
+            value:
+                code: BAD_REQUEST
+                message: Invalid request.
+                details: []
+                success: false
+        Unauthorized:
+            summary: Missing or invalid authentication
+            value:
+                code: UNAUTHORIZED
+                message: Authentication is required.
+                details: []
+                success: false
+        InvalidCredentials:
+            summary: Generic login failure
+            description: Identical for wrong email/password, missing account and deactivated account.
+            value:
+                code: UNAUTHORIZED
+                message: Invalid email or password.
+                details: []
+                success: false
+        TokenStale:
+            summary: Expired or revoked token
+            value:
+                code: TOKEN_STALE
+                message: Your session is no longer valid. Please sign in again.
+                details: []
+                success: false
+        Forbidden:
+            summary: Operation is not allowed
+            value:
+                code: FORBIDDEN
+                message: You do not have permission to perform this action.
+                details: []
+                success: false
+        EmailAlreadyRegistered:
+            summary: Email address is already registered
+            value:
+                code: CONFLICT
+                message: An account with this email already exists.
+                details: []
+                success: false
+        ValidationError:
+            summary: Request field validation failed
+            value:
+                code: VALIDATION_ERROR
+                message: Please correct the highlighted fields.
+                details:
+                    - field: email
+                      message: Enter a valid email address.
+                success: false
+        TooManyAttempts:
+            summary: Request rate limit exceeded
+            value:
+                code: TOO_MANY_ATTEMPTS
+                message: Too many attempts. Please try again later.
+                details: []
+                success: false
+    responses:
+        BadRequest:
+            description: Missing or malformed JSON, or a non-object body for register/login.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        badRequest:
+                            $ref: "#/components/examples/BadRequest"
+        LoginUnauthorized:
+            description:
+                Wrong email, wrong password, missing account and deactivated account all return this
+                identical response.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        invalidCredentials:
+                            $ref: "#/components/examples/InvalidCredentials"
+        Forbidden:
+            description: Origin/Referer is missing or not allowed.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        forbidden:
+                            $ref: "#/components/examples/Forbidden"
+        RegistrationConflict:
+            description: Email is already registered.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        emailAlreadyRegistered:
+                            $ref: "#/components/examples/EmailAlreadyRegistered"
+        TooManyAttempts:
+            description: Request limit exceeded. Wait Retry-After seconds.
+            headers:
+                Retry-After:
+                    description: Waiting time in seconds.
+                    required: true
+                    schema:
+                        type: integer
+                        minimum: 1
+                    example: 60
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        tooManyAttempts:
+                            $ref: "#/components/examples/TooManyAttempts"
+        ValidationError:
+            description:
+                Invalid fields or extra properties. An empty object reports required fields. Map
+                details by field, not array position.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        invalidEmail:
+                            $ref: "#/components/examples/ValidationError"

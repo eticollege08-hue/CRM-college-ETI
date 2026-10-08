@@ -6,7 +6,10 @@
 
 - Стек: Node.js (Docker використовує 24), TypeScript із `strict: true`, ESM (`"type": "module"`), Express 5, Zod 4, Prisma 5, PostgreSQL 17, Nunjucks, express-session. Точні версії встановлення — у `package-lock.json`.
 - `src/app.ts` — налаштування Express, JSON, статичних файлів, сесій, Nunjucks, підключення маршрутів, останнім — `errorHandler`, запуск на `PORT` або 3000.
-- `src/routes/api/index.ts` — реєстр API-модулів під `/api`; наразі порожній.
+- `src/routes/api/index.ts` — реєстр API-модулів під `/api`; підключає документацію `/docs`.
+- `src/modules/docs/docs.router.ts` — Swagger UI на `/api/docs`; специфікація доступна на `/api/docs/openapi.yaml`. Try it out вимкнено, поки auth не реалізовано.
+- `docs/openapi.yaml` — чернетка контракту auth; єдине джерело для Swagger UI. Production Dockerfile копіює каталог `docs` у runtime-образ.
+- Контракт auth у Swagger: помилки `{ success: false, code, message, details }`; токен лише в HttpOnly cookie, JSON login містить `expiresIn`. Специфікація описує лише застосовні відповіді; реалізацію auth ще не додано.
 - `src/routes/ssr/index.ts` — реєстр SSR-маршрутів під `/`, наразі порожній.
 - `src/modules/` — каталог доменних модулів. Демонстраційний модуль видалено; повні приклади семи його шарів збережено лише нижче в цьому документі.
 - `src/config/prisma.config.ts` — спільний PrismaClient; під час імпорту перевіряє з'єднання та логує запити.
@@ -119,11 +122,12 @@
 ## ESLint, Prettier і CI
 
 - `npm run lint` — ESLint 9 із JS/TS recommended і eslint-config-prettier. Конфіг: `eslint.config.js`; `dist`, `node_modules`, `coverage` та кеш npm виключено.
+- `npm run lint:openapi` — перевіряє `docs/openapi.yaml` за правилами `redocly.yaml`. Виконується локально після змін контракту та в CI. Перевіряє структуру, посилання, використання компонентів і відповідність прикладів схемам; не замінює перевірку бізнес-вимог та FE/BE review.
 - `@typescript-eslint/no-explicit-any` і `@typescript-eslint/consistent-type-imports` — errors. Використовуй `unknown` зі звуженням типів та `import type`; не вимикай правила заради проходження CI. Невикористані обов'язкові аргументи middleware позначай префіксом `_`.
 - `npm run format` — Prettier із `.prettierrc`: semi true, singleQuote false, tabWidth 4, trailingComma all, printWidth 100. Виключення — у `.prettierignore`. Для локальної зміни формату можна запускати Prettier тільки для змінених файлів; не переформатовуй сторонній код без потреби.
 - TypeScript зафіксовано в сумісній гілці 6.0: поточний typescript-eslint не підтримує TypeScript 7. Не обходь peer dependencies через force/legacy-peer-deps.
-- CI автоматично форматує PR із гілок цього репозиторію через npm run format; після успішних перевірок комітить зміни у гілку PR. Forks, Dependabot і push у main/staging проходять лише prettier --check. Не додавай pull_request_target чи force push для обходу обмежень. Після коміту бота синхронізуй локальну гілку.
-- `.github/workflows/ci.yml` запускається для push і pull request у main/staging. Кроки: Node.js 24 → npm ci → генерація Prisma → lint → типи src → типи тестів. Запуск npm test закоментовано до появи тестових файлів; тоді його потрібно ввімкнути.
+- CI автоматично форматує PR із гілок цього репозиторію через npm run format; після успішних перевірок комітить зміни у гілку PR. Forks, Dependabot і push у master/staging проходять лише prettier --check. Не додавай pull_request_target чи force push для обходу обмежень. Після коміту бота синхронізуй локальну гілку.
+- `.github/workflows/ci.yml` запускається для push і pull request у master/staging. Кроки: Node.js 24 → npm ci → генерація Prisma → lint → типи src → типи тестів. Запуск npm test закоментовано до появи тестових файлів; тоді його потрібно ввімкнути.
 
 ## Юніт-тести (Vitest)
 
