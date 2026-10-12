@@ -1,3 +1,4 @@
+import { registerHr } from '#modules/hr/index.js';
 import express from "express";
 import path from "path";
 import nunjucks from "nunjucks";
@@ -28,6 +29,7 @@ nunjucks.configure(viewsPath, {
 
 app.set("view engine", "njk");
 
+registerHr(app);
 app.use("/", ssrRoutes);
 app.use("/api", apiRoutes);
 app.use(errorHandler);
