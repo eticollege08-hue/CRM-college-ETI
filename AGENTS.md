@@ -565,7 +565,7 @@ export default router;
 
 ## Complete Code Examples of the example Module
 
-The complete code for each layer is shown below. This is a learning snapshot of the removed module; do not create its files, routes, or model without an explicit user task. Follow the style rules above in new code, including .js extensions in internal imports.
+The complete code for each layer is shown below. This is a learning snapshot of the removed module; do not create its files, routes , or model without an explicit user task. Follow the style rules above in new code, including .js extensions in internal imports.
 
 ### example.repository.ts
 
