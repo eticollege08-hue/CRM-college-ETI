@@ -1,14 +1,16 @@
+import { AUTH_ERRORS } from "#modules/auth/auth.constants.js";
+
 export const AUTH_MIDDLEWARE_RESPONSES = {
     UNAUTHORIZED: {
         success: false,
-        code: "UNAUTHORIZED",
-        message: "Authentication is required.",
+        code: AUTH_ERRORS.UNAUTHORIZED.code,
+        message: AUTH_ERRORS.UNAUTHORIZED.message,
         details: [],
     },
     TOKEN_STALE: {
         success: false,
-        code: "TOKEN_STALE",
-        message: "Your session is no longer valid. Please sign in again.",
+        code: AUTH_ERRORS.TOKEN_STALE.code,
+        message: AUTH_ERRORS.TOKEN_STALE.message,
         details: [],
     },
 } as const;
