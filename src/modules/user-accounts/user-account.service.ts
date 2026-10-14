@@ -17,12 +17,8 @@ export class UserAccountService {
     ) {}
 
     async create(data: UserAccountCreateInput) {
-<<<<<<< HEAD
-        if (!(await this.employees.getById(data.employeeId))) {
-=======
         const employee = await this.employees.getById(data.employeeId);
         if (!employee) {
->>>>>>> 5cdb2a9 (fix: address review feedback)
             throw new ApiError(
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 USER_ACCOUNT_MESSAGES.EMPLOYEE_NOT_FOUND,

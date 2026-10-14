@@ -7,4 +7,6 @@ export const employeeCreateSchema = z.object({
     position: z.string().trim().min(1).optional(),
 });
 
-export const employeeUpdateSchema = employeeCreateSchema.partial();
+export const employeeUpdateSchema = employeeCreateSchema
+    .extend({ imageId: z.string().trim().min(1).nullable().optional() })
+    .partial();

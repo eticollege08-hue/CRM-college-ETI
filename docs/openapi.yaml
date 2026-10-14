@@ -263,7 +263,7 @@ paths:
                 required: true
                 content:
                     application/json:
-                        schema: { $ref: "#/components/schemas/EmployeeInput" }
+                        schema: { $ref: "#/components/schemas/EmployeeUpdateInput" }
             responses:
                 "200":
                     description: Employee updated.
@@ -360,6 +360,14 @@ components:
             properties:
                 fullName: { type: string, minLength: 1 }
                 imageId: { type: string, minLength: 1 }
+                level: { type: string, minLength: 1 }
+                position: { type: string, minLength: 1 }
+        EmployeeUpdateInput:
+            type: object
+            additionalProperties: false
+            properties:
+                fullName: { type: string, minLength: 1 }
+                imageId: { type: string, minLength: 1, nullable: true }
                 level: { type: string, minLength: 1 }
                 position: { type: string, minLength: 1 }
         PublicUser:
