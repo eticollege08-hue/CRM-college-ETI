@@ -1,11 +1,45 @@
-import { ApiError } from "#utils/error.util.js";
-import { ZodError } from "zod";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { ZodError } from "zod";
 
-import type { Request, Response, NextFunction } from "express";
+import { HttpStatus } from "#constants/http-status.constants.js";
+import { AuthError } from "#modules/auth/auth.error.js";
+import { ApiError } from "#utils/error.util.js";
+
+import type { NextFunction, Request, Response } from "express";
 import type { AnyError, ApiErrorInterface } from "#types/common.types.js";
 
 export const errorHandler = (err: AnyError, req: Request, res: Response, _next: NextFunction) => {
+    if (
+        req.method === "POST" &&
+        /^\/api\/auth\/(?:login|logout)\/?$/i.test(req.path) &&
+        err instanceof SyntaxError &&
+        "type" in err &&
+        err.type === "entity.parse.failed" &&
+        "status" in err &&
+        err.status === HttpStatus.BAD_REQUEST
+    ) {
+        // Parser errors may contain credentials in their message, stack and body.
+        err = new AuthError({ kind: "BAD_REQUEST" });
+    }
+
+    if (err instanceof AuthError) {
+        if (res.headersSent) {
+            return _next(err);
+        }
+
+        res.setHeader("Cache-Control", "no-store");
+
+        if (err.retryAfterSeconds !== undefined) {
+            res.setHeader("Retry-After", String(err.retryAfterSeconds));
+        }
+
+        return res.status(err.status).json({
+            success: false,
+            code: err.code,
+            message: err.message,
+            details: err.details,
+        });
+    }
     const isApiRequest =
         req.path.startsWith("/api") || req.headers.accept?.includes("application/json") || req.xhr;
 

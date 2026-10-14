@@ -4,12 +4,24 @@
 
 ## Швидка карта проєкту
 
+- `errorHandler` перетворює SyntaxError з type=entity.parse.failed і status=400 для POST /api/auth/login, /logout на безпечний AuthError BAD_REQUEST. Оригінальні message, stack і body не передаються у відповідь, логи або наступний обробник у цій гілці. Інші помилки обробляються як раніше.
+- `src/modules/auth/auth.service.ts`, `auth.controller.ts`, `auth.router.ts` — login за email/password та isActive через передані UserAccount/JWT залежності; фабрика router ще не змонтована. Logout перевіряє JWT і лише очищає cookie; відкликання токена немає. Production-екземпляри з відсутніми залежностями не створюються. План підключення — `docs/auth-integration.md`.
+- `src/scripts/auth-seed.script.ts` — підготовлена функція seed для ADMIN_EMAIL/ADMIN_PASSWORD/ADMIN_NAME через InitialAdminStore; атомарне створення Employee+OWNER UserAccount, Prisma-адаптер і db:seed CLI очікують CRM-110. Повторний запуск не змінює існуючі credentials.
+- `src/modules/auth/auth-origin.middleware.ts` — фабрика перевірки джерела auth POST-запитів: точний Origin зі списку AUTH_ALLOWED_ORIGINS; Referer перевіряється лише за відсутності Origin. Відмова — AuthError 403. Конфігурація обов’язкова, читається під час створення middleware після завантаження env. До маршрутів ще не підключено; CORS налаштовується окремо.
+- `src/modules/auth/auth-cookie.util.ts` — встановлення й очищення host-only `crm_access_token`: HttpOnly, SameSite=Lax, Path=/api, 3600 секунд; очищення через Max-Age=0. До маршрутів ще не підключено.
+- `getAuthCookieSecure()` у `src/config/auth.config.ts` — AUTH_COOKIE_SECURE=true за замовчуванням; false дозволено лише за NODE_ENV=development для локального HTTP.
+- `src/modules/auth/auth.constants.ts` і `auth.error.ts` — каталог повідомлень Swagger і AuthError; errorHandler повертає для нього `{ success: false, code, message, details }`, а для 429 додає Retry-After. Звичайний ApiError зберігає попередній формат.
+- `src/config/auth.config.ts` — перевірка `BCRYPT_COST` (12), `LOGIN_MAX_FAILED_ATTEMPTS` (5), `LOGIN_ATTEMPT_WINDOW_SECONDS` (300).
+- `src/modules/auth/auth-rate-limit.service.ts` — in-memory лічильник невдалих входів за email + IP у ковзному часовому вікні. `runAttempt` послідовно виконує перевірки для однакової пари; null означає невдалий вхід із 401, досягнутий ліміт — 429, технічні помилки не збільшують лічильник. Потребує одного спільного екземпляра на процес; до HTTP ще не підключений.
+- `src/utils/password.util.ts` — асинхронне bcrypt-хешування та перевірка паролів із захистом від обрізання понад 72 UTF-8 байти.
+- `src/modules/auth/auth.schema.ts` і `auth.types.ts` — login-валідація, DTO та інтерфейси майбутніх UserAccount/JWT залежностей; публічної реєстрації немає.
+- `tests/auth/auth.schema.test.ts` — юніт-тести auth-схем без БД.
 - Стек: Node.js (Docker використовує 24), TypeScript із `strict: true`, ESM (`"type": "module"`), Express 5, Zod 4, Prisma 5, PostgreSQL 17, Nunjucks, express-session. Точні версії встановлення — у `package-lock.json`.
 - `src/app.ts` — налаштування Express, JSON, статичних файлів, сесій, Nunjucks, підключення маршрутів, останнім — `errorHandler`, запуск на `PORT` або 3000.
 - `src/routes/api/index.ts` — реєстр API-модулів під `/api`; підключає документацію `/docs`.
 - `src/modules/docs/docs.router.ts` — Swagger UI на `/api/docs`; специфікація доступна на `/api/docs/openapi.yaml`. Try it out вимкнено, поки auth не реалізовано.
 - `docs/openapi.yaml` — чернетка контракту auth; єдине джерело для Swagger UI. Production Dockerfile копіює каталог `docs` у runtime-образ.
-- Контракт auth у Swagger: помилки `{ success: false, code, message, details }`; токен лише в HttpOnly cookie, JSON login містить `expiresIn`. Специфікація описує лише застосовні відповіді; реалізацію auth ще не додано.
+- Контракт auth у Swagger: login/logout, помилки `{ success: false, code, message, details }`; JWT лише в HttpOnly cookie, JSON login містить `expiresIn`. employeeId/permVersion та публічна реєстрація не використовуються. Підготовлена реалізація ще не підключена до реальних UserAccount/JWT.
 - `src/routes/ssr/index.ts` — реєстр SSR-маршрутів під `/`, наразі порожній.
 - `src/modules/` — каталог доменних модулів. Демонстраційний модуль видалено; повні приклади семи його шарів збережено лише нижче в цьому документі.
 - `src/config/prisma.config.ts` — спільний PrismaClient; під час імпорту перевіряє з'єднання та логує запити.
@@ -81,7 +93,7 @@
 - Статуси бери з `HttpStatus`. Очікувані бізнес-помилки — `throw new ApiError(status, moduleMessage)` у service; централізоване відображення помилок — у `errorHandler`.
 - Поточний контракт успіху: `{ success: true, <entity> }` або `{ success: true, <entities> }`; для create/update/delete додається `message`. Create — 201; читання/update/delete — 200; delete повертає JSON із повідомленням.
 - Контракт помилки: `{ success: false, message, details? }`; валідаційні `details` мають `{ field, message }`. Не вводь обгортку `data`, інші назви полів або 204 для чинних endpoints без явної задачі.
-- `validateBody` відхиляє порожнє тіло й сам повертає JSON для помилки схеми; `validateParams` також повертає JSON. `errorHandler` підтримує JSON/SSR і коди Prisma P2002, P2003, P2025, P2000, P2005, P2006. Враховуй це при зміні обробки помилок.
+- `validateBody(schema)` зберігає попередню поведінку: порожнє тіло відхиляється, помилки схеми повертаються як JSON із 400. `validateBody(schema, "auth")` передає AuthError у next: відсутнє або не-об’єктне тіло — 400, неправильні/відсутні/зайві поля — 422; `{}` перевіряється схемою. Успішна валідація замінює req.body розібраними даними. `validateParams` не змінено. `errorHandler` підтримує JSON/SSR та коди Prisma P2002, P2003, P2025, P2000, P2005, P2006.
 - Не передавай неперевірене тіло напряму у Prisma. Для нових моделей віддавай лише публічні поля; паролі, токени та внутрішні секрети не повинні потрапляти у відповідь.
 
 ## База даних і конфігурація
@@ -121,7 +133,7 @@
 - `npm run format` — Prettier із `.prettierrc`: semi true, singleQuote false, tabWidth 4, trailingComma all, printWidth 100. Виключення — у `.prettierignore`. Для локальної зміни формату можна запускати Prettier тільки для змінених файлів; не переформатовуй сторонній код без потреби.
 - TypeScript зафіксовано в сумісній гілці 6.0: поточний typescript-eslint не підтримує TypeScript 7. Не обходь peer dependencies через force/legacy-peer-deps.
 - CI автоматично форматує PR із гілок цього репозиторію через npm run format; після успішних перевірок комітить зміни у гілку PR. Forks, Dependabot і push у master/staging проходять лише prettier --check. Не додавай pull_request_target чи force push для обходу обмежень. Після коміту бота синхронізуй локальну гілку.
-- `.github/workflows/ci.yml` запускається для push і pull request у master/staging. Кроки: Node.js 24 → npm ci → генерація Prisma → lint → типи src → типи тестів. Запуск npm test закоментовано до появи тестових файлів; тоді його потрібно ввімкнути.
+- `.github/workflows/ci.yml` запускається для push і pull request у master/staging. Кроки: Node.js 24 → npm ci → генерація Prisma → lint → типи src → типи тестів. Юніт-тести запускаються через npm test.
 
 ## Юніт-тести (Vitest)
 

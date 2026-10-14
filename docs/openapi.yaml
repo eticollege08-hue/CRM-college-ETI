@@ -1,9 +1,10 @@
 openapi: 3.0.3
 info:
     title: CRM Authentication API
-    version: 0.1.0
-    description: "Authentication API contract. Auth endpoints are not implemented yet. Errors use {
-        success: false, code, message, details }; details is an array of field errors."
+    version: 0.2.0
+    description: >-
+        Prepared login/logout contract; runtime integration awaits UserAccount and CRM-102.2.
+        Public self-registration is unavailable. Errors use { success: false, code, message, details }.
     license:
         name: Proprietary
 servers:
@@ -11,64 +12,8 @@ servers:
       description: API on the current application origin
 tags:
     - name: Auth
-      description: Account registration, login and logout
+      description: Account login and logout
 paths:
-    /auth/register:
-        post:
-            tags:
-                - Auth
-            operationId: register
-            summary: Register an account
-            description:
-                Creates an account. Sign in separately after registration. Existing authentication
-                cookies are ignored.
-            security: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: "#/components/schemas/RegisterRequest"
-            responses:
-                "201":
-                    description: Account created.
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                additionalProperties: false
-                                required:
-                                    - success
-                                    - message
-                                    - user
-                                properties:
-                                    success:
-                                        type: boolean
-                                        enum:
-                                            - true
-                                    message:
-                                        type: string
-                                        enum:
-                                            - Account created successfully.
-                                    user:
-                                        $ref: "#/components/schemas/PublicUser"
-                            example:
-                                success: true
-                                message: Account created successfully.
-                                user:
-                                    id: 550e8400-e29b-41d4-a716-446655440000
-                                    name: Olena Kovalenko
-                                    email: olena@example.com
-                "400":
-                    $ref: "#/components/responses/BadRequest"
-                "403":
-                    $ref: "#/components/responses/Forbidden"
-                "409":
-                    $ref: "#/components/responses/RegistrationConflict"
-                "422":
-                    $ref: "#/components/responses/ValidationError"
-                "429":
-                    $ref: "#/components/responses/TooManyAttempts"
     /auth/login:
         post:
             tags:
@@ -77,7 +22,7 @@ paths:
             summary: Sign in
             description:
                 Signs in and sets the authentication cookie. No token is returned in JSON. Existing
-                cookies do not prevent login.
+                cookies do not prevent login. Only active UserAccounts can sign in.
             security: []
             requestBody:
                 required: true
@@ -121,6 +66,8 @@ paths:
                     $ref: "#/components/responses/ValidationError"
                 "429":
                     $ref: "#/components/responses/TooManyAttempts"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
     /auth/logout:
         post:
             tags:
@@ -128,14 +75,15 @@ paths:
             operationId: logout
             summary: Sign out
             description:
-                Revokes the current token and clears its cookie. Send no request body. Missing or
-                invalid tokens return UNAUTHORIZED; expired or revoked tokens return TOKEN_STALE.
-                Repeated logout returns UNAUTHORIZED.
+                Clears the authentication cookie. No server-side JWT revocation is performed;
+                a copied JWT remains valid until expiry. Send no request body. Missing or
+                invalid tokens return UNAUTHORIZED; expired tokens return TOKEN_STALE.
+                Repeated logout without a cookie returns UNAUTHORIZED.
             security:
                 - cookieAuth: []
             responses:
                 "200":
-                    description: Current token revoked and cookie cleared.
+                    description: Authentication cookie cleared.
                     headers:
                         Set-Cookie:
                             $ref: "#/components/headers/ClearAuthCookie"
@@ -163,7 +111,7 @@ paths:
                     $ref: "#/components/responses/BadRequest"
                 "401":
                     description: |
-                        Authentication is missing, invalid, expired or revoked.
+                        Authentication is missing, invalid or expired.
                         The authentication cookie is cleared.
                     headers:
                         Set-Cookie:
@@ -179,8 +127,8 @@ paths:
                                     $ref: "#/components/examples/TokenStale"
                 "403":
                     $ref: "#/components/responses/Forbidden"
-                "429":
-                    $ref: "#/components/responses/TooManyAttempts"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
 components:
     securitySchemes:
         cookieAuth:
@@ -213,51 +161,6 @@ components:
                 type: string
             example: crm_access_token=; Path=/api; Max-Age=0; HttpOnly; Secure; SameSite=Lax
     schemas:
-        PublicUser:
-            type: object
-            additionalProperties: false
-            required:
-                - id
-                - name
-                - email
-            properties:
-                id:
-                    type: string
-                    format: uuid
-                    readOnly: true
-                name:
-                    type: string
-                email:
-                    type: string
-                    format: email
-        RegisterRequest:
-            type: object
-            additionalProperties: false
-            description:
-                Required strings; extra fields rejected. Trim name/email and lowercase email before
-                validation. Do not alter passwords.
-            required:
-                - name
-                - email
-                - password
-            properties:
-                name:
-                    type: string
-                    minLength: 1
-                    maxLength: 100
-                    description: Trim outer whitespace; preserve internal spaces.
-                email:
-                    $ref: "#/components/schemas/Email"
-                password:
-                    allOf:
-                        - $ref: "#/components/schemas/Password"
-                        - type: string
-                          minLength: 12
-                    description: 12-72 Unicode code points and at most 72 UTF-8 bytes.
-            example:
-                name: Olena Kovalenko
-                email: olena@example.com
-                password: ExamplePassword123!
         LoginRequest:
             type: object
             additionalProperties: false
@@ -328,7 +231,7 @@ components:
                         - UNAUTHORIZED
                         - TOKEN_STALE
                         - FORBIDDEN
-                        - CONFLICT
+                        - INTERNAL_SERVER_ERROR
                         - VALIDATION_ERROR
                         - TOO_MANY_ATTEMPTS
                 message:
@@ -381,7 +284,7 @@ components:
                 details: []
                 success: false
         TokenStale:
-            summary: Expired or revoked token
+            summary: Expired token
             value:
                 code: TOKEN_STALE
                 message: Your session is no longer valid. Please sign in again.
@@ -392,13 +295,6 @@ components:
             value:
                 code: FORBIDDEN
                 message: You do not have permission to perform this action.
-                details: []
-                success: false
-        EmailAlreadyRegistered:
-            summary: Email address is already registered
-            value:
-                code: CONFLICT
-                message: An account with this email already exists.
                 details: []
                 success: false
         ValidationError:
@@ -417,9 +313,25 @@ components:
                 message: Too many attempts. Please try again later.
                 details: []
                 success: false
+        InternalServerError:
+            summary: Unexpected authentication failure
+            value:
+                success: false
+                code: INTERNAL_SERVER_ERROR
+                message: Internal server error
+                details: []
     responses:
+        InternalServerError:
+            description: Unexpected failure; no internal details are exposed.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        internalServerError:
+                            $ref: "#/components/examples/InternalServerError"
         BadRequest:
-            description: Missing or malformed JSON, or a non-object body for register/login.
+            description: Missing or malformed login JSON, a non-object login body, or any logout request body.
             content:
                 application/json:
                     schema:
@@ -447,15 +359,6 @@ components:
                     examples:
                         forbidden:
                             $ref: "#/components/examples/Forbidden"
-        RegistrationConflict:
-            description: Email is already registered.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        emailAlreadyRegistered:
-                            $ref: "#/components/examples/EmailAlreadyRegistered"
         TooManyAttempts:
             description: Request limit exceeded. Wait Retry-After seconds.
             headers:
