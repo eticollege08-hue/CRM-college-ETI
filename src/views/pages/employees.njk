@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Співробітники</title>
+    </head>
+    <body>
+        <main>
+            <h1>Співробітники</h1>
+            {% if employees.length %}
+                <ul>
+                    {% for employee in employees %}
+                        <li>{{ employee.fullName or "Ім’я не вказано" }}{% if employee.position %} — {{ employee.position }}{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Співробітників поки немає.</p>
+            {% endif %}
+        </main>
+    </body>
+</html>

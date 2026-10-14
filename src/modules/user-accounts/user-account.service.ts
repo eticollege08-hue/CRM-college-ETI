@@ -1,0 +1,31 @@
+import { ApiError } from "#utils/error.util.js";
+import { HttpStatus } from "#constants/http-status.constants.js";
+
+import { employeeRepository } from "#modules/employees/employee.repository.js";
+
+import { USER_ACCOUNT_MESSAGES } from "./user-account.constants.js";
+import { userAccountRepository } from "./user-account.repository.js";
+
+import type { EmployeeRepository } from "#modules/employees/employee.repository.js";
+import type { UserAccountRepository } from "./user-account.repository.js";
+import type { UserAccountCreateInput } from "./user-account.types.js";
+
+export class UserAccountService {
+    constructor(
+        private readonly repository: UserAccountRepository = userAccountRepository,
+        private readonly employees: EmployeeRepository = employeeRepository,
+    ) {}
+
+    async create(data: UserAccountCreateInput) {
+        if (!(await this.employees.getById(data.employeeId))) {
+            throw new ApiError(HttpStatus.UNPROCESSABLE_ENTITY, USER_ACCOUNT_MESSAGES.EMPLOYEE_NOT_FOUND);
+        }
+        return await this.repository.create({ ...data, email: data.email.toLowerCase() });
+    }
+
+    async getByEmail(email: string) {
+        return await this.repository.getByEmail(email.toLowerCase());
+    }
+}
+
+export const userAccountService = new UserAccountService();
