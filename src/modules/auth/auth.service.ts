@@ -4,6 +4,7 @@ import { hashPassword, verifyPassword } from "#utils/password.util.js";
 
 import { AUTH_TOKEN_TTL_SECONDS } from "./auth.constants.js";
 import { AuthRateLimitService } from "./auth-rate-limit.service.js";
+import { authTokenService } from "./auth-token.service.js";
 
 import type {
     AuthLoginInput,
@@ -18,7 +19,7 @@ export class AuthService {
 
     constructor(
         private readonly accounts: AuthUserAccounts,
-        private readonly tokens: AuthTokenIssuer,
+        private readonly tokens: AuthTokenIssuer = authTokenService,
         private readonly limiter = new AuthRateLimitService(),
         private readonly passwords: AuthPasswords = {
             hash: hashPassword,

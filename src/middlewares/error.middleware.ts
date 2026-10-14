@@ -8,15 +8,26 @@ import { ApiError } from "#utils/error.util.js";
 import type { NextFunction, Request, Response } from "express";
 import type { AnyError, ApiErrorInterface } from "#types/common.types.js";
 
+const JSON_BODY_ERROR_STATUSES = new Map<string, number>([
+    ["entity.parse.failed", HttpStatus.BAD_REQUEST],
+    ["entity.decode.failed", HttpStatus.BAD_REQUEST],
+    ["entity.too.large", HttpStatus.PAYLOAD_TOO_LARGE],
+    ["charset.unsupported", HttpStatus.UNSUPPORTED_MEDIA_TYPE],
+    ["encoding.unsupported", HttpStatus.UNSUPPORTED_MEDIA_TYPE],
+    ["request.size.invalid", HttpStatus.BAD_REQUEST],
+    ["request.aborted", HttpStatus.BAD_REQUEST],
+]);
+
 export const errorHandler = (err: AnyError, req: Request, res: Response, _next: NextFunction) => {
     if (
         req.method === "POST" &&
         /^\/api\/auth\/(?:login|logout)\/?$/i.test(req.path) &&
-        err instanceof SyntaxError &&
+        err instanceof Error &&
         "type" in err &&
-        err.type === "entity.parse.failed" &&
+        typeof err.type === "string" &&
         "status" in err &&
-        err.status === HttpStatus.BAD_REQUEST
+        typeof err.status === "number" &&
+        JSON_BODY_ERROR_STATUSES.get(err.type) === err.status
     ) {
         // Parser errors may contain credentials in their message, stack and body.
         err = new AuthError({ kind: "BAD_REQUEST" });

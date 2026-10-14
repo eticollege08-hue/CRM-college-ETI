@@ -1,7 +1,10 @@
+import cookieParser from "cookie-parser";
 import express from "express";
 
 import { HttpStatus } from "#constants/http-status.constants.js";
 import { asyncCatch } from "#middlewares/asyncCatch.middleware.js";
+import { isAuth } from "#middlewares/auth.middleware.js";
+import { getJsonBodyLength } from "#middlewares/json.middleware.js";
 import { validateBody } from "#middlewares/validate.middleware.js";
 
 import { AuthController } from "./auth.controller.js";
@@ -13,18 +16,22 @@ import { authLoginSchema } from "./auth.schema.js";
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import type { AuthService } from "./auth.service.js";
 
-// Construct once after dotenv and mount under /api/auth after the real adapters exist.
-export default function createAuthRouter(service: AuthService, authenticate: RequestHandler) {
+// Construct once after dotenv and mount under /api/auth once UserAccount is available.
+export default function createAuthRouter(
+    service: AuthService,
+    authenticate: RequestHandler = isAuth,
+) {
     const router = express.Router();
     const controller = new AuthController(service);
     const checkOrigin = createAuthOriginMiddleware();
+
+    router.use(cookieParser());
 
     router.post(
         "/login",
         checkOrigin,
         (req, _res, next) => {
-            // express.json() parses an explicitly zero-length JSON body as {}.
-            if (req.headers["content-length"] === "0") {
+            if (getJsonBodyLength(req) === 0 || req.headers["content-length"] === "0") {
                 return next(new AuthError({ kind: "BAD_REQUEST" }));
             }
             next();
@@ -36,10 +43,13 @@ export default function createAuthRouter(service: AuthService, authenticate: Req
         "/logout",
         checkOrigin,
         (req, _res, next) => {
+            const jsonBodyLength = getJsonBodyLength(req);
             const hasBody =
-                req.headers["transfer-encoding"] !== undefined ||
-                Number(req.headers["content-length"] ?? "0") > 0 ||
-                (req.body !== undefined && req.headers["content-length"] !== "0");
+                jsonBodyLength !== undefined
+                    ? jsonBodyLength > 0
+                    : req.headers["transfer-encoding"] !== undefined ||
+                      Number(req.headers["content-length"] ?? "0") > 0 ||
+                      (req.body !== undefined && req.headers["content-length"] !== "0");
 
             if (hasBody) {
                 return next(new AuthError({ kind: "BAD_REQUEST" }));

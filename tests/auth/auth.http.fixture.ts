@@ -14,8 +14,8 @@ export interface AuthHttpResponse {
 export function dispatchAuthRequest(
     app: Express,
     path: string,
-    body?: string,
-    headers: Record<string, string> = {},
+    body?: string | Buffer,
+    headers: Record<string, string | undefined> = {},
 ): Promise<AuthHttpResponse> {
     const socket = new Socket();
     Object.defineProperty(socket, "remoteAddress", { value: "192.0.2.1" });
@@ -51,7 +51,7 @@ export function dispatchAuthRequest(
         };
 
         req.on("error", reject);
-        if (body !== undefined) req.push(Buffer.from(body));
+        if (body !== undefined) req.push(typeof body === "string" ? Buffer.from(body) : body);
         req.push(null);
         app(req as Request, res as Response);
     });

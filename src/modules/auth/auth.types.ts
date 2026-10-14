@@ -22,7 +22,7 @@ export interface AuthTokenPayload {
     role: string;
 }
 
-// Adapt CRM-102.2 here; the issued JWT lifetime must equal expiresIn.
+// The default implementation uses CRM-102.2 JWT signing; keep injectable for tests.
 export interface AuthTokenIssuer {
     issue(payload: AuthTokenPayload, expiresIn: number): Promise<string>;
 }

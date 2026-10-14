@@ -3,7 +3,7 @@ info:
     title: CRM Authentication API
     version: 0.2.0
     description: >-
-        Prepared login/logout contract; runtime integration awaits UserAccount and CRM-102.2.
+        Prepared login/logout contract with CRM-102.2 JWT integrated; runtime integration awaits UserAccount.
         Public self-registration is unavailable. Errors use { success: false, code, message, details }.
     license:
         name: Proprietary
@@ -331,7 +331,12 @@ components:
                         internalServerError:
                             $ref: "#/components/examples/InternalServerError"
         BadRequest:
-            description: Missing or malformed login JSON, a non-object login body, or any logout request body.
+            description: >-
+                Missing, malformed or oversized JSON (100 KiB maximum after decompression),
+                corrupt or truncated compressed JSON,
+                unsupported JSON charset/content encoding, a non-object login body,
+                or a non-empty logout request body. Empty chunked login JSON is missing;
+                an explicit {} is validated as an object and returns 422 for missing fields.
             content:
                 application/json:
                     schema:

@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
+import { brotliCompressSync, deflateSync, gzipSync } from "node:zlib";
 import express from "express";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
 
+import { getTrustedProxies } from "../../src/config/proxy.config.js";
 import { errorHandler } from "../../src/middlewares/error.middleware.js";
+import { jsonBodyParser } from "../../src/middlewares/json.middleware.js";
 import { AuthError } from "../../src/modules/auth/auth.error.js";
 import { AuthRateLimitService } from "../../src/modules/auth/auth-rate-limit.service.js";
 import createAuthRouter from "../../src/modules/auth/auth.router.js";
@@ -48,6 +51,7 @@ describe("prepared auth router contract", () => {
         vi.stubEnv("AUTH_ALLOWED_ORIGINS", "https://crm.example.com");
         vi.stubEnv("AUTH_COOKIE_SECURE", "true");
         vi.stubEnv("NODE_ENV", "test");
+        vi.stubEnv("TRUSTED_PROXIES", undefined);
         vi.spyOn(console, "error").mockImplementation(() => {});
         now = 0;
         find = vi.fn<AuthUserAccounts["findForAuthentication"]>().mockResolvedValue(account);
@@ -74,7 +78,8 @@ describe("prepared auth router contract", () => {
             );
         };
         app = express();
-        app.use(express.json());
+        app.set("trust proxy", getTrustedProxies());
+        app.use(jsonBodyParser);
         app.use("/api/auth", createAuthRouter(service, authenticate));
         app.use(errorHandler);
         app.use((_req, res) => {
@@ -149,6 +154,136 @@ describe("prepared auth router contract", () => {
         expect(result.body).toEqual(errorExample("ValidationError"));
     });
 
+    describe.each(["/api/auth/login", "/api/auth/logout"])("JSON parser errors for %s", (path) => {
+        it.each([
+            {
+                name: "oversized JSON",
+                body: JSON.stringify({ password: "x".repeat(110_000) }),
+                headers: {},
+            },
+            {
+                name: "unsupported charset",
+                body: '{"password":"sensitive-value"}',
+                headers: { "content-type": "application/json; charset=x-invalid" },
+            },
+            {
+                name: "unsupported UTF charset",
+                body: '{"password":"sensitive-value"}',
+                headers: { "content-type": "application/json; charset=utf-invalid" },
+            },
+            {
+                name: "unsupported content encoding",
+                body: '{"password":"sensitive-value"}',
+                headers: { "content-encoding": "x-invalid" },
+            },
+        ])("returns contract 400 without logging $name", async ({ body, headers }) => {
+            const result = await dispatchAuthRequest(app, path, body, headers);
+            expect(result.status).toBe(400);
+            expect(result.body).toEqual(errorExample("BadRequest"));
+            expect(result.headers["cache-control"]).toBe("no-store");
+            expect(result.headers["set-cookie"]).toBeUndefined();
+            expect(JSON.stringify(result.body)).not.toContain("sensitive-value");
+            expect(find).not.toHaveBeenCalled();
+            expect(update).not.toHaveBeenCalled();
+            expect(console.error).not.toHaveBeenCalled();
+        });
+
+        it.each([
+            { encoding: "gzip", compress: gzipSync },
+            { encoding: "deflate", compress: deflateSync },
+            { encoding: "br", compress: brotliCompressSync },
+        ])("sanitizes corrupt and truncated $encoding bodies", async ({ encoding, compress }) => {
+            const compressed = compress(Buffer.from(credentials));
+            const bodies = [
+                Buffer.from("sensitive-value-not-compressed"),
+                compressed.subarray(0, 8),
+            ];
+
+            for (const body of bodies) {
+                const result = await dispatchAuthRequest(app, path, body, {
+                    "content-encoding": encoding,
+                    cookie: "crm_access_token=test-token",
+                });
+                expect(result.status).toBe(400);
+                expect(result.body).toEqual(errorExample("BadRequest"));
+                expect(result.headers["cache-control"]).toBe("no-store");
+                expect(result.headers["set-cookie"]).toBeUndefined();
+                expect(find).not.toHaveBeenCalled();
+                expect(update).not.toHaveBeenCalled();
+                expect(console.error).not.toHaveBeenCalled();
+            }
+        });
+    });
+
+    it.each([
+        { encoding: "gzip", compress: gzipSync },
+        { encoding: "deflate", compress: deflateSync },
+        { encoding: "br", compress: brotliCompressSync },
+    ])(
+        "allows valid $encoding JSON and rejects its oversized decoded body",
+        async ({ encoding, compress }) => {
+            const result = await dispatchAuthRequest(
+                app,
+                "/api/auth/login",
+                compress(Buffer.from(credentials)),
+                { "content-encoding": encoding },
+            );
+            expect(result.status).toBe(200);
+            expect(result.body).toEqual(
+                contractValue("components", "schemas", "LoginResponse", "example"),
+            );
+
+            find.mockClear();
+            const oversized = await dispatchAuthRequest(
+                app,
+                "/api/auth/login",
+                compress(Buffer.from(JSON.stringify({ password: "x".repeat(110_000) }))),
+                { "content-encoding": encoding },
+            );
+            expect(oversized.status).toBe(400);
+            expect(oversized.body).toEqual(errorExample("BadRequest"));
+            expect(find).not.toHaveBeenCalled();
+            expect(console.error).not.toHaveBeenCalled();
+        },
+    );
+
+    it("returns 400 for zero JSON bytes with chunked transfer", async () => {
+        const result = await dispatchAuthRequest(app, "/api/auth/login", "", {
+            "content-length": undefined,
+            "transfer-encoding": "chunked",
+        });
+        expect(result.status).toBe(400);
+        expect(result.body).toEqual(errorExample("BadRequest"));
+        expect(find).not.toHaveBeenCalled();
+        expect(console.error).not.toHaveBeenCalled();
+    });
+
+    it("keeps explicit chunked {} as a field validation error", async () => {
+        const result = await dispatchAuthRequest(app, "/api/auth/login", "{}", {
+            "content-length": undefined,
+            "transfer-encoding": "chunked",
+        });
+        expect(result.status).toBe(422);
+        expect(result.body).toMatchObject({
+            code: "VALIDATION_ERROR",
+            details: [
+                { field: "email", message: "Email is required." },
+                { field: "password", message: "Password is required." },
+            ],
+        });
+    });
+
+    it("allows valid chunked login JSON", async () => {
+        const result = await dispatchAuthRequest(app, "/api/auth/login", credentials, {
+            "content-length": undefined,
+            "transfer-encoding": "chunked",
+        });
+        expect(result.status).toBe(200);
+        expect(result.body).toEqual(
+            contractValue("components", "schemas", "LoginResponse", "example"),
+        );
+    });
+
     it("reports both required fields for {}", async () => {
         const result = await dispatchAuthRequest(app, "/api/auth/login", "{}");
         expect(result.status).toBe(422);
@@ -182,6 +317,81 @@ describe("prepared auth router contract", () => {
         now = 300_000;
         find.mockResolvedValue(account);
         expect((await dispatchAuthRequest(app, "/api/auth/login", credentials)).status).toBe(200);
+    });
+
+    it.each([undefined, "192.0.2.10", "198.51.100.0/24"])(
+        "ignores spoofed forwarded IPs from an untrusted connection: %s",
+        async (trustedProxies) => {
+            vi.stubEnv("TRUSTED_PROXIES", trustedProxies);
+            app.set("trust proxy", getTrustedProxies());
+            find.mockResolvedValue(null);
+
+            for (let i = 1; i <= 5; i += 1) {
+                const result = await dispatchAuthRequest(app, "/api/auth/login", credentials, {
+                    "x-forwarded-for": `198.51.100.${i}`,
+                });
+                expect(result.status).toBe(401);
+            }
+            const blocked = await dispatchAuthRequest(app, "/api/auth/login", credentials, {
+                "x-forwarded-for": "198.51.100.99",
+            });
+            expect(blocked.status).toBe(429);
+            expect(blocked.body).toEqual(errorExample("TooManyAttempts"));
+            expect(find).toHaveBeenCalledTimes(5);
+        },
+    );
+
+    it("uses client IPs only behind an explicitly trusted proxy", async () => {
+        vi.stubEnv("TRUSTED_PROXIES", "192.0.2.1");
+        app.set("trust proxy", getTrustedProxies());
+        find.mockResolvedValue(null);
+
+        for (let i = 0; i < 5; i += 1) {
+            expect(
+                (
+                    await dispatchAuthRequest(app, "/api/auth/login", credentials, {
+                        "x-forwarded-for": "203.0.113.1",
+                    })
+                ).status,
+            ).toBe(401);
+        }
+        expect(
+            (
+                await dispatchAuthRequest(app, "/api/auth/login", credentials, {
+                    "x-forwarded-for": "203.0.113.1",
+                })
+            ).status,
+        ).toBe(429);
+        expect(
+            (
+                await dispatchAuthRequest(app, "/api/auth/login", credentials, {
+                    "x-forwarded-for": "203.0.113.2",
+                })
+            ).status,
+        ).toBe(401);
+    });
+
+    it("does not trust a forged client before an untrusted forwarding hop", async () => {
+        vi.stubEnv("TRUSTED_PROXIES", "192.0.2.1");
+        app.set("trust proxy", getTrustedProxies());
+        find.mockResolvedValue(null);
+
+        for (let i = 1; i <= 5; i += 1) {
+            expect(
+                (
+                    await dispatchAuthRequest(app, "/api/auth/login", credentials, {
+                        "x-forwarded-for": `198.51.100.${i}, 203.0.113.10`,
+                    })
+                ).status,
+            ).toBe(401);
+        }
+        expect(
+            (
+                await dispatchAuthRequest(app, "/api/auth/login", credentials, {
+                    "x-forwarded-for": "198.51.100.99, 203.0.113.10",
+                })
+            ).status,
+        ).toBe(429);
     });
 
     it("sanitizes upstream exceptions without logging their credentials, hashes or tokens", async () => {
@@ -247,6 +457,19 @@ describe("prepared auth router contract", () => {
         });
         expect(result.status).toBe(200);
         expect(String(result.headers["set-cookie"])).toContain("Max-Age=0");
+    });
+
+    it("allows an empty chunked logout body but rejects a non-empty chunked object", async () => {
+        const headers = {
+            cookie: "crm_access_token=test-token",
+            "content-length": undefined,
+            "transfer-encoding": "chunked",
+        };
+        expect((await dispatchAuthRequest(app, "/api/auth/logout", "", headers)).status).toBe(200);
+        const nonEmpty = await dispatchAuthRequest(app, "/api/auth/logout", "{}", headers);
+        expect(nonEmpty.status).toBe(400);
+        expect(nonEmpty.body).toEqual(errorExample("BadRequest"));
+        expect(nonEmpty.headers["set-cookie"]).toBeUndefined();
     });
 
     it("rejects non-JSON logout bodies even when the JSON parser skips them", async () => {
