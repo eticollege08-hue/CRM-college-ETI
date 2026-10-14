@@ -227,6 +227,7 @@ paths:
                                     message: { type: string }
                                     employee: { $ref: "#/components/schemas/Employee" }
                 "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
                 "422": { $ref: "#/components/responses/EmployeeValidation" }
     /employees/{id}:
         parameters:
@@ -251,6 +252,7 @@ paths:
                                     success: { type: boolean, enum: [true] }
                                     employee: { $ref: "#/components/schemas/Employee" }
                 "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
                 "404": { $ref: "#/components/responses/EmployeeNotFound" }
         patch:
             tags: [Employees]
@@ -275,6 +277,7 @@ paths:
                                     message: { type: string }
                                     employee: { $ref: "#/components/schemas/Employee" }
                 "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
                 "404": { $ref: "#/components/responses/EmployeeNotFound" }
                 "422": { $ref: "#/components/responses/EmployeeValidation" }
         delete:
@@ -294,6 +297,7 @@ paths:
                                     success: { type: boolean, enum: [true] }
                                     message: { type: string }
                 "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
                 "404": { $ref: "#/components/responses/EmployeeNotFound" }
 components:
     securitySchemes:
@@ -563,6 +567,11 @@ components:
                 details: []
                 success: false
     responses:
+        EmployeeBadRequest:
+            description: Invalid UUID, missing or empty request body, or employee has a linked account.
+            content:
+                application/json:
+                    schema: { $ref: "#/components/schemas/EmployeeError" }
         DevelopmentOnly:
             description: This endpoint is available only when NODE_ENV is development.
             content:

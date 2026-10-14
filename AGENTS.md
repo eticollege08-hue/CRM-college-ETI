@@ -6,18 +6,21 @@ This file applies to the entire repository. Read it before making changes, then 
 
 - Stack: Node.js (Docker uses 24), TypeScript with `strict: true`, ESM (`"type": "module"`), Express 5, Zod 4, Prisma 5, PostgreSQL 17, Nunjucks, express-session. Exact installed versions are recorded in `package-lock.json`.
 - `src/app.ts` — Express configuration, JSON, static files, sessions, Nunjucks, route registration, `errorHandler` registered last, and startup on `PORT` or 3000.
-- `src/routes/api/index.ts` — API module registry under `/api`; registers documentation at `/docs`.
+- `src/routes/api/index.ts` — API module registry under `/api`; registers documentation at `/docs` and dev-only employee routes at `/employees`.
 - `src/modules/docs/docs.router.ts` — Swagger UI at `/api/docs`; the specification is available at `/api/docs/openapi.yaml`. Try it out is disabled until auth is implemented.
 - `docs/openapi.yaml` — draft auth contract; the single source for Swagger UI. The production Dockerfile copies `docs` into the runtime image.
 - Swagger auth contract: errors use `{ success: false, code, message, details }`; the token is only stored in an HttpOnly cookie, and the login JSON contains `expiresIn`. The specification describes only applicable responses; auth implementation has not yet been added.
-- `src/routes/ssr/index.ts` — SSR route registry under `/`, currently empty.
+- `src/routes/ssr/index.ts` — SSR route registry under `/`, including the employees page.
+- `src/modules/employees/` — Employee CRUD API, available only when `NODE_ENV=development`.
+- `src/modules/user-accounts/` — UserAccount repository and service for auth integration; no public controller or router.
+- `src/modules/employees-ssr/` — employees page data service, controller, and route; the corresponding Nunjucks template is intentionally empty.
 - `src/modules/` — domain modules. The demonstration module has been removed; complete examples of its seven layers are retained only below in this document.
 - `src/config/prisma.config.ts` — shared PrismaClient; checks the connection and logs queries on import.
 - `src/middlewares/` — `asyncCatch`, `validateBody`, `validateParams`, `errorHandler`, `isAuth` (401 UNAUTHORIZED/TOKEN_STALE with cookie clearing).
 - `src/constants/http-status.constants.ts` — `HttpStatus`; `src/utils/error.util.ts` — `ApiError`.
 - `src/schemas/id.schema.ts` — shared `uuidSchema`; `src/types/common.types.ts` — error types.
 - `prisma/schema.prisma` — database model source; `prisma/migrations/` — SQL migration history.
-- `src/views/` — `.njk` templates, currently without templates; `src/public/` — css, img, js directories, currently without files.
+- `src/views/` — `.njk` templates, including the empty employees page template; `src/public/` — css, img, js directories, currently without files.
 - `tests/` — Vitest unit tests; `vitest.config.ts` — runner configuration; `tests/tsconfig.json` — separate test type checking. Tests are excluded from the production build.
 - `dist/` — compilation output; do not edit. `node_modules/` — dependencies; do not edit.
 

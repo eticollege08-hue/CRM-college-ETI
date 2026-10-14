@@ -15,11 +15,6 @@ enum Role {
   WORKER
 }
 
-model User {
-  id   String @id @default(dbgenerated("gen_random_uuid()"))
-  role Role
-}
-
 model Employee {
   id          String       @id @default(dbgenerated("gen_random_uuid()"))
   fullName    String?      @map("full_name")
@@ -32,14 +27,14 @@ model Employee {
 }
 
 model UserAccount {
-  id           String   @id @default(dbgenerated("gen_random_uuid()"))
-  employeeId   String   @unique @map("employee_id")
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  roleKey      Role     @map("role_key")
-  isActive     Boolean  @default(true) @map("is_active")
+  id           String    @id @default(dbgenerated("gen_random_uuid()"))
+  employeeId   String    @unique @map("employee_id")
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  roleKey      Role      @map("role_key")
+  isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
-  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
 
   @@map("user_accounts")
 }
