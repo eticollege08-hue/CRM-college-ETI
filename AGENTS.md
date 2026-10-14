@@ -170,6 +170,7 @@ Vitest встановлено в `dependencies` за вимогою корист
 ## Повні приклади коду модуля example
 
 Нижче наведено повний код кожного шару. Це навчальний знімок видаленого модуля; не створюй його файли, маршрути чи модель без явної задачі користувача; у новому коді дотримуйся правил стилю вище, зокрема додавай .js до внутрішніх імпортів.
+
 # AI Working Rules for CRM
 
 This file applies to the entire repository. Read it before making changes, then read only the files needed for the task. The description below records the current architecture; the style rules establish a single standard for new and modified code.
