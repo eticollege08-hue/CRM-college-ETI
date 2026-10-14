@@ -18,7 +18,10 @@ export class UserAccountService {
 
     async create(data: UserAccountCreateInput) {
         if (!(await this.employees.getById(data.employeeId))) {
-            throw new ApiError(HttpStatus.UNPROCESSABLE_ENTITY, USER_ACCOUNT_MESSAGES.EMPLOYEE_NOT_FOUND);
+            throw new ApiError(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                USER_ACCOUNT_MESSAGES.EMPLOYEE_NOT_FOUND,
+            );
         }
         return await this.repository.create({ ...data, email: data.email.toLowerCase() });
     }

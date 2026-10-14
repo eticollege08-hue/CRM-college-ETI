@@ -25,7 +25,10 @@ router.get("/", asyncCatch(employeeController.getAll));
 router.get("/:id", validateParams(uuidSchema), asyncCatch(employeeController.getById));
 router.post(
     "/",
-    validateBody(employeeCreateSchema, { allowEmpty: true, status: HttpStatus.UNPROCESSABLE_ENTITY }),
+    validateBody(employeeCreateSchema, {
+        allowEmpty: true,
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+    }),
     asyncCatch(employeeController.create),
 );
 router.patch(

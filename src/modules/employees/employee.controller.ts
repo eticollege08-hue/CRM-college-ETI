@@ -18,7 +18,11 @@ export class EmployeeController {
 
     async create(req: Request, res: Response) {
         const employee = await this.service.create(req.body);
-        res.status(HttpStatus.CREATED).json({ success: true, message: EMPLOYEE_MESSAGES.CREATED, employee });
+        res.status(HttpStatus.CREATED).json({
+            success: true,
+            message: EMPLOYEE_MESSAGES.CREATED,
+            employee,
+        });
     }
 
     async getAll(_req: Request, res: Response) {
@@ -35,7 +39,11 @@ export class EmployeeController {
     async update(req: Request, res: Response) {
         const { id } = uuidSchema.parse(req.params);
         const employee = await this.service.update(id, req.body);
-        res.status(HttpStatus.OK).json({ success: true, message: EMPLOYEE_MESSAGES.UPDATED, employee });
+        res.status(HttpStatus.OK).json({
+            success: true,
+            message: EMPLOYEE_MESSAGES.UPDATED,
+            employee,
+        });
     }
 
     async delete(req: Request, res: Response) {
