@@ -39,11 +39,11 @@ export class UserAccountService {
         return await this.repository.updateLastLoginAt(accountId, new Date());
     }
 
-    async createInitialOwner(
-        data: Pick<UserAccountCreateInput, "email" | "passwordHash">,
+    async createSeedAccount(
+        data: Pick<UserAccountCreateInput, "email" | "passwordHash" | "roleKey">,
         fullName: string,
     ) {
-        return await this.repository.createInitialOwner(
+        return await this.repository.createSeedAccount(
             { ...data, email: data.email.trim().toLowerCase() },
             fullName,
         );

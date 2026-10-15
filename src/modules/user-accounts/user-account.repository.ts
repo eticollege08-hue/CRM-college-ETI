@@ -1,4 +1,4 @@
-import { Prisma, Role } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import prisma from "#config/prisma.config.js";
 
@@ -16,8 +16,8 @@ export class UserAccountRepository {
     async updateLastLoginAt(id: string, date: Date) {
         return await this.db.userAccount.update({ where: { id }, data: { lastLoginAt: date } });
     }
-    async createInitialOwner(
-        data: Pick<UserAccountCreateInput, "email" | "passwordHash">,
+    async createSeedAccount(
+        data: Pick<UserAccountCreateInput, "email" | "passwordHash" | "roleKey">,
         fullName: string,
     ) {
         const existing = await this.getByEmail(data.email);
@@ -27,7 +27,6 @@ export class UserAccountRepository {
             return await this.db.userAccount.create({
                 data: {
                     ...data,
-                    roleKey: Role.OWNER,
                     isActive: true,
                     employee: { create: { fullName } },
                 },

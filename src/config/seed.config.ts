@@ -1,25 +1,35 @@
-import { z } from "zod";
+import { Role } from "@prisma/client";
 
-import { authLoginSchema } from "#schemas/auth.schema.js";
-
-const seedConfigSchema = authLoginSchema.extend({
-    name: z.string().trim().min(1).max(100),
-    password: authLoginSchema.shape.password.refine(
-        (password) => Array.from(password).length >= 12,
-        "Initial admin password must contain at least 12 characters.",
-    ),
-});
-
-export function getSeedConfig() {
-    const result = seedConfigSchema.safeParse({
-        name: process.env.ADMIN_NAME ?? "System Administrator",
-        email: process.env.ADMIN_EMAIL,
-        password: process.env.ADMIN_PASSWORD,
-    });
-    if (!result.success) {
-        throw new Error(
-            "Configure ADMIN_EMAIL, ADMIN_PASSWORD (12 characters minimum, 72 UTF-8 bytes maximum) and ADMIN_NAME.",
-        );
-    }
-    return result.data;
-}
+// Public mock credentials for local role testing, never for production.
+export const MOCK_SEED_ACCOUNTS = [
+    {
+        name: "Example Owner",
+        email: "example1@example.com",
+        password: "somepassWord1",
+        roleKey: Role.OWNER,
+    },
+    {
+        name: "Example Manager",
+        email: "example2@example.com",
+        password: "somepassWord2",
+        roleKey: Role.MANAGER,
+    },
+    {
+        name: "Example Recruiter",
+        email: "example3@example.com",
+        password: "somepassWord3",
+        roleKey: Role.RECRUITER,
+    },
+    {
+        name: "Example HR",
+        email: "example4@example.com",
+        password: "somepassWord4",
+        roleKey: Role.HR,
+    },
+    {
+        name: "Example Worker",
+        email: "example5@example.com",
+        password: "somepassWord5",
+        roleKey: Role.WORKER,
+    },
+];

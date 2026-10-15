@@ -8,7 +8,7 @@
 - `src/app.ts` — спочатку dotenv/config, потім стандартні express.json(), cookieParser(), static, Nunjucks, API/SSR registries, errorHandler; trust proxy=false. Секрет/TTL JWT, origins, Secure і bcrypt перевіряються до listen.
 - `src/modules/auth/` містить лише auth.constants.ts, auth.controller.ts, auth.routes.ts, auth.service.ts, auth.types.ts. Стандартні authService/authController; routes default export під /api/auth. Публічної реєстрації немає.
 - AuthService використовує реальний userAccountService: нормалізований email, bcrypt/dummy hash, isActive, JWT userId+roleKey, оновлення lastLoginAt. Ніяких Employee-запитів/створення під час login.
-- `src/modules/user-accounts/` — внутрішні service/repository; timestamp і атомарне створення Employee+OWNER для seed. Ідемпотентний seed не оновлює існуючі credentials; concurrent duplicate обробляється після відкату вкладеного write.
+- `src/modules/user-accounts/` — внутрішні service/repository; timestamp і атомарне створення Employee+UserAccount із заданою роллю для seed. Ідемпотентний seed не оновлює існуючі credentials; concurrent duplicate обробляється після відкату вкладеного write.
 - `src/modules/employees/` — dev-only CRUD; створення порожнього профілю {} дозволено. Однаковий API error contract застосовується і тут.
 - `src/schemas/auth.schema.ts`, `src/schemas/jwt.schema.ts` — strict login та claims; JWT role береться з Prisma Role, типи виведені зі schema.
 - `src/services/auth-rate-limit.service.ts` — спільний singleton, sliding window 5 failures/300s (env), черга email+IP. Технічні помилки не рахуються, успіх не стирає невдачі, заблоковані запити не подовжують вікно. Перезапуск скидає пам'ять, процеси не мають спільного ліміту.
@@ -16,8 +16,8 @@
 - `src/utils/auth-cookie.util.ts` — HttpOnly, SameSite=Lax, host-only, Path=/; встановлення/очищення також видаляють legacy cookie на /api. Cache-Control: no-store. Logout лише очищає cookie, не відкликає JWT.
 - `src/config/jwt.config.ts` — єдине джерело TTL (JWT_EXPIRES_IN, default 3600); JWT_SECRET без default, мінімум 32 байти. `src/utils/jwt.util.ts` і isAuth перевіряють HS256, signature, expiry та claims.
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
-- `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — робочий npm run db:seed, ADMIN_EMAIL/ADMIN_PASSWORD/ADMIN_NAME лише через локальний env. Пароль не логувати; у БД лише bcrypt hash.
-- `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить порожній pages/login.njk, дані css/js/activePage. `src/modules/employees-ssr/` — існуюча employees SSR сторінка.
+- `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
+- `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить pages/login.njk нульової довжини, без HTML-розмітки; дані css/js/activePage збережені. `src/modules/employees-ssr/` — існуюча employees SSR сторінка.
 - `src/routes/api/index.ts` — /auth, /employees, /docs; `src/routes/ssr/index.ts` — SSR registry під /.
 - `docs/openapi.yaml` — єдиний контракт API, Swagger UI /api/docs; `docs/auth-integration.md` — конфігурація, seed та dev-перевірка. JSON login/logout: success і message, без JWT/строку дії.
 - `src/middlewares/validate.middleware.ts` — єдина strict Zod-валідація тіла; parsed data замінюють req.body; {} вирішує schema. Невідомі поля відхиляються.
