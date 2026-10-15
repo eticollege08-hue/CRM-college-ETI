@@ -10,14 +10,12 @@ function getCookieOptions(): CookieOptions {
 
 export function setAuthCookie(res: Response, token: string) {
     const options = getCookieOptions();
-    res.clearCookie(AUTH_COOKIE_NAME, { ...options, path: "/api" });
     res.cookie(AUTH_COOKIE_NAME, token, { ...options, maxAge: getJwtConfig().expiresIn * 1000 });
     res.setHeader("Cache-Control", "no-store");
 }
 
 export function clearAuthCookie(res: Response) {
     const options = getCookieOptions();
-    res.clearCookie(AUTH_COOKIE_NAME, { ...options, path: "/api" });
     res.clearCookie(AUTH_COOKIE_NAME, options);
     res.setHeader("Cache-Control", "no-store");
 }
