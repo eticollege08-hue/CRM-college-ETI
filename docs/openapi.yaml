@@ -12,6 +12,8 @@ servers:
 tags:
     - name: Auth
       description: Account registration, login and logout
+    - name: Employees
+      description: Employee profile management (development only)
 paths:
     /auth/register:
         post:
@@ -181,6 +183,122 @@ paths:
                     $ref: "#/components/responses/Forbidden"
                 "429":
                     $ref: "#/components/responses/TooManyAttempts"
+    /employees:
+        get:
+            tags: [Employees]
+            operationId: getEmployees
+            summary: List employees (development only)
+            security: []
+            responses:
+                "200":
+                    description: Employees returned.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [success, employees]
+                                properties:
+                                    success: { type: boolean, enum: [true] }
+                                    employees:
+                                        type: array
+                                        items: { $ref: "#/components/schemas/Employee" }
+                "403": { $ref: "#/components/responses/DevelopmentOnly" }
+        post:
+            tags: [Employees]
+            operationId: createEmployee
+            summary: Create an employee (development only)
+            description: Every profile field is optional, including all fields together.
+            security: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema: { $ref: "#/components/schemas/EmployeeInput" }
+            responses:
+                "201":
+                    description: Employee created without requiring a user account.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [success, message, employee]
+                                properties:
+                                    success: { type: boolean, enum: [true] }
+                                    message: { type: string }
+                                    employee: { $ref: "#/components/schemas/Employee" }
+                "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
+                "422": { $ref: "#/components/responses/EmployeeValidation" }
+    /employees/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema: { type: string, format: uuid }
+        get:
+            tags: [Employees]
+            operationId: getEmployee
+            summary: Get an employee (development only)
+            security: []
+            responses:
+                "200":
+                    description: Employee returned.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [success, employee]
+                                properties:
+                                    success: { type: boolean, enum: [true] }
+                                    employee: { $ref: "#/components/schemas/Employee" }
+                "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
+                "404": { $ref: "#/components/responses/EmployeeNotFound" }
+        patch:
+            tags: [Employees]
+            operationId: updateEmployee
+            summary: Update an employee (development only)
+            security: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema: { $ref: "#/components/schemas/EmployeeUpdateInput" }
+            responses:
+                "200":
+                    description: Employee updated.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [success, message, employee]
+                                properties:
+                                    success: { type: boolean, enum: [true] }
+                                    message: { type: string }
+                                    employee: { $ref: "#/components/schemas/Employee" }
+                "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
+                "404": { $ref: "#/components/responses/EmployeeNotFound" }
+                "422": { $ref: "#/components/responses/EmployeeValidation" }
+        delete:
+            tags: [Employees]
+            operationId: deleteEmployee
+            summary: Delete an employee (development only)
+            security: []
+            responses:
+                "200":
+                    description: Employee deleted.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [success, message]
+                                properties:
+                                    success: { type: boolean, enum: [true] }
+                                    message: { type: string }
+                "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
+                "404": { $ref: "#/components/responses/EmployeeNotFound" }
 components:
     securitySchemes:
         cookieAuth:
@@ -213,6 +331,45 @@ components:
                 type: string
             example: crm_access_token=; Path=/api; Max-Age=0; HttpOnly; Secure; SameSite=Lax
     schemas:
+        Employee:
+            type: object
+            required: [id, fullName, imageId, level, position]
+            properties:
+                id: { type: string, format: uuid, readOnly: true }
+                fullName: { type: string, nullable: true }
+                imageId: { type: string, nullable: true }
+                level: { type: string, nullable: true }
+                position: { type: string, nullable: true }
+        EmployeeError:
+            type: object
+            required: [success, message]
+            properties:
+                success: { type: boolean, enum: [false] }
+                message: { type: string }
+                details:
+                    type: array
+                    items:
+                        type: object
+                        required: [field, message]
+                        properties:
+                            field: { type: string }
+                            message: { type: string }
+        EmployeeInput:
+            type: object
+            additionalProperties: false
+            properties:
+                fullName: { type: string, minLength: 1 }
+                imageId: { type: string, minLength: 1 }
+                level: { type: string, minLength: 1 }
+                position: { type: string, minLength: 1 }
+        EmployeeUpdateInput:
+            type: object
+            additionalProperties: false
+            properties:
+                fullName: { type: string, minLength: 1 }
+                imageId: { type: string, minLength: 1, nullable: true }
+                level: { type: string, minLength: 1 }
+                position: { type: string, minLength: 1 }
         PublicUser:
             type: object
             additionalProperties: false
@@ -418,6 +575,26 @@ components:
                 details: []
                 success: false
     responses:
+        EmployeeBadRequest:
+            description: Invalid UUID, missing or empty request body, or employee has a linked account.
+            content:
+                application/json:
+                    schema: { $ref: "#/components/schemas/EmployeeError" }
+        DevelopmentOnly:
+            description: This endpoint is available only when NODE_ENV is development.
+            content:
+                application/json:
+                    schema: { $ref: "#/components/schemas/EmployeeError" }
+        EmployeeNotFound:
+            description: Employee does not exist.
+            content:
+                application/json:
+                    schema: { $ref: "#/components/schemas/EmployeeError" }
+        EmployeeValidation:
+            description: Invalid employee fields.
+            content:
+                application/json:
+                    schema: { $ref: "#/components/schemas/EmployeeError" }
         BadRequest:
             description: Missing or malformed JSON, or a non-object body for register/login.
             content:

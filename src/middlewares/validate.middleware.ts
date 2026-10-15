@@ -5,16 +5,16 @@ import type { RequestHandler } from "express";
 import type { ZodObject } from "zod";
 
 export const validateBody =
-    (schema: ZodObject): RequestHandler =>
+    (schema: ZodObject, options: { allowEmpty?: boolean; status?: number } = {}): RequestHandler =>
     (req, res, next) => {
-        if (!req.body || Object.keys(req.body).length === 0) {
+        if (!req.body || (Object.keys(req.body).length === 0 && !options.allowEmpty)) {
             return next(new ApiError(HttpStatus.BAD_REQUEST, "Тіло запиту є необхідним"));
         }
 
         const result = schema.safeParse(req.body);
 
         if (!result.success) {
-            return res.status(HttpStatus.BAD_REQUEST).json({
+            return res.status(options.status ?? HttpStatus.BAD_REQUEST).json({
                 success: false,
                 message: "Помилка валідації даних",
                 details: result.error.issues.map((err) => ({
