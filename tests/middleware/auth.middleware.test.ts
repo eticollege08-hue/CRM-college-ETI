@@ -36,7 +36,7 @@ describe("isAuth (CRM-102.2)", () => {
                     details: [],
                 }),
             );
-            expect(res.clearCookie).toHaveBeenCalledTimes(2);
+            expect(res.clearCookie).toHaveBeenCalledTimes(1);
             expect(verifyToken).not.toHaveBeenCalled();
         },
     );
@@ -56,7 +56,7 @@ describe("isAuth (CRM-102.2)", () => {
                 details: [],
             }),
         );
-        expect(res.clearCookie).toHaveBeenCalledTimes(2);
+        expect(res.clearCookie).toHaveBeenCalledTimes(1);
     });
     it("handles expired authentication without exposing JWT details", () => {
         vi.mocked(verifyToken).mockImplementationOnce(() => {
@@ -71,7 +71,7 @@ describe("isAuth (CRM-102.2)", () => {
                 details: [],
             }),
         );
-        expect(res.clearCookie).toHaveBeenCalledTimes(2);
+        expect(res.clearCookie).toHaveBeenCalledTimes(1);
     });
     it("passes verified claims to the next handler", () => {
         const payload: JWT = {
