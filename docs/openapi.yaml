@@ -1,128 +1,81 @@
 openapi: 3.0.3
 info:
-    title: CRM Authentication API
-    version: 0.1.0
-    description: "Authentication API contract. Auth endpoints are not implemented yet. Errors use {
-        success: false, code, message, details }; details is an array of field errors."
+    title: CRM API
+    version: 0.3.0
+    description: "Login/logout use UserAccount and JWT cookies. All API errors use { success: false,
+        message, details }. Public self-registration is unavailable."
     license:
         name: Proprietary
 servers:
     - url: /api
-      description: API on the current application origin
+      description: API on the application origin
 tags:
     - name: Auth
-      description: Account registration, login and logout
+      description: Account login and logout
     - name: Employees
-      description: Employee profile management (development only)
+      description: Employee profiles (development only)
 paths:
-    /auth/register:
-        post:
-            tags:
-                - Auth
-            operationId: register
-            summary: Register an account
-            description:
-                Creates an account. Sign in separately after registration. Existing authentication
-                cookies are ignored.
-            security: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: "#/components/schemas/RegisterRequest"
-            responses:
-                "201":
-                    description: Account created.
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                additionalProperties: false
-                                required:
-                                    - success
-                                    - message
-                                    - user
-                                properties:
-                                    success:
-                                        type: boolean
-                                        enum:
-                                            - true
-                                    message:
-                                        type: string
-                                        enum:
-                                            - Account created successfully.
-                                    user:
-                                        $ref: "#/components/schemas/PublicUser"
-                            example:
-                                success: true
-                                message: Account created successfully.
-                                user:
-                                    id: 550e8400-e29b-41d4-a716-446655440000
-                                    name: Olena Kovalenko
-                                    email: olena@example.com
-                "400":
-                    $ref: "#/components/responses/BadRequest"
-                "403":
-                    $ref: "#/components/responses/Forbidden"
-                "409":
-                    $ref: "#/components/responses/RegistrationConflict"
-                "422":
-                    $ref: "#/components/responses/ValidationError"
-                "429":
-                    $ref: "#/components/responses/TooManyAttempts"
     /auth/login:
         post:
             tags:
                 - Auth
             operationId: login
             summary: Sign in
-            description:
-                Signs in and sets the authentication cookie. No token is returned in JSON. Existing
-                cookies do not prevent login.
             security: []
+            description:
+                Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
+                accounts, wrong passwords and inactive accounts produce identical 401 responses. No
+                public registration. A stale /api cookie is cleared before setting the root cookie.
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
                             $ref: "#/components/schemas/LoginRequest"
+                        example:
+                            email: olena@example.com
+                            password: ExamplePassword123!
             responses:
                 "200":
-                    description: Signed in. The authentication cookie is set.
+                    description: Signed in successfully.
                     headers:
                         Set-Cookie:
                             required: true
-                            description:
-                                Sets the HttpOnly authentication cookie for 3600 seconds. Secure is omitted only for
-                                local HTTP development.
+                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
                             schema:
-                                type: string
+                                type: array
+                                items:
+                                    type: string
                             example:
-                                crm_access_token=example-access-token-not-a-real-credential; Path=/api; Max-Age=3600;
-                                HttpOnly; Secure; SameSite=Lax
+                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
+                                  GMT; HttpOnly; Secure; SameSite=Lax
+                                - crm_access_token=example-token-not-a-real-credential; Path=/;
+                                  Max-Age=3600; HttpOnly; Secure; SameSite=Lax
                         Cache-Control:
-                            required: true
-                            description: Do not cache the response.
-                            schema:
-                                type: string
-                                enum:
-                                    - no-store
-                            example: no-store
+                            $ref: "#/components/headers/NoStore"
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/LoginResponse"
+                                $ref: "#/components/schemas/AuthSuccess"
+                            example:
+                                success: true
+                                message: Signed in successfully.
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
                     $ref: "#/components/responses/LoginUnauthorized"
                 "403":
                     $ref: "#/components/responses/Forbidden"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
                 "422":
                     $ref: "#/components/responses/ValidationError"
                 "429":
                     $ref: "#/components/responses/TooManyAttempts"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
     /auth/logout:
         post:
             tags:
@@ -130,62 +83,82 @@ paths:
             operationId: logout
             summary: Sign out
             description:
-                Revokes the current token and clears its cookie. Send no request body. Missing or
-                invalid tokens return UNAUTHORIZED; expired or revoked tokens return TOKEN_STALE.
-                Repeated logout returns UNAUTHORIZED.
+                After JWT verification, clears cookies at / and the legacy /api path. No server-side
+                token revocation; a copied token remains usable until expiry. No body is needed;
+                parsed bodies are ignored. Without a cookie, repeated logout returns 401.
             security:
                 - cookieAuth: []
             responses:
                 "200":
-                    description: Current token revoked and cookie cleared.
+                    description: Signed out successfully.
                     headers:
                         Set-Cookie:
-                            $ref: "#/components/headers/ClearAuthCookie"
+                            required: true
+                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
+                            schema:
+                                type: array
+                                items:
+                                    type: string
+                            example:
+                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
+                                  GMT; HttpOnly; Secure; SameSite=Lax
+                                - crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;
+                                  HttpOnly; Secure; SameSite=Lax
+                        Cache-Control:
+                            $ref: "#/components/headers/NoStore"
                     content:
                         application/json:
                             schema:
-                                type: object
-                                additionalProperties: false
-                                required:
-                                    - success
-                                    - message
-                                properties:
-                                    success:
-                                        type: boolean
-                                        enum:
-                                            - true
-                                    message:
-                                        type: string
-                                        enum:
-                                            - Signed out successfully.
+                                $ref: "#/components/schemas/AuthSuccess"
                             example:
                                 success: true
                                 message: Signed out successfully.
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
-                    description: |
-                        Authentication is missing, invalid, expired or revoked.
-                        The authentication cookie is cleared.
+                    description: Missing, invalid or expired JWT; both cookie paths are cleared.
                     headers:
                         Set-Cookie:
-                            $ref: "#/components/headers/ClearAuthCookie"
+                            required: true
+                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
+                            schema:
+                                type: array
+                                items:
+                                    type: string
+                            example:
+                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
+                                  GMT; HttpOnly; Secure; SameSite=Lax
+                                - crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;
+                                  HttpOnly; Secure; SameSite=Lax
+                        Cache-Control:
+                            $ref: "#/components/headers/NoStore"
                     content:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/ErrorResponse"
                             examples:
                                 unauthorized:
-                                    $ref: "#/components/examples/Unauthorized"
-                                tokenStale:
-                                    $ref: "#/components/examples/TokenStale"
+                                    value:
+                                        success: false
+                                        message: Authentication is required.
+                                        details: []
+                                expired:
+                                    value:
+                                        success: false
+                                        message: Your session is no longer valid. Please sign in again.
+                                        details: []
                 "403":
                     $ref: "#/components/responses/Forbidden"
-                "429":
-                    $ref: "#/components/responses/TooManyAttempts"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
     /employees:
         get:
-            tags: [Employees]
+            tags:
+                - Employees
             operationId: getEmployees
             summary: List employees (development only)
             security: []
@@ -196,15 +169,25 @@ paths:
                         application/json:
                             schema:
                                 type: object
-                                required: [success, employees]
+                                required:
+                                    - success
+                                    - employees
                                 properties:
-                                    success: { type: boolean, enum: [true] }
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
                                     employees:
                                         type: array
-                                        items: { $ref: "#/components/schemas/Employee" }
-                "403": { $ref: "#/components/responses/DevelopmentOnly" }
+                                        items:
+                                            $ref: "#/components/schemas/Employee"
+                "403":
+                    $ref: "#/components/responses/DevelopmentOnly"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
         post:
-            tags: [Employees]
+            tags:
+                - Employees
             operationId: createEmployee
             summary: Create an employee (development only)
             description: Every profile field is optional, including all fields together.
@@ -213,7 +196,8 @@ paths:
                 required: true
                 content:
                     application/json:
-                        schema: { $ref: "#/components/schemas/EmployeeInput" }
+                        schema:
+                            $ref: "#/components/schemas/EmployeeInput"
             responses:
                 "201":
                     description: Employee created without requiring a user account.
@@ -221,22 +205,38 @@ paths:
                         application/json:
                             schema:
                                 type: object
-                                required: [success, message, employee]
+                                required:
+                                    - success
+                                    - message
+                                    - employee
                                 properties:
-                                    success: { type: boolean, enum: [true] }
-                                    message: { type: string }
-                                    employee: { $ref: "#/components/schemas/Employee" }
-                "403": { $ref: "#/components/responses/DevelopmentOnly" }
-                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
-                "422": { $ref: "#/components/responses/EmployeeValidation" }
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                                    employee:
+                                        $ref: "#/components/schemas/Employee"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "403":
+                    $ref: "#/components/responses/DevelopmentOnly"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
     /employees/{id}:
         parameters:
             - name: id
               in: path
               required: true
-              schema: { type: string, format: uuid }
+              schema:
+                  type: string
+                  format: uuid
         get:
-            tags: [Employees]
+            tags:
+                - Employees
             operationId: getEmployee
             summary: Get an employee (development only)
             security: []
@@ -247,15 +247,29 @@ paths:
                         application/json:
                             schema:
                                 type: object
-                                required: [success, employee]
+                                required:
+                                    - success
+                                    - employee
                                 properties:
-                                    success: { type: boolean, enum: [true] }
-                                    employee: { $ref: "#/components/schemas/Employee" }
-                "403": { $ref: "#/components/responses/DevelopmentOnly" }
-                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
-                "404": { $ref: "#/components/responses/EmployeeNotFound" }
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    employee:
+                                        $ref: "#/components/schemas/Employee"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "403":
+                    $ref: "#/components/responses/DevelopmentOnly"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
         patch:
-            tags: [Employees]
+            tags:
+                - Employees
             operationId: updateEmployee
             summary: Update an employee (development only)
             security: []
@@ -263,7 +277,8 @@ paths:
                 required: true
                 content:
                     application/json:
-                        schema: { $ref: "#/components/schemas/EmployeeUpdateInput" }
+                        schema:
+                            $ref: "#/components/schemas/EmployeeUpdateInput"
             responses:
                 "200":
                     description: Employee updated.
@@ -271,17 +286,32 @@ paths:
                         application/json:
                             schema:
                                 type: object
-                                required: [success, message, employee]
+                                required:
+                                    - success
+                                    - message
+                                    - employee
                                 properties:
-                                    success: { type: boolean, enum: [true] }
-                                    message: { type: string }
-                                    employee: { $ref: "#/components/schemas/Employee" }
-                "403": { $ref: "#/components/responses/DevelopmentOnly" }
-                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
-                "404": { $ref: "#/components/responses/EmployeeNotFound" }
-                "422": { $ref: "#/components/responses/EmployeeValidation" }
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                                    employee:
+                                        $ref: "#/components/schemas/Employee"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "403":
+                    $ref: "#/components/responses/DevelopmentOnly"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
         delete:
-            tags: [Employees]
+            tags:
+                - Employees
             operationId: deleteEmployee
             summary: Delete an employee (development only)
             security: []
@@ -292,160 +322,138 @@ paths:
                         application/json:
                             schema:
                                 type: object
-                                required: [success, message]
+                                required:
+                                    - success
+                                    - message
                                 properties:
-                                    success: { type: boolean, enum: [true] }
-                                    message: { type: string }
-                "403": { $ref: "#/components/responses/DevelopmentOnly" }
-                "400": { $ref: "#/components/responses/EmployeeBadRequest" }
-                "404": { $ref: "#/components/responses/EmployeeNotFound" }
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "403":
+                    $ref: "#/components/responses/DevelopmentOnly"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
 components:
+    headers:
+        NoStore:
+            required: true
+            description: Do not cache authentication responses.
+            schema:
+                type: string
+                enum: [no-store]
+            example: no-store
     securitySchemes:
         cookieAuth:
             type: apiKey
             in: cookie
             name: crm_access_token
-            description: >-
-                Token transport: cookie only; no token in JSON or Authorization headers.
-
-                HttpOnly; Secure; SameSite=Lax; Path=/api; Max-Age=3600; no Domain attribute.
-
-                Secure is omitted only for local HTTP development. expiresIn is in seconds.
-
-                Use Fetch credentials: include or Axios withCredentials: true.
-
-                Same-site deployment. Cross-origin requests require an explicitly allowed origin and
-                credentialed CORS.
-
-                All auth POST requests require an allowed Origin, or an allowed Referer if Origin is
-                absent; otherwise return 403.
-
-                Expiration is absolute. Sign in again after expiry.
-    headers:
-        ClearAuthCookie:
-            required: true
             description:
-                Clears the same host-only cookie using Path=/api and Max-Age=0. Secure is omitted only
-                for local HTTP development.
-            schema:
-                type: string
-            example: crm_access_token=; Path=/api; Max-Age=0; HttpOnly; Secure; SameSite=Lax
+                "JWT in HttpOnly cookie only; never in JSON or Authorization. Path=/; SameSite=Lax;
+                host-only. Secure defaults to true and can be disabled only for local development.
+                Max-Age equals JWT_EXPIRES_IN (default 3600 seconds). JWT claims use UserAccount ID
+                and Prisma Role. Auth POST requests require an exact allowed Origin; Referer is not
+                used. Use credentials: include / withCredentials: true. Deploy same-origin, or
+                explicitly configure credentialed CORS for separate origins."
     schemas:
         Employee:
             type: object
-            required: [id, fullName, imageId, level, position]
-            properties:
-                id: { type: string, format: uuid, readOnly: true }
-                fullName: { type: string, nullable: true }
-                imageId: { type: string, nullable: true }
-                level: { type: string, nullable: true }
-                position: { type: string, nullable: true }
-        EmployeeError:
-            type: object
-            required: [success, message]
-            properties:
-                success: { type: boolean, enum: [false] }
-                message: { type: string }
-                details:
-                    type: array
-                    items:
-                        type: object
-                        required: [field, message]
-                        properties:
-                            field: { type: string }
-                            message: { type: string }
-        EmployeeInput:
-            type: object
-            additionalProperties: false
-            properties:
-                fullName: { type: string, minLength: 1 }
-                imageId: { type: string, minLength: 1 }
-                level: { type: string, minLength: 1 }
-                position: { type: string, minLength: 1 }
-        EmployeeUpdateInput:
-            type: object
-            additionalProperties: false
-            properties:
-                fullName: { type: string, minLength: 1 }
-                imageId: { type: string, minLength: 1, nullable: true }
-                level: { type: string, minLength: 1 }
-                position: { type: string, minLength: 1 }
-        PublicUser:
-            type: object
-            additionalProperties: false
             required:
                 - id
-                - name
-                - email
+                - fullName
+                - imageId
+                - level
+                - position
             properties:
                 id:
                     type: string
                     format: uuid
                     readOnly: true
-                name:
+                fullName:
                     type: string
-                email:
+                    nullable: true
+                imageId:
                     type: string
-                    format: email
-        RegisterRequest:
+                    nullable: true
+                level:
+                    type: string
+                    nullable: true
+                position:
+                    type: string
+                    nullable: true
+        EmployeeInput:
             type: object
             additionalProperties: false
-            description:
-                Required strings; extra fields rejected. Trim name/email and lowercase email before
-                validation. Do not alter passwords.
-            required:
-                - name
-                - email
-                - password
             properties:
-                name:
+                fullName:
                     type: string
                     minLength: 1
-                    maxLength: 100
-                    description: Trim outer whitespace; preserve internal spaces.
-                email:
-                    $ref: "#/components/schemas/Email"
-                password:
-                    allOf:
-                        - $ref: "#/components/schemas/Password"
-                        - type: string
-                          minLength: 12
-                    description: 12-72 Unicode code points and at most 72 UTF-8 bytes.
-            example:
-                name: Olena Kovalenko
-                email: olena@example.com
-                password: ExamplePassword123!
+                imageId:
+                    type: string
+                    minLength: 1
+                level:
+                    type: string
+                    minLength: 1
+                position:
+                    type: string
+                    minLength: 1
+        EmployeeUpdateInput:
+            type: object
+            additionalProperties: false
+            properties:
+                fullName:
+                    type: string
+                    minLength: 1
+                imageId:
+                    type: string
+                    minLength: 1
+                    nullable: true
+                level:
+                    type: string
+                    minLength: 1
+                position:
+                    type: string
+                    minLength: 1
+        AuthSuccess:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - message
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                message:
+                    type: string
         LoginRequest:
             type: object
             additionalProperties: false
-            description:
-                Required strings; extra fields rejected. Trim and lowercase email. Do not alter
-                passwords.
             required:
                 - email
                 - password
             properties:
                 email:
-                    $ref: "#/components/schemas/Email"
+                    type: string
+                    format: email
+                    maxLength: 254
+                    description: Trim and lowercase.
                 password:
-                    $ref: "#/components/schemas/Password"
-            example:
-                email: olena@example.com
-                password: ExamplePassword123!
-        LoginResponse:
-            type: object
-            additionalProperties: false
-            required:
-                - expiresIn
-            properties:
-                expiresIn:
-                    type: integer
-                    enum:
-                        - 3600
-                    readOnly: true
-                    description: Token lifetime in seconds; equals cookie Max-Age.
-            example:
-                expiresIn: 3600
+                    type: string
+                    format: password
+                    writeOnly: true
+                    minLength: 1
+                    maxLength: 72
+                    description: At most 72 UTF-8 bytes. Do not trim or truncate.
         ErrorDetail:
             type: object
             additionalProperties: false
@@ -456,20 +464,14 @@ components:
                 field:
                     type: string
                     minLength: 1
-                    description: Request field name. Unknown fields are displayed as form-level errors.
                 message:
                     type: string
                     minLength: 1
-                    description: Message suitable for display beside the field.
-            example:
-                field: email
-                message: Enter a valid email address.
         ErrorResponse:
             type: object
             additionalProperties: false
             required:
                 - success
-                - code
                 - message
                 - details
             properties:
@@ -477,187 +479,121 @@ components:
                     type: boolean
                     enum:
                         - false
-                code:
-                    type: string
-                    description: Stable machine-readable error code.
-                    enum:
-                        - BAD_REQUEST
-                        - UNAUTHORIZED
-                        - TOKEN_STALE
-                        - FORBIDDEN
-                        - CONFLICT
-                        - VALIDATION_ERROR
-                        - TOO_MANY_ATTEMPTS
                 message:
                     type: string
                     minLength: 1
-                    description: Message suitable for direct display to the user.
                 details:
                     type: array
-                    description: Field errors; empty when no field details apply. Never echo credentials.
                     items:
                         $ref: "#/components/schemas/ErrorDetail"
-            example:
-                code: BAD_REQUEST
-                message: Invalid request.
-                details: []
-                success: false
-        Email:
-            type: string
-            format: email
-            maxLength: 254
-            description: "Trim and lowercase. Invalid format: Enter a valid email address."
-        Password:
-            type: string
-            format: password
-            minLength: 1
-            maxLength: 72
-            writeOnly: true
-            description: "Do not modify or truncate. Maximum 72 UTF-8 bytes. Empty: Password is required."
-    examples:
-        BadRequest:
-            summary: Malformed request
-            value:
-                code: BAD_REQUEST
-                message: Invalid request.
-                details: []
-                success: false
-        Unauthorized:
-            summary: Missing or invalid authentication
-            value:
-                code: UNAUTHORIZED
-                message: Authentication is required.
-                details: []
-                success: false
-        InvalidCredentials:
-            summary: Generic login failure
-            description: Identical for wrong email/password, missing account and deactivated account.
-            value:
-                code: UNAUTHORIZED
-                message: Invalid email or password.
-                details: []
-                success: false
-        TokenStale:
-            summary: Expired or revoked token
-            value:
-                code: TOKEN_STALE
-                message: Your session is no longer valid. Please sign in again.
-                details: []
-                success: false
-        Forbidden:
-            summary: Operation is not allowed
-            value:
-                code: FORBIDDEN
-                message: You do not have permission to perform this action.
-                details: []
-                success: false
-        EmailAlreadyRegistered:
-            summary: Email address is already registered
-            value:
-                code: CONFLICT
-                message: An account with this email already exists.
-                details: []
-                success: false
-        ValidationError:
-            summary: Request field validation failed
-            value:
-                code: VALIDATION_ERROR
-                message: Please correct the highlighted fields.
-                details:
-                    - field: email
-                      message: Enter a valid email address.
-                success: false
-        TooManyAttempts:
-            summary: Request rate limit exceeded
-            value:
-                code: TOO_MANY_ATTEMPTS
-                message: Too many attempts. Please try again later.
-                details: []
-                success: false
+                    description: Field errors; [] if absent. No credentials or technical details.
     responses:
-        EmployeeBadRequest:
-            description: Invalid UUID, missing or empty request body, or employee has a linked account.
+        BadRequest:
+            description:
+                Malformed JSON or a missing/non-object body for a validated endpoint. Standard
+                express.json() may turn a zero-byte JSON body into {}; validation then returns 422.
+                An empty Employee object is valid.
             content:
                 application/json:
-                    schema: { $ref: "#/components/schemas/EmployeeError" }
-        DevelopmentOnly:
-            description: This endpoint is available only when NODE_ENV is development.
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Invalid request.
+                        details: []
+        PayloadTooLarge:
+            description: JSON body exceeds the default express.json() limit of 100 KiB.
             content:
                 application/json:
-                    schema: { $ref: "#/components/schemas/EmployeeError" }
-        EmployeeNotFound:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Invalid request.
+                        details: []
+        UnsupportedMediaType:
+            description: JSON parser rejected the charset or content encoding.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Invalid request.
+                        details: []
+        LoginUnauthorized:
+            description: Wrong credentials, missing account or inactive account; identical response.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Invalid email or password.
+                        details: []
+        Forbidden:
+            description: Origin is missing or not in the configured allowlist.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: You do not have permission to perform this action.
+                        details: []
+        ValidationError:
+            description:
+                Invalid fields, UUID or unknown properties; all validators forward parsed Zod data on
+                success. Auth {} reports missing fields. Employee {} is allowed.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Please correct the highlighted fields.
+                        details:
+                            - field: email
+                              message: Enter a valid email address.
+        TooManyAttempts:
+            description:
+                Five failed attempts per normalized email + IP in a sliding 5-minute window by default;
+                configurable. No waiting-time response metadata.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Too many attempts. Please try again later.
+                        details: []
+        InternalServerError:
+            description: Unexpected failure; no internal details are exposed.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Internal server error.
+                        details: []
+        NotFound:
             description: Employee does not exist.
             content:
                 application/json:
-                    schema: { $ref: "#/components/schemas/EmployeeError" }
-        EmployeeValidation:
-            description: Invalid employee fields.
-            content:
-                application/json:
-                    schema: { $ref: "#/components/schemas/EmployeeError" }
-        BadRequest:
-            description: Missing or malformed JSON, or a non-object body for register/login.
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Співробітника не знайдено
+                        details: []
+        DevelopmentOnly:
+            description: Employee routes are enabled only in development.
             content:
                 application/json:
                     schema:
                         $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        badRequest:
-                            $ref: "#/components/examples/BadRequest"
-        LoginUnauthorized:
-            description:
-                Wrong email, wrong password, missing account and deactivated account all return this
-                identical response.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        invalidCredentials:
-                            $ref: "#/components/examples/InvalidCredentials"
-        Forbidden:
-            description: Origin/Referer is missing or not allowed.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        forbidden:
-                            $ref: "#/components/examples/Forbidden"
-        RegistrationConflict:
-            description: Email is already registered.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        emailAlreadyRegistered:
-                            $ref: "#/components/examples/EmailAlreadyRegistered"
-        TooManyAttempts:
-            description: Request limit exceeded. Wait Retry-After seconds.
-            headers:
-                Retry-After:
-                    description: Waiting time in seconds.
-                    required: true
-                    schema:
-                        type: integer
-                        minimum: 1
-                    example: 60
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        tooManyAttempts:
-                            $ref: "#/components/examples/TooManyAttempts"
-        ValidationError:
-            description:
-                Invalid fields or extra properties. An empty object reports required fields. Map
-                details by field, not array position.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                    examples:
-                        invalidEmail:
-                            $ref: "#/components/examples/ValidationError"
+                    example:
+                        success: false
+                        message: Маршрут доступний лише в середовищі розробки
+                        details: []

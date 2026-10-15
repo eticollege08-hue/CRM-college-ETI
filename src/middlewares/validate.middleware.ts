@@ -1,52 +1,33 @@
-import { ApiError } from "#utils/error.util.js";
+import { API_MESSAGES } from "#constants/api-messages.constants.js";
 import { HttpStatus } from "#constants/http-status.constants.js";
+import { ApiError } from "#utils/error.util.js";
 
 import type { RequestHandler } from "express";
 import type { ZodObject } from "zod";
 
 export const validateBody =
-    (schema: ZodObject, options: { allowEmpty?: boolean; status?: number } = {}): RequestHandler =>
-    (req, res, next) => {
-        if (!req.body || (Object.keys(req.body).length === 0 && !options.allowEmpty)) {
-            return next(new ApiError(HttpStatus.BAD_REQUEST, "Тіло запиту є необхідним"));
+    (schema: ZodObject): RequestHandler =>
+    (req, _res, next) => {
+        const body: unknown = req.body;
+        if (body === null || typeof body !== "object" || Array.isArray(body)) {
+            return next(new ApiError(HttpStatus.BAD_REQUEST, API_MESSAGES.BAD_REQUEST));
         }
-
-        const result = schema.safeParse(req.body);
-
-        if (!result.success) {
-            return res.status(options.status ?? HttpStatus.BAD_REQUEST).json({
-                success: false,
-                message: "Помилка валідації даних",
-                details: result.error.issues.map((err) => ({
-                    field: err.path.join("."),
-                    message: err.message,
-                })),
-            });
-        }
-
+        const result = schema.strict().safeParse(body);
+        if (!result.success) return next(result.error);
         req.body = result.data;
         next();
     };
 
 export const validateParams =
     (schema: ZodObject): RequestHandler =>
-    (req, res, next) => {
-        if (!req.params)
-            return next(new ApiError(HttpStatus.BAD_REQUEST, "Невірний формат параметрів запиту"));
-
+    (req, _res, next) => {
         const result = schema.safeParse(req.params);
-
-        if (!result.success) {
-            return res.status(HttpStatus.BAD_REQUEST).json({
-                success: false,
-                message: "Помилка валідації даних",
-                details: result.error.issues.map((err) => ({
-                    field: err.path.join("."),
-                    message: err.message,
-                })),
-            });
+        if (!result.success) return next(result.error);
+        for (const [key, value] of Object.entries(result.data)) {
+            if (typeof value !== "string") {
+                return next(new ApiError(HttpStatus.BAD_REQUEST, API_MESSAGES.BAD_REQUEST));
+            }
+            req.params[key] = value;
         }
-
-        req.params = result.data as Record<string, string>;
         next();
     };

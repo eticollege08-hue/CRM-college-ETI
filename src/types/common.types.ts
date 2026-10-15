@@ -1,6 +1,7 @@
 import type { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import type { UUID } from "node:crypto";
-import type { Role } from "@prisma/client";
+import type { z } from "zod";
+
+import type { jwtPayloadSchema, jwtSchema } from "#schemas/jwt.schema.js";
 
 export interface ApiErrorInterface {
     message: string;
@@ -14,11 +15,5 @@ export interface ErrorInterface {
 
 export type AnyError = ApiErrorInterface | ErrorInterface | PrismaClientKnownRequestError | Error;
 
-export interface JWTPayload {
-    userId: UUID;
-    role: Role;
-}
-
-export interface JWT extends JWTPayload {
-    exp: number;
-}
+export type JWTPayload = z.infer<typeof jwtPayloadSchema>;
+export type JWT = z.infer<typeof jwtSchema>;
