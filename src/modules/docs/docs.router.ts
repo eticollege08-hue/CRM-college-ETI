@@ -7,7 +7,8 @@ const specificationPath = path.resolve(process.cwd(), "docs", "openapi.yaml");
 
 router.get("/openapi.yaml", (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    res.sendFile(specificationPath);
+    // The fixed trusted path can live inside a hidden worktree directory.
+    res.sendFile(specificationPath, { dotfiles: "allow" });
 });
 
 router.use(

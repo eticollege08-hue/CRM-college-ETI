@@ -1,18 +1,26 @@
 import jwt from "jsonwebtoken";
 
+import { getJwtConfig } from "#config/jwt.config.js";
+import { jwtPayloadSchema, jwtSchema } from "#schemas/jwt.schema.js";
+
 import type { JWT, JWTPayload } from "#types/common.types.js";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_EXPIRES_IN = Number(process.env.JWT_EXPIRES_IN);
+// CRM-102.2 signing/verification; read env at call time so dotenv can run first.
+export function generateToken(payload: JWTPayload): string {
+    const { secret, expiresIn } = getJwtConfig();
+    const validated = jwtPayloadSchema.parse(payload);
 
-export function generateToken(payload: JWTPayload) {
-    if (!Number.isSafeInteger(JWT_EXPIRES_IN) || JWT_EXPIRES_IN <= 0) {
-        throw new Error("JWT_EXPIRES_IN must be a positive integer in seconds");
-    }
-
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    return jwt.sign(validated, secret, { algorithm: "HS256", expiresIn });
 }
 
-export function verifyToken(token: string) {
-    return jwt.verify(token, JWT_SECRET) as JWT;
+export function verifyToken(token: string): JWT {
+    const { secret } = getJwtConfig();
+    const decoded: unknown = jwt.verify(token, secret, { algorithms: ["HS256"] });
+    const result = jwtSchema.safeParse(decoded);
+
+    if (!result.success) {
+        throw new jwt.JsonWebTokenError("Invalid token payload.");
+    }
+
+    return result.data;
 }

@@ -26,12 +26,13 @@ describe("UserAccountService", () => {
     let repository: {
         create: ReturnType<typeof vi.fn>;
         getByEmail: ReturnType<typeof vi.fn>;
+        createSeedAccount: ReturnType<typeof vi.fn>;
     };
     let employees: { getById: ReturnType<typeof vi.fn> };
     let service: UserAccountService;
 
     beforeEach(() => {
-        repository = { create: vi.fn(), getByEmail: vi.fn() };
+        repository = { create: vi.fn(), getByEmail: vi.fn(), createSeedAccount: vi.fn() };
         employees = { getById: vi.fn() };
         service = new UserAccountService(
             repository as unknown as UserAccountRepository,
@@ -89,4 +90,21 @@ describe("UserAccountService", () => {
 
         expect(result).toBeNull();
     });
+
+    it.each(["OWNER", "MANAGER", "RECRUITER", "HR", "WORKER"] as const)(
+        "creates a seed account using the supplied %s role and normalized email",
+        async (roleKey) => {
+            const data = { email: " EXAMPLE@example.com ", passwordHash: "bcrypt-hash", roleKey };
+            const account = { id: "seed-account-id", ...data, email: "example@example.com" };
+            repository.createSeedAccount.mockResolvedValue(account);
+
+            const result = await service.createSeedAccount(data, "Mock Employee");
+
+            expect(repository.createSeedAccount).toHaveBeenCalledWith(
+                { ...data, email: "example@example.com" },
+                "Mock Employee",
+            );
+            expect(result).toEqual(account);
+        },
+    );
 });

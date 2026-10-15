@@ -1,10 +1,16 @@
-export class ApiError extends Error {
-    status: number;
-    name: string;
+export interface ErrorDetail {
+    field: string;
+    message: string;
+}
 
-    constructor(status: number, message: string) {
+export class ApiError extends Error {
+    readonly name = "ApiError";
+
+    constructor(
+        readonly status: number,
+        message: string,
+        readonly details: ErrorDetail[] = [],
+    ) {
         super(message);
-        this.status = status;
-        this.name = "ApiError";
     }
 }
