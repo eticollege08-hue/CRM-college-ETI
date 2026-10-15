@@ -5,6 +5,7 @@ export const HttpStatus = {
     UNAUTHORIZED: 401,
     FORBIDDEN: 403,
     NOT_FOUND: 404,
+    UNPROCESSABLE_ENTITY: 422,
     CONFLICT: 409,
     INTERNAL_SERVER_ERROR: 500,
 };
