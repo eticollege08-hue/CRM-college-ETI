@@ -1,21 +1,22 @@
-import { AUTH_TOKEN_TTL_SECONDS } from "#modules/auth/auth.constants.js";
+import { Buffer } from "node:buffer";
 
 export function getJwtConfig() {
     const secret = process.env.JWT_SECRET;
-    const value = process.env.JWT_EXPIRES_IN ?? String(AUTH_TOKEN_TTL_SECONDS);
+    const value = process.env.JWT_EXPIRES_IN ?? "3600";
     const expiresIn = Number(value);
 
-    if (!secret?.trim()) {
-        throw new Error("JWT_SECRET must be configured.");
+    if (!secret?.trim() || Buffer.byteLength(secret, "utf8") < 32) {
+        throw new Error(
+            "JWT_SECRET must contain at least 32 bytes; use a cryptographically generated secret.",
+        );
     }
-
-    if (!/^\d+$/.test(value) || !Number.isSafeInteger(expiresIn) || expiresIn <= 0) {
+    if (
+        !/^\d+$/.test(value) ||
+        !Number.isSafeInteger(expiresIn) ||
+        expiresIn <= 0 ||
+        !Number.isSafeInteger(expiresIn * 1000)
+    ) {
         throw new Error("JWT_EXPIRES_IN must be a positive integer in seconds.");
     }
-
-    if (expiresIn !== AUTH_TOKEN_TTL_SECONDS) {
-        throw new Error("JWT_EXPIRES_IN must be 3600 seconds to match the auth contract.");
-    }
-
     return { secret, expiresIn };
 }

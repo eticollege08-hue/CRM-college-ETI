@@ -1,9 +1,9 @@
+import { Role } from "@prisma/client";
 import { z } from "zod";
 
-// CRM-102.2 roles, validated independently of the pending Prisma data model.
 export const jwtPayloadSchema = z.strictObject({
     userId: z.uuid(),
-    role: z.enum(["OWNER", "MANAGER", "RECRUITER", "HR", "WORKER"]),
+    role: z.enum(Role),
 });
 
 export const jwtSchema = jwtPayloadSchema.extend({

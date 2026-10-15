@@ -1,19 +1,6 @@
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient({
-    log: ["query", "info", "warn", "error"],
-});
-
-async function testConnection() {
-    try {
-        await prisma.$connect();
-        console.log("✅ Database was connected");
-    } catch (err: unknown) {
-        console.error("❌ Prisma Connection Error:", err instanceof Error ? err.message : err);
-    }
-}
-
-testConnection();
+// Connect lazily on the first query. Never log SQL, parameters or raw database errors.
+const prisma = new PrismaClient({ log: [] });
 
 export default prisma;

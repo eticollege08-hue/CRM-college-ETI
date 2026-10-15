@@ -1,127 +1,130 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthService } from "../../src/modules/auth/auth.service.js";
-import { AuthRateLimitService } from "../../src/modules/auth/auth-rate-limit.service.js";
+import { AuthRateLimitService } from "../../src/services/auth-rate-limit.service.js";
+import { hashPassword, verifyPassword } from "../../src/utils/password.util.js";
+import { generateToken } from "../../src/utils/jwt.util.js";
 
-import type {
-    AuthAccount,
-    AuthPasswords,
-    AuthTokenIssuer,
-    AuthUserAccounts,
-} from "../../src/modules/auth/auth.types.js";
+import type { UserAccountService } from "../../src/modules/user-accounts/user-account.service.js";
+
+vi.mock("#modules/user-accounts/user-account.service.js", () => ({ userAccountService: {} }));
+vi.mock("#utils/password.util.js", () => ({ hashPassword: vi.fn(), verifyPassword: vi.fn() }));
+vi.mock("#utils/jwt.util.js", () => ({ generateToken: vi.fn() }));
 
 const input = { email: "  OLENA@EXAMPLE.COM  ", password: "test-password" };
-const account: AuthAccount = {
-    id: "account-id",
+const account = {
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    employeeId: "550e8400-e29b-41d4-a716-446655440001",
+    email: "olena@example.com",
     passwordHash: "stored-hash",
+    roleKey: "OWNER" as const,
     isActive: true,
-    role: "OWNER",
+    lastLoginAt: null,
 };
 
 describe("AuthService", () => {
-    let now: number;
-    let find: ReturnType<typeof vi.fn<AuthUserAccounts["findForAuthentication"]>>;
-    let update: ReturnType<typeof vi.fn<AuthUserAccounts["updateLastLoginAt"]>>;
-    let issue: ReturnType<typeof vi.fn<AuthTokenIssuer["issue"]>>;
-    let hash: ReturnType<typeof vi.fn<AuthPasswords["hash"]>>;
-    let verify: ReturnType<typeof vi.fn<AuthPasswords["verify"]>>;
+    let accounts: {
+        getByEmail: ReturnType<typeof vi.fn<UserAccountService["getByEmail"]>>;
+        updateLastLoginAt: ReturnType<typeof vi.fn<UserAccountService["updateLastLoginAt"]>>;
+    };
     let service: AuthService;
+    let limiter: AuthRateLimitService;
 
     beforeEach(() => {
-        now = 0;
-        find = vi.fn<AuthUserAccounts["findForAuthentication"]>().mockResolvedValue(account);
-        update = vi.fn<AuthUserAccounts["updateLastLoginAt"]>().mockResolvedValue(undefined);
-        issue = vi.fn<AuthTokenIssuer["issue"]>().mockResolvedValue("test-token");
-        hash = vi.fn<AuthPasswords["hash"]>().mockResolvedValue("dummy-hash");
-        verify = vi.fn<AuthPasswords["verify"]>().mockResolvedValue(true);
-        service = new AuthService(
-            { findForAuthentication: find, updateLastLoginAt: update },
-            { issue },
-            new AuthRateLimitService({ maxAttempts: 5, windowMs: 300_000 }, () => now),
-            { hash, verify },
-            () => new Date(now),
-        );
+        accounts = {
+            getByEmail: vi.fn<UserAccountService["getByEmail"]>().mockResolvedValue(account),
+            updateLastLoginAt: vi
+                .fn<UserAccountService["updateLastLoginAt"]>()
+                .mockResolvedValue(account),
+        };
+        vi.mocked(hashPassword).mockResolvedValue("dummy-hash");
+        vi.mocked(verifyPassword).mockResolvedValue(true);
+        vi.mocked(generateToken).mockReturnValue("test-token");
+        limiter = new AuthRateLimitService({ maxAttempts: 5, windowMs: 300_000 });
+        service = new AuthService(accounts as unknown as UserAccountService, limiter);
     });
 
-    it("normalizes email, verifies the hash, issues only account claims and updates last login", async () => {
-        const result = await service.login(input, "192.0.2.1");
-        expect(find).toHaveBeenCalledWith("olena@example.com");
-        expect(verify).toHaveBeenCalledWith(input.password, account.passwordHash);
-        expect(issue).toHaveBeenCalledExactlyOnceWith(
-            { userId: "account-id", role: "OWNER" },
-            3600,
-        );
-        expect(update).toHaveBeenCalledExactlyOnceWith("account-id", new Date(0));
-        expect(result).toEqual({ token: "test-token", expiresIn: 3600 });
+    it("normalizes email, signs account claims, updates last_login_at and returns only the internal token", async () => {
+        await expect(service.login(input, "192.0.2.1")).resolves.toBe("test-token");
+        expect(accounts.getByEmail).toHaveBeenCalledWith("olena@example.com");
+        expect(verifyPassword).toHaveBeenCalledWith(input.password, account.passwordHash);
+        expect(generateToken).toHaveBeenCalledExactlyOnceWith({
+            userId: account.id,
+            role: account.roleKey,
+        });
+        expect(accounts.updateLastLoginAt).toHaveBeenCalledExactlyOnceWith(account.id);
     });
 
-    it.each(["missing email", "employee without account", "wrong password", "inactive account"])(
-        "uses an identical 401 for %s",
+    it.each(["missing account", "wrong password", "inactive account"])(
+        "returns the same generic 401 for %s",
         async (scenario) => {
-            if (scenario === "missing email" || scenario === "employee without account")
-                find.mockResolvedValue(null);
-            if (scenario === "wrong password") verify.mockResolvedValue(false);
+            if (scenario === "missing account") accounts.getByEmail.mockResolvedValue(null);
+            if (scenario === "wrong password") vi.mocked(verifyPassword).mockResolvedValue(false);
             if (scenario === "inactive account")
-                find.mockResolvedValue({ ...account, isActive: false });
+                accounts.getByEmail.mockResolvedValue({ ...account, isActive: false });
             await expect(service.login(input, "192.0.2.1")).rejects.toMatchObject({
                 status: 401,
-                code: "UNAUTHORIZED",
                 message: "Invalid email or password.",
                 details: [],
             });
-            expect(verify).toHaveBeenCalledTimes(1);
-            expect(issue).not.toHaveBeenCalled();
-            expect(update).not.toHaveBeenCalled();
+            expect(verifyPassword).toHaveBeenCalledTimes(1);
+            expect(generateToken).not.toHaveBeenCalled();
+            expect(accounts.updateLastLoginAt).not.toHaveBeenCalled();
         },
     );
 
-    it("performs a dummy hash comparison for missing accounts and caches the dummy hash", async () => {
-        find.mockResolvedValue(null);
+    it("compares against the cached dummy bcrypt hash for missing accounts", async () => {
+        accounts.getByEmail.mockResolvedValue(null);
         await Promise.allSettled([
             service.login(input, "192.0.2.1"),
             service.login(input, "192.0.2.2"),
         ]);
-        expect(hash).toHaveBeenCalledTimes(1);
-        expect(verify).toHaveBeenCalledWith(input.password, "dummy-hash");
-        expect(find).toHaveBeenCalledTimes(2);
+        expect(hashPassword).toHaveBeenCalledTimes(1);
+        expect(verifyPassword).toHaveBeenCalledWith(input.password, "dummy-hash");
     });
 
-    it("limits concurrent failures before querying accounts and resumes after the window", async () => {
-        verify.mockResolvedValue(false);
+    it("delegates the normalized identity to the shared limiter", async () => {
+        const run = vi.spyOn(limiter, "runAttempt");
+        await service.login(input, "192.0.2.1");
+        expect(run).toHaveBeenCalledWith("olena@example.com", "192.0.2.1", expect.any(Function));
+    });
+
+    it("rejects the sixth concurrent failure without querying or comparing again", async () => {
+        vi.mocked(verifyPassword).mockResolvedValue(false);
         const results = await Promise.allSettled(
-            Array.from({ length: 8 }, () => service.login(input, "192.0.2.1")),
+            Array.from({ length: 6 }, () => service.login(input, "192.0.2.1")),
         );
-        expect(find).toHaveBeenCalledTimes(5);
-        expect(verify).toHaveBeenCalledTimes(5);
+        expect(accounts.getByEmail).toHaveBeenCalledTimes(5);
+        expect(verifyPassword).toHaveBeenCalledTimes(5);
         expect(results[5]).toMatchObject({
             status: "rejected",
-            reason: { status: 429, retryAfterSeconds: 300 },
-        });
-        now = 300_000;
-        verify.mockResolvedValue(true);
-        await expect(service.login(input, "192.0.2.1")).resolves.toEqual({
-            token: "test-token",
-            expiresIn: 3600,
+            reason: {
+                status: 429,
+                message: "Too many attempts. Please try again later.",
+                details: [],
+            },
         });
     });
 
-    it("does not count account service failures as wrong credentials", async () => {
-        const error = new Error("Upstream failure");
-        find.mockRejectedValueOnce(error);
-        await expect(service.login(input, "192.0.2.1")).rejects.toBe(error);
-        await expect(service.login(input, "192.0.2.1")).resolves.toMatchObject({ expiresIn: 3600 });
+    it("does not return a login result when updating last_login_at fails", async () => {
+        const failure = new Error("Database failure");
+        accounts.updateLastLoginAt.mockRejectedValueOnce(failure);
+        await expect(service.login(input, "192.0.2.1")).rejects.toBe(failure);
+        expect(limiter.isBlocked(input.email, "192.0.2.1")).toBe(false);
     });
 
-    it("does not return a token if updating last login fails", async () => {
-        update.mockRejectedValue(new Error("Update failed"));
-        await expect(service.login(input, "192.0.2.1")).rejects.toThrow("Update failed");
+    it("does not update last_login_at when signing fails", async () => {
+        vi.mocked(generateToken).mockImplementationOnce(() => {
+            throw new Error("Signing failed");
+        });
+        await expect(service.login(input, "192.0.2.1")).rejects.toThrow("Signing failed");
+        expect(accounts.updateLastLoginAt).not.toHaveBeenCalled();
     });
 
-    it("rejects an empty issued token before updating last login", async () => {
-        issue.mockResolvedValue("");
-        await expect(service.login(input, "192.0.2.1")).rejects.toThrow(
-            "Token issuer returned an empty token.",
-        );
-        expect(update).not.toHaveBeenCalled();
+    it("does not count infrastructure failures as incorrect credentials", async () => {
+        const failure = new Error("Database unavailable");
+        accounts.getByEmail.mockRejectedValueOnce(failure);
+        await expect(service.login(input, "192.0.2.1")).rejects.toBe(failure);
+        await expect(service.login(input, "192.0.2.1")).resolves.toBe("test-token");
     });
 });

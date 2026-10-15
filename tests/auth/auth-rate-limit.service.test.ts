@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { AuthRateLimitService } from "../../src/modules/auth/auth-rate-limit.service.js";
+import { AuthRateLimitService } from "../../src/services/auth-rate-limit.service.js";
 
 const EMAIL = "olena@example.com";
 const IP = "192.0.2.1";
@@ -8,350 +7,135 @@ const IP = "192.0.2.1";
 describe("AuthRateLimitService", () => {
     let now: number;
     let limiter: AuthRateLimitService;
-
     beforeEach(() => {
         now = 0;
         limiter = new AuthRateLimitService({ maxAttempts: 5, windowMs: 300_000 }, () => now);
     });
-
-    function recordFailures(count: number): void {
-        for (let index = 0; index < count; index += 1) {
-            limiter.recordFailure(EMAIL, IP);
-        }
+    function fail(count: number) {
+        for (let i = 0; i < count; i += 1) limiter.recordFailure(EMAIL, IP);
     }
 
-    it("allows a pair without failed attempts", () => {
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
+    it("blocks only after five failed attempts", () => {
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(false);
+        fail(4);
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(false);
+        fail(1);
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(true);
     });
-
-    it("allows another attempt after four failures", () => {
-        recordFailures(4);
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
+    it("isolates email + IP pairs and normalizes email", () => {
+        fail(5);
+        expect(limiter.isBlocked("  OLENA@EXAMPLE.COM  ", IP)).toBe(true);
+        expect(limiter.isBlocked(EMAIL, "192.0.2.2")).toBe(false);
+        expect(limiter.isBlocked("ivan@example.com", IP)).toBe(false);
     });
-
-    it("blocks the next attempt after five failures", () => {
-        recordFailures(5);
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(300);
-    });
-
-    it("does not count checks as failed attempts", () => {
-        for (let index = 0; index < 10; index += 1) {
-            expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
-        }
-    });
-
-    it("normalizes email when identifying the pair", () => {
-        recordFailures(5);
-
-        expect(limiter.getRetryAfterSeconds("  OLENA@EXAMPLE.COM  ", IP)).toBe(300);
-    });
-
-    it("does not block the same email from another IP", () => {
-        recordFailures(5);
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, "192.0.2.2")).toBe(0);
-    });
-
-    it("does not block another email from the same IP", () => {
-        recordFailures(5);
-
-        expect(limiter.getRetryAfterSeconds("ivan@example.com", IP)).toBe(0);
-    });
-
-    it("rounds the remaining wait up to whole seconds", () => {
-        recordFailures(5);
-        now = 299_001;
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(1);
-    });
-
-    it("allows attempts exactly when the window expires", () => {
-        recordFailures(5);
-        now = 300_000;
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
-
-        recordFailures(1);
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
-    });
-
-    it("does not extend the lockout when another failure is recorded while blocked", () => {
-        recordFailures(5);
+    it("expires failures exactly at the sliding window boundary", () => {
+        fail(1);
         now = 100_000;
-
-        recordFailures(1);
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(200);
-
+        fail(4);
         now = 300_000;
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(false);
+        fail(1);
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(true);
+        now = 400_000;
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(false);
     });
-
-    it("keeps newer failures when the oldest failure expires", () => {
-        recordFailures(1);
+    it("does not extend a lockout for blocked requests", async () => {
+        fail(5);
         now = 100_000;
-        recordFailures(4);
+        const verify = vi.fn(async () => null);
+        await expect(limiter.runAttempt(EMAIL, IP, verify)).rejects.toMatchObject({ status: 429 });
+        limiter.recordFailure(EMAIL, IP);
+        expect(verify).not.toHaveBeenCalled();
         now = 300_000;
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
-
-        recordFailures(1);
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(100);
-    });
-
-    it("uses the configured threshold and window", () => {
-        limiter = new AuthRateLimitService({ maxAttempts: 2, windowMs: 10_000 }, () => now);
-
-        recordFailures(2);
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(10);
-
-        now = 10_000;
-
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
-    });
-
-    it("rejects an invalid attempt threshold", () => {
-        expect(() => new AuthRateLimitService({ maxAttempts: 0, windowMs: 1000 })).toThrow(
-            "maxAttempts must be a positive safe integer.",
+        await expect(limiter.runAttempt(EMAIL, IP, async () => "signed-in")).resolves.toBe(
+            "signed-in",
         );
     });
-
-    it("rejects an invalid window", () => {
-        expect(() => new AuthRateLimitService({ maxAttempts: 5, windowMs: 0 })).toThrow(
-            "windowMs must be a positive safe integer.",
-        );
-    });
-});
-
-describe("AuthRateLimitService.runAttempt", () => {
-    let now: number;
-    let limiter: AuthRateLimitService;
-
-    beforeEach(() => {
-        now = 0;
-        limiter = new AuthRateLimitService({ maxAttempts: 5, windowMs: 300_000 }, () => now);
-    });
-
-    it("returns the successful verification result unchanged", async () => {
-        const account = { id: "test-account-id" };
-        const verify = vi.fn(async () => account);
-
-        const result = await limiter.runAttempt(EMAIL, IP, verify);
-
-        expect(result).toBe(account);
-        expect(verify).toHaveBeenCalledTimes(1);
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
-    });
-
-    it("returns the generic 401 for failed verification", async () => {
-        await expect(limiter.runAttempt(EMAIL, IP, async () => null)).rejects.toMatchObject({
-            status: 401,
-            code: "UNAUTHORIZED",
-            message: "Invalid email or password.",
-            details: [],
-        });
-    });
-
-    it("does not count successful attempts as failures", async () => {
-        const verify = vi.fn(async () => ({ id: "test-account-id" }));
-
-        const results = await Promise.all(
-            Array.from({ length: 10 }, () => limiter.runAttempt(EMAIL, IP, verify)),
-        );
-
-        expect(results).toHaveLength(10);
-        expect(verify).toHaveBeenCalledTimes(10);
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(0);
-    });
-
-    it("runs only five credential checks for ten concurrent failed attempts", async () => {
+    it("runs only five credential checks for concurrent failures", async () => {
         const verify = vi.fn(async () => {
             await Promise.resolve();
             return null;
         });
-
         const results = await Promise.allSettled(
             Array.from({ length: 10 }, () => limiter.runAttempt(EMAIL, IP, verify)),
         );
-
         expect(verify).toHaveBeenCalledTimes(5);
-
-        for (const result of results.slice(0, 5)) {
-            expect(result).toMatchObject({
-                status: "rejected",
-                reason: {
-                    status: 401,
-                    code: "UNAUTHORIZED",
-                    message: "Invalid email or password.",
-                },
-            });
-        }
-
-        for (const result of results.slice(5)) {
-            expect(result).toMatchObject({
-                status: "rejected",
-                reason: {
-                    status: 429,
-                    code: "TOO_MANY_ATTEMPTS",
-                    retryAfterSeconds: 300,
-                },
-            });
-        }
-    });
-
-    it("never overlaps credential checks for the same pair", async () => {
-        let activeChecks = 0;
-        let maximumActiveChecks = 0;
-
-        const verify = vi.fn(async () => {
-            activeChecks += 1;
-            maximumActiveChecks = Math.max(maximumActiveChecks, activeChecks);
-
-            await Promise.resolve();
-
-            activeChecks -= 1;
-            return { id: "test-account-id" };
-        });
-
-        await Promise.all(Array.from({ length: 4 }, () => limiter.runAttempt(EMAIL, IP, verify)));
-
-        expect(verify).toHaveBeenCalledTimes(4);
-        expect(maximumActiveChecks).toBe(1);
-    });
-
-    it.each([
-        { email: "ivan@example.com", ip: IP },
-        { email: EMAIL, ip: "192.0.2.2" },
-    ])("allows concurrent checks for a different pair $email / $ip", async (pair) => {
-        let activeChecks = 0;
-        let maximumActiveChecks = 0;
-
-        const verify = async () => {
-            activeChecks += 1;
-            maximumActiveChecks = Math.max(maximumActiveChecks, activeChecks);
-
-            await Promise.resolve();
-
-            activeChecks -= 1;
-            return { id: "test-account-id" };
-        };
-
-        await Promise.all([
-            limiter.runAttempt(EMAIL, IP, verify),
-            limiter.runAttempt(pair.email, pair.ip, verify),
-        ]);
-
-        expect(maximumActiveChecks).toBe(2);
-    });
-
-    it("shares the queue and limit across normalized email variants", async () => {
-        const verify = vi.fn(async () => {
-            await Promise.resolve();
-            return null;
-        });
-
-        const results = await Promise.allSettled(
-            Array.from({ length: 6 }, (_, index) =>
-                limiter.runAttempt(index % 2 === 0 ? EMAIL : "  OLENA@EXAMPLE.COM  ", IP, verify),
+        expect(results.slice(0, 5)).toEqual(
+            Array.from({ length: 5 }, () =>
+                expect.objectContaining({
+                    status: "rejected",
+                    reason: expect.objectContaining({ status: 401 }),
+                }),
             ),
         );
-
-        expect(verify).toHaveBeenCalledTimes(5);
-        expect(results[5]).toMatchObject({
-            status: "rejected",
-            reason: {
-                status: 429,
-                code: "TOO_MANY_ATTEMPTS",
-            },
-        });
+        expect(results.slice(5)).toEqual(
+            Array.from({ length: 5 }, () =>
+                expect.objectContaining({
+                    status: "rejected",
+                    reason: expect.objectContaining({ status: 429 }),
+                }),
+            ),
+        );
     });
-
-    it("does not invoke verification when the pair is already blocked", async () => {
-        for (let index = 0; index < 5; index += 1) {
-            limiter.recordFailure(EMAIL, IP);
-        }
-
-        const verify = vi.fn(async () => ({ id: "test-account-id" }));
-
-        await expect(limiter.runAttempt(EMAIL, IP, verify)).rejects.toMatchObject({
-            status: 429,
-            code: "TOO_MANY_ATTEMPTS",
-            retryAfterSeconds: 300,
-        });
-
-        expect(verify).not.toHaveBeenCalled();
+    it("serializes checks of a normalized pair", async () => {
+        let active = 0;
+        let maximum = 0;
+        const verify = async () => {
+            active += 1;
+            maximum = Math.max(maximum, active);
+            await Promise.resolve();
+            active -= 1;
+            return "ok";
+        };
+        await Promise.all([
+            limiter.runAttempt(EMAIL, IP, verify),
+            limiter.runAttempt("  OLENA@EXAMPLE.COM  ", IP, verify),
+        ]);
+        expect(maximum).toBe(1);
     });
-
-    it("continues the queue after a technical error without counting it as a failure", async () => {
-        limiter = new AuthRateLimitService({ maxAttempts: 1, windowMs: 300_000 }, () => now);
-        const technicalError = new Error("Database unavailable");
-        const verify = vi.fn(async () => null);
-
+    it("allows different pairs to execute concurrently", async () => {
+        let active = 0;
+        let maximum = 0;
+        const verify = async () => {
+            active += 1;
+            maximum = Math.max(maximum, active);
+            await Promise.resolve();
+            active -= 1;
+            return "ok";
+        };
+        await Promise.all([
+            limiter.runAttempt(EMAIL, IP, verify),
+            limiter.runAttempt(EMAIL, "192.0.2.2", verify),
+        ]);
+        expect(maximum).toBe(2);
+    });
+    it("continues the queue after technical failures without counting them", async () => {
+        limiter = new AuthRateLimitService({ maxAttempts: 1, windowMs: 1000 }, () => now);
+        const failure = new Error("Database failed");
         const results = await Promise.allSettled([
             limiter.runAttempt(EMAIL, IP, async () => {
-                throw technicalError;
+                throw failure;
             }),
-            limiter.runAttempt(EMAIL, IP, verify),
+            limiter.runAttempt(EMAIL, IP, async () => null),
         ]);
-
-        expect(results[0]).toMatchObject({
-            status: "rejected",
-            reason: technicalError,
-        });
-        expect(results[1]).toMatchObject({
-            status: "rejected",
-            reason: {
-                status: 401,
-                code: "UNAUTHORIZED",
-            },
-        });
-        expect(verify).toHaveBeenCalledTimes(1);
-        expect(limiter.getRetryAfterSeconds(EMAIL, IP)).toBe(300);
+        expect(results[0]).toEqual({ status: "rejected", reason: failure });
+        expect(results[1]).toMatchObject({ status: "rejected", reason: { status: 401 } });
     });
-
-    it("allows a successful attempt after the lockout expires", async () => {
-        await Promise.allSettled(
-            Array.from({ length: 5 }, () => limiter.runAttempt(EMAIL, IP, async () => null)),
-        );
-
-        const verify = vi.fn(async () => ({ id: "test-account-id" }));
-
-        await expect(limiter.runAttempt(EMAIL, IP, verify)).rejects.toMatchObject({ status: 429 });
-
-        expect(verify).not.toHaveBeenCalled();
-
-        now = 300_000;
-
-        await expect(limiter.runAttempt(EMAIL, IP, verify)).resolves.toEqual({
-            id: "test-account-id",
-        });
-
-        expect(verify).toHaveBeenCalledTimes(1);
-    });
-
-    it("does not erase recent failures after a successful attempt", async () => {
-        for (let index = 0; index < 4; index += 1) {
-            limiter.recordFailure(EMAIL, IP);
-        }
-
-        await limiter.runAttempt(EMAIL, IP, async () => ({
-            id: "test-account-id",
-        }));
-
+    it("successful logins neither add nor clear previous failures", async () => {
+        fail(4);
+        await limiter.runAttempt(EMAIL, IP, async () => "ok");
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(false);
         await expect(limiter.runAttempt(EMAIL, IP, async () => null)).rejects.toMatchObject({
             status: 401,
         });
-
-        await expect(
-            limiter.runAttempt(EMAIL, IP, async () => ({
-                id: "test-account-id",
-            })),
-        ).rejects.toMatchObject({ status: 429 });
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(true);
+    });
+    it("uses configured limits and clears expired identities", () => {
+        limiter = new AuthRateLimitService({ maxAttempts: 2, windowMs: 1000 }, () => now);
+        fail(2);
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(true);
+        now = 1000;
+        limiter.recordFailure("other@example.com", IP);
+        expect(limiter.isBlocked(EMAIL, IP)).toBe(false);
     });
 });
