@@ -1,0 +1,15 @@
+{% extends "base/base.njk" %}
+
+{% block title %}CRM{% endblock %}
+
+{% block content %}
+  <main class="employees-page">
+    <header class="employees-header">
+      <h1>CRM</h1>
+      <div class="logout-control">
+        <button type="button" class="logout-button" data-logout>Sign out</button>
+        <p class="logout-status" data-logout-status role="status" aria-live="polite"></p>
+      </div>
+    </header>
+  </main>
+{% endblock %}
