@@ -15,6 +15,7 @@
 - `src/middlewares/auth-origin.middleware.ts` — точний обов'язковий Origin за AUTH_ALLOWED_ORIGINS. Перевірка використовується лише в auth POST routes.
 - `src/utils/auth-cookie.util.ts` — HttpOnly, SameSite=Lax, host-only, Path=/; встановлення/очищення також видаляють legacy cookie на /api. Cache-Control: no-store. Logout лише очищає cookie, не відкликає JWT.
 - `src/config/jwt.config.ts` — єдине джерело TTL (JWT_EXPIRES_IN, default 3600); JWT_SECRET без default, мінімум 32 байти. `src/utils/jwt.util.ts` і isAuth перевіряють HS256, signature, expiry та claims.
+- `src/middlewares/access.middleware.ts` — `accessFor(roles)` перевіряє лише `req.user.role`; без користувача або дозволеної ролі передає ApiError 403 у errorHandler. Порядок у захищеному маршруті: `isAuth, accessFor(["OWNER", "WORKER"])`.
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
 - `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
 - `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить pages/login.njk нульової довжини, без HTML-розмітки; дані css/js/activePage збережені. `src/modules/employees-ssr/` — існуюча employees SSR сторінка.
