@@ -1,0 +1,53 @@
+.employees-page {
+    min-height: 100vh;
+    padding: 1.5rem;
+}
+
+.employees-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    max-width: 72rem;
+    margin: 0 auto;
+}
+
+.employees-header h1 {
+    margin: 0;
+}
+
+.logout-control {
+    text-align: right;
+}
+
+.logout-button {
+    border: 0;
+    border-radius: 0.5rem;
+    padding: 0.65rem 1rem;
+    color: #fff;
+    background: #0b477b;
+    font: inherit;
+    cursor: pointer;
+}
+
+.logout-button:hover:not(:disabled) {
+    background: #08365e;
+}
+
+.logout-button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.logout-status {
+    min-height: 1em;
+    margin: 0.35rem 0 0;
+    color: #555;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 480px) {
+    .employees-page {
+        padding: 1rem;
+    }
+}

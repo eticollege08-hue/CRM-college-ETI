@@ -23,6 +23,8 @@ export default tseslint.config(
         files: ["src/public/js/**/*.js"],
         languageOptions: {
             globals: {
+                CustomEvent: "readonly",
+                Element: "readonly",
                 document: "readonly",
                 fetch: "readonly",
                 HTMLButtonElement: "readonly",
