@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>{% block title %}CRM{% endblock %}</title>
+    {% if css %}<link rel="stylesheet" href="/css/{{ css }}.css">{% endif %}
+  </head>
+  <body>
+    {% block content %}{% endblock %}
+    <script src="/js/auth.js" defer></script>
+    {% if js %}<script src="/js/{{ js }}.js" defer></script>{% endif %}
+  </body>
+</html>
