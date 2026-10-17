@@ -4,7 +4,4 @@ export const authPageService = {
     async getLoginPageData() {
         return { ...PAGE_DATA.LOGIN };
     },
-    async getRegisterPageData() {
-        return { ...PAGE_DATA.REGISTER };
-    },
 };
