@@ -24,7 +24,7 @@ $env:JWT_SECRET = node -e "process.stdout.write(require('node:crypto').randomByt
 
 Cookie: `crm_access_token`, HttpOnly, SameSite=Lax, host-only, Path=/, Secure відповідно до конфігурації. Встановлення й очищення також видаляють стару однойменну cookie на Path=/api. Login/logout та API-помилки мають Cache-Control: no-store. Logout перевіряє JWT і очищає cookie без серверного відкликання: скопійований JWT залишається чинним до закінчення строку.
 
-Застосунок використовує стандартні express.json() та cookieParser(). Для POST/PATCH потрібен JSON-об'єкт; неправильні поля й зайві властивості повертають 422. Порожній Employee-профіль `{}` дозволений його схемою. Стандартний parser може перетворити нуль байтів на `{}`; спеціальної обробки chunked/порожніх тіл немає. Некоректний JSON дає безпечний 400, завеликий — 413, неприйнятний charset/encoding — 415. Logout не використовує parsed body.
+Застосунок використовує стандартні express.json() та cookieParser(). Для POST/PATCH потрібен JSON-об'єкт; неправильні поля й зайві властивості повертають 422. Стандартний parser може перетворити нуль байтів на `{}`; спеціальної обробки chunked/порожніх тіл немає. Некоректний JSON дає безпечний 400, завеликий — 413, неприйнятний charset/encoding — 415. Logout не використовує parsed body.
 
 Trust proxy=false для прямого доступу; клієнтські forwarded headers не визначають IP. За reverse proxy довіру потрібно налаштувати під фактичну інфраструктуру. Для окремого FE origin окремо потрібен credentialed CORS; типовий сценарій — same-origin.
 

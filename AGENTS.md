@@ -9,7 +9,7 @@
 - `src/modules/auth/` містить лише auth.constants.ts, auth.controller.ts, auth.routes.ts, auth.service.ts, auth.types.ts. Стандартні authService/authController; routes default export під /api/auth. Публічної реєстрації немає.
 - AuthService використовує реальний userAccountService: нормалізований email, bcrypt/dummy hash, isActive, JWT userId+roleKey, оновлення lastLoginAt. Ніяких Employee-запитів/створення під час login.
 - `src/modules/user-accounts/` — внутрішні service/repository; timestamp і атомарне створення Employee+UserAccount із заданою роллю для seed. Ідемпотентний seed не оновлює існуючі credentials; concurrent duplicate обробляється після відкату вкладеного write.
-- `src/modules/employees/` — dev-only CRUD; створення порожнього профілю {} дозволено. Однаковий API error contract застосовується і тут.
+- Публічного Employee CRUD та employees SSR-сторінки наразі немає; Employee залишається внутрішньою таблицею для UserAccount і seed.
 - `src/schemas/auth.schema.ts`, `src/schemas/jwt.schema.ts` — strict login та claims; JWT role береться з Prisma Role, типи виведені зі schema.
 - `src/services/auth-rate-limit.service.ts` — спільний singleton, sliding window 5 failures/300s (env), черга email+IP. Технічні помилки не рахуються, успіх не стирає невдачі, заблоковані запити не подовжують вікно. Перезапуск скидає пам'ять, процеси не мають спільного ліміту.
 - `src/middlewares/auth-origin.middleware.ts` — точний обов'язковий Origin за AUTH_ALLOWED_ORIGINS. Перевірка використовується лише в auth POST routes.
@@ -18,14 +18,14 @@
 - `src/middlewares/access.middleware.ts` — `accessFor(roles)` перевіряє лише `req.user.role`; без користувача або дозволеної ролі передає ApiError 403 у errorHandler. Порядок у захищеному маршруті: `isAuth, accessFor(["OWNER", "WORKER"])`.
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
 - `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
-- `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить pages/login.njk нульової довжини, без HTML-розмітки; дані css/js/activePage збережені. `src/modules/employees-ssr/` — існуюча employees SSR сторінка.
-- `src/routes/api/index.ts` — /auth, /employees, /docs; `src/routes/ssr/index.ts` — SSR registry під /.
+- `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить pages/login.njk нульової довжини, без HTML-розмітки; дані css/js/activePage збережені.
+- `src/routes/api/index.ts` — /auth, /docs; `src/routes/ssr/index.ts` — SSR registry під /.
 - `docs/openapi.yaml` — єдиний контракт API, Swagger UI /api/docs; `docs/auth-integration.md` — конфігурація, seed та dev-перевірка. JSON login/logout: success і message, без JWT/строку дії.
 - `src/middlewares/validate.middleware.ts` — єдина strict Zod-валідація тіла; parsed data замінюють req.body; {} вирішує schema. Невідомі поля відхиляються.
 - `src/middlewares/error.middleware.ts`, `src/utils/error.util.ts`, `src/constants/api-messages.constants.ts` — один ApiError/errorHandler та `{ success: false, message, details: [] }`. Валідація 422, malformed JSON 400, oversized 413, charset/encoding 415. Сирі exceptions/SQL/секрети не логувати.
 - `src/config/prisma.config.ts` — один lazy PrismaClient, log: []; під час імпорту немає підключення чи логів.
 - `prisma/schema.prisma` — Employee (усі profile поля optional), UserAccount з унікальними employeeId/email, Prisma Role; SQL-міграції не переписувати.
-- Auth unit-тести: `tests/auth/auth.service.test.ts`, `tests/auth/auth-rate-limit.service.test.ts`. Попередні тести CRM-102.2/Employee/UserAccount/SSR збережені.
+- Auth unit-тести: `tests/auth/auth.service.test.ts`, `tests/auth/auth-rate-limit.service.test.ts`. Попередні тести CRM-102.2/UserAccount/SSR збережені.
 - `src/views/` — Nunjucks; `src/public/` — static. `dist/` і `node_modules/` не редагувати.
 
 ## Команди
@@ -84,7 +84,7 @@
 ## Валідація та контракт API
 
 - POST/PATCH — validateBody(schema), /:id — validateParams(uuidSchema), далі asyncCatch(controller). Дані для service беруться після Zod parsing.
-- Єдина валідація без режимів і auth-залежностей: не-об'єктне/відсутнє тіло — 400; поля/UUID — 422. Порожній {} валідний, якщо це дозволяє schema, зокрема для Employee.
+- Єдина валідація без режимів і auth-залежностей: не-об'єктне/відсутнє тіло — 400; поля/UUID — 422. Порожній {} валідний, якщо це дозволяє schema.
 - Всі помилки передавати next/throw ApiError; тільки errorHandler формує JSON. API-помилки мають success=false, message, details завжди масив (field/message). Внутрішні SQL/exception.message/stack не повертати й не логувати.
 - Статуси — HttpStatus. Загальні повідомлення — API_MESSAGES, auth-повідомлення — текстові рядки AUTH_MESSAGES.
 - Успіх: success=true і message для create/update/delete та login/logout; читання може містити публічну entity/entities. Create — 201, решта — 200; не додавати data wrapper.

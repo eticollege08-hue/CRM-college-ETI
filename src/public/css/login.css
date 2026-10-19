@@ -1,0 +1,226 @@
+:root {
+    font-family: Inter, Arial, sans-serif;
+    color: #000;
+    background: #fff;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    --color-primary: #0a4275;
+    --color-primary-hover: #072f54;
+    --color-gray: #898989;
+    --color-border: #e2e8f0;
+    --color-error: #ef4444;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    min-width: 320px;
+    min-height: 100vh;
+    min-height: 100svh;
+    margin: 0;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+.auth-page {
+    display: grid;
+    min-height: 100vh;
+    min-height: 100svh;
+    place-items: center;
+    padding: 48px 24px;
+}
+
+.auth-panel {
+    width: min(100%, 420px);
+}
+
+.auth-heading {
+    margin-bottom: 28px;
+}
+
+.auth-heading h1 {
+    margin: 0 0 4px;
+    font-size: clamp(28px, 4vw, 36px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+}
+
+.auth-heading p {
+    margin: 0;
+    color: var(--color-gray);
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.auth-form {
+    display: grid;
+    gap: 16px;
+}
+
+.form-field {
+    display: grid;
+    gap: 8px;
+}
+
+.form-field label {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+.form-field input {
+    width: 100%;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--color-gray);
+    border-radius: 12px;
+    outline: none;
+    background: #fff;
+    color: #000;
+    font-size: 14px;
+    transition:
+        border-color 120ms ease,
+        box-shadow 120ms ease;
+}
+
+.form-field input::placeholder {
+    color: #898989;
+}
+
+.form-field input:focus {
+    border: 2px solid var(--color-primary);
+    padding-inline: 13px;
+    box-shadow: 0 0 0 3px #0a42751a;
+}
+
+.form-field input[aria-invalid="true"] {
+    border-color: var(--color-error);
+}
+
+.field-error {
+    min-height: 0;
+    color: var(--color-error);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.field-error:empty {
+    display: none;
+}
+
+.auth-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: -4px;
+    font-size: 14px;
+}
+
+.remember-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.remember-option input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--color-primary);
+}
+
+.text-link {
+    color: var(--color-primary);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.text-link:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+}
+.text-link:focus-visible,
+.primary-button:focus-visible,
+.remember-option input:focus-visible {
+    outline: 3px solid #0a42754d;
+    outline-offset: 3px;
+}
+
+.form-message {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b42318;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.primary-button {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: 24px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background-color 120ms ease,
+        opacity 120ms ease;
+}
+
+.primary-button:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+}
+.primary-button:disabled {
+    background: var(--color-border);
+    color: var(--color-gray);
+    cursor: wait;
+}
+.button-loading[hidden] {
+    display: none;
+}
+
+.auth-footer {
+    margin: 20px 0 0;
+    color: #475569;
+    font-size: 14px;
+    line-height: 20px;
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .auth-page {
+        padding: 32px 20px;
+    }
+    .auth-heading {
+        margin-bottom: 24px;
+    }
+    .auth-heading h1 {
+        font-size: 28px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

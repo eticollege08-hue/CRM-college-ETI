@@ -1,0 +1,11 @@
+{% extends "base/base.njk" %}
+
+{% block title %}{{ status }} — CRM{% endblock %}
+
+{% block content %}
+  <main class="error-page" role="main">
+    <h1>Something went wrong</h1>
+    <p>{{ message }}</p>
+    <a href="/login">Return to sign in</a>
+  </main>
+{% endblock %}
