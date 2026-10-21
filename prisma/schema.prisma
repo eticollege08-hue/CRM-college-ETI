@@ -23,6 +23,9 @@ model Employee {
   position    String?
   userAccount UserAccount?
 
+  subordinates Hierarchy[] @relation("HierarchyManager")
+  managers     Hierarchy[] @relation("HierarchySubordinate")
+
   @@map("employees")
 }
 
@@ -34,7 +37,20 @@ model UserAccount {
   roleKey      Role      @map("role_key")
   isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
-  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
 
   @@map("user_accounts")
+}
+
+model Hierarchy {
+  id            String @id @default(dbgenerated("gen_random_uuid()"))
+  employeeId    String @map("employee_id")
+  subordinateId String @map("subordinate_id")
+
+  manager     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, name: "HierarchyManager")
+  subordinate Employee @relation(fields: [subordinateId], references: [id], onDelete: Cascade, name: "HierarchySubordinate")
+
+  @@unique([employeeId, subordinateId])
+  @@map("hierarchy")
 }
