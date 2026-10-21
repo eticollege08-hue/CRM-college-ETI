@@ -13,6 +13,19 @@ export class UserAccountRepository {
     async getByEmail(email: string) {
         return await this.db.userAccount.findUnique({ where: { email } });
     }
+
+    async getEmployeeByAccountId(accountId: string) {
+        const userAccount = await this.db.userAccount.findUnique({
+            where: { id: accountId },
+            select: { employee: true },
+        });
+
+        if (!userAccount) {
+            return null;
+        }
+
+        return userAccount.employee;
+    }
 }
 
 export const userAccountRepository = new UserAccountRepository();

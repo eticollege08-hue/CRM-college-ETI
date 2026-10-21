@@ -14,6 +14,7 @@ This file applies to the entire repository. Read it before making changes, then 
 - `src/modules/employees/` — Employee CRUD API, available only when `NODE_ENV=development`.
 - `src/modules/user-accounts/` — UserAccount repository and service for auth integration; no public controller or router.
 - `src/modules/employees-ssr/` — employees page data service, controller, and route; the corresponding Nunjucks template is intentionally empty.
+- `src/modules/employee-profile-ssr/` — authenticated employee profile page at `/api/profile`; profile data is selected by the current account ID.
 - `src/modules/` — domain modules. The demonstration module has been removed; complete examples of its seven layers are retained only below in this document.
 - `src/config/prisma.config.ts` — shared PrismaClient; checks the connection and logs queries on import.
 - `src/middlewares/` — `asyncCatch`, `validateBody`, `validateParams`, `errorHandler`, `isAuth` (401 UNAUTHORIZED/TOKEN_STALE with cookie clearing).
