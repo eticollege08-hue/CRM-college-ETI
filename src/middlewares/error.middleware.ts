@@ -85,9 +85,5 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
         });
     }
 
-    return res.status(error.status).render("error", {
-        success: false,
-        status: error.status,
-        message: error.message,
-    });
+    return res.status(error.status).type("text/plain").send(error.message);
 }

@@ -20,6 +20,7 @@
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
 - `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
 - `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить pages/login.njk нульової довжини, без HTML-розмітки; дані css/js/activePage збережені. `src/modules/employees-ssr/` — існуюча employees SSR сторінка.
+- `src/modules/hierarchy-ssr/` — GET /hierarchy для всіх авторизованих ролей, порожній pages/hierarchy.njk; hierarchyTree містить id/subordinates, усіх працівників без керівника та спільних підлеглих у кожній гілці їхніх керівників. SSR service збирає дерево через employeeService і hierarchyService; тести лише сервісу.
 - `src/routes/api/index.ts` — /auth, /employees, /hierarchy, /docs; /hierarchy захищено isAuth: читання для всіх ролей, POST/PATCH/DELETE для OWNER/RECRUITER/HR/MANAGER. `src/routes/ssr/index.ts` — SSR registry під /.
 - `docs/openapi.yaml` — єдиний контракт API, Swagger UI /api/docs; `docs/auth-integration.md` — конфігурація, seed та dev-перевірка. JSON login/logout: success і message, без JWT/строку дії.
 - `src/middlewares/validate.middleware.ts` — єдина strict Zod-валідація тіла; parsed data замінюють req.body; {} вирішує schema. Невідомі поля відхиляються.
@@ -108,7 +109,7 @@
 - У старому коді є імпорти без `.js` (зокрема в `app.ts`) і прямі імпорти Prisma runtime. Якщо задача стосується production/ESM, перевір їх разом з aliases; для інших задач не розширюй scope автоматично.
 - `import "dotenv/config"` виконується перед імпортами модулів у app/seed. Prisma підключається лише на першому запиті.
 - Production Dockerfile копіює `src/views` і `src/public`; окремого етапу збірки assets немає. Порожні views/public не зберігаються Git. Перед задачею Docker-збірки перевір наявність цих каталогів.
-- `errorHandler` рендерить SSR-шаблон `error`, якого наразі немає. Наявність Nunjucks не означає завершений SSR.
+- `errorHandler` повертає SSR-помилки як text/plain зі збереженням HTTP-статусу, без шаблону error.njk; API та запити з Accept: application/json отримують JSON.
 - JWT не використовує express-session. Trust proxy=false для прямого доступу; при reverse proxy довіру налаштувати явно для реальної інфраструктури.
 
 ## Як працювати швидко та перевіряти зміни
