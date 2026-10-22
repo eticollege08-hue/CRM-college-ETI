@@ -25,17 +25,34 @@ export class UserAccountService {
             );
         }
 
-        const account = await this.repository.create({ ...data, email: data.email.toLowerCase() });
+        const account = await this.repository.create({
+            ...data,
+            email: data.email.trim().toLowerCase(),
+        });
         return account;
     }
 
     async getByEmail(email: string) {
-        return await this.repository.getByEmail(email.toLowerCase());
+        return await this.repository.getByEmail(email.trim().toLowerCase());
     }
 
     async getEmployeeByAccountId(accountId: string) {
         const employee = await this.repository.getEmployeeByAccountId(accountId);
         return employee;
+    }
+
+    async updateLastLoginAt(accountId: string) {
+        return await this.repository.updateLastLoginAt(accountId, new Date());
+    }
+
+    async createSeedAccount(
+        data: Pick<UserAccountCreateInput, "email" | "passwordHash" | "roleKey">,
+        fullName: string,
+    ) {
+        return await this.repository.createSeedAccount(
+            { ...data, email: data.email.trim().toLowerCase() },
+            fullName,
+        );
     }
 }
 

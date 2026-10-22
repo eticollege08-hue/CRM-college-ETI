@@ -1,169 +1,165 @@
-# AI Working Rules for CRM
+# Правила роботи АІ в CRM
 
-This file applies to the entire repository. Read it before making changes, then read only the files needed for the task. The description below records the current architecture; the style rules establish a single standard for new and modified code.
+Цей файл діє для всього репозиторію. Перед змінами прочитай його, а потім лише файли, потрібні для задачі. Опис нижче фіксує поточну архітектуру; правила стилю задають єдиний стандарт для нового та зміненого коду.
 
-## Quick Project Map
+## Швидка карта проєкту
 
-- Stack: Node.js (Docker uses 24), TypeScript with `strict: true`, ESM (`"type": "module"`), Express 5, Zod 4, Prisma 5, PostgreSQL 17, Nunjucks, express-session. Exact installed versions are recorded in `package-lock.json`.
-- `src/app.ts` — Express configuration, JSON, static files, sessions, Nunjucks, route registration, `errorHandler` registered last, and startup on `PORT` or 3000.
-- `src/routes/api/index.ts` — API module registry under `/api`; registers documentation at `/docs` and dev-only employee routes at `/employees`.
-- `src/modules/docs/docs.router.ts` — Swagger UI at `/api/docs`; the specification is available at `/api/docs/openapi.yaml`. Try it out is disabled until auth is implemented.
-- `docs/openapi.yaml` — draft auth contract; the single source for Swagger UI. The production Dockerfile copies `docs` into the runtime image.
-- Swagger auth contract: errors use `{ success: false, code, message, details }`; the token is only stored in an HttpOnly cookie, and the login JSON contains `expiresIn`. The specification describes only applicable responses; auth implementation has not yet been added.
-- `src/routes/ssr/index.ts` — SSR route registry under `/`, including the employees page.
-- `src/modules/employees/` — Employee CRUD API, available only when `NODE_ENV=development`.
-- `src/modules/user-accounts/` — UserAccount repository and service for auth integration; no public controller or router.
-- `src/modules/employees-ssr/` — employees page data service, controller, and route; the corresponding Nunjucks template is intentionally empty.
-- `src/modules/employee-profile-ssr/` — authenticated employee profile page at `/api/profile`; profile data is selected by the current account ID.
-- `src/modules/` — domain modules. The demonstration module has been removed; complete examples of its seven layers are retained only below in this document.
-- `src/config/prisma.config.ts` — shared PrismaClient; checks the connection and logs queries on import.
-- `src/middlewares/` — `asyncCatch`, `validateBody`, `validateParams`, `errorHandler`, `isAuth` (401 UNAUTHORIZED/TOKEN_STALE with cookie clearing).
-- `src/constants/http-status.constants.ts` — `HttpStatus`; `src/utils/error.util.ts` — `ApiError`.
-- `src/schemas/id.schema.ts` — shared `uuidSchema`; `src/types/common.types.ts` — error types.
-- `prisma/schema.prisma` — database model source; `prisma/migrations/` — SQL migration history.
-- `src/views/` — `.njk` templates, including the empty employees page template; `src/public/` — css, img, js directories, currently without files.
-- `tests/` — Vitest unit tests; `vitest.config.ts` — runner configuration; `tests/tsconfig.json` — separate test type checking. Tests are excluded from the production build.
-- `dist/` — compilation output; do not edit. `node_modules/` — dependencies; do not edit.
+- Стек: Node.js 24, TypeScript strict ESM, Express 5, Zod 4, Prisma 5, PostgreSQL 17, Nunjucks. Версії — package-lock.json.
+- `src/app.ts` — спочатку dotenv/config, потім стандартні express.json(), cookieParser(), static, Nunjucks, API/SSR registries, errorHandler; trust proxy=false. Секрет/TTL JWT, origins, Secure і bcrypt перевіряються до listen.
+- `src/modules/auth/` містить лише auth.constants.ts, auth.controller.ts, auth.routes.ts, auth.service.ts, auth.types.ts. Стандартні authService/authController; routes default export під /api/auth. Публічної реєстрації немає.
+- AuthService використовує реальний userAccountService: нормалізований email, bcrypt/dummy hash, isActive, JWT userId+roleKey, оновлення lastLoginAt. Ніяких Employee-запитів/створення під час login.
+- `src/modules/user-accounts/` — внутрішні service/repository; timestamp і атомарне створення Employee+UserAccount із заданою роллю для seed. Ідемпотентний seed не оновлює існуючі credentials; concurrent duplicate обробляється після відкату вкладеного write.
+- `src/modules/employees/` — dev-only CRUD; створення порожнього профілю {} дозволено. Однаковий API error contract застосовується і тут.
+- `src/modules/hierarchy/` — CRUD зв'язків керівник–підлеглий (controller/service/repository); service повертає 404 для відсутніх записів/працівників і 409 для дублікатів, самопризначення та циклів. Обхід використовує getAllRelationships (лише ID), при update виключає поточний зв'язок. За погодженим винятком service керує Prisma Serializable-транзакціями create/update/delete й повторює P2034 до трьох спроб; усі перевірки й запис використовують один tx. Методи hierarchy repository та employeeRepository.getById приймають необов'язковий tx.
+- `src/schemas/auth.schema.ts`, `src/schemas/jwt.schema.ts` — strict login та claims; JWT role береться з Prisma Role, типи виведені зі schema.
+- `src/services/auth-rate-limit.service.ts` — спільний singleton, sliding window 5 failures/300s (env), черга email+IP. Технічні помилки не рахуються, успіх не стирає невдачі, заблоковані запити не подовжують вікно. Перезапуск скидає пам'ять, процеси не мають спільного ліміту.
+- `src/middlewares/auth-origin.middleware.ts` — точний обов'язковий Origin за AUTH_ALLOWED_ORIGINS. Перевірка використовується лише в auth POST routes.
+- `src/utils/auth-cookie.util.ts` — HttpOnly, SameSite=Lax, host-only, Path=/; встановлення/очищення також видаляють legacy cookie на /api. Cache-Control: no-store. Logout лише очищає cookie, не відкликає JWT.
+- `src/config/jwt.config.ts` — єдине джерело TTL (JWT_EXPIRES_IN, default 3600); JWT_SECRET без default, мінімум 32 байти. `src/utils/jwt.util.ts` і isAuth перевіряють HS256, signature, expiry та claims.
+- `src/middlewares/access.middleware.ts` — `accessFor(roles)` перевіряє лише `req.user.role`; без користувача або дозволеної ролі передає ApiError 403 у errorHandler. Порядок у захищеному маршруті: `isAuth, accessFor(["OWNER", "WORKER"])`.
+- `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
+- `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
+- `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить pages/login.njk нульової довжини, без HTML-розмітки; дані css/js/activePage збережені. `src/modules/employees-ssr/` — існуюча employees SSR сторінка.
+- `src/modules/hierarchy-ssr/` — GET /hierarchy для всіх авторизованих ролей, порожній pages/hierarchy.njk; hierarchyTree містить id/subordinates, усіх працівників без керівника та спільних підлеглих у кожній гілці їхніх керівників. SSR service збирає дерево через employeeService і hierarchyService; тести лише сервісу.
+- `src/modules/employee-profile-ssr/` — GET /api/profile; account ID з перевіреного JWT визначає Employee, дані якого передаються в pages/profile.
+- `src/routes/api/index.ts` — /auth, /employees, /hierarchy, /docs; /hierarchy захищено isAuth: читання для всіх ролей, POST/PATCH/DELETE для OWNER/RECRUITER/HR/MANAGER. `src/routes/ssr/index.ts` — SSR registry під /.
+- `docs/openapi.yaml` — єдиний контракт API, Swagger UI /api/docs; `docs/auth-integration.md` — конфігурація, seed та dev-перевірка. JSON login/logout: success і message, без JWT/строку дії.
+- `src/middlewares/validate.middleware.ts` — єдина strict Zod-валідація тіла; parsed data замінюють req.body; {} вирішує schema. Невідомі поля відхиляються.
+- `src/middlewares/error.middleware.ts`, `src/utils/error.util.ts`, `src/constants/api-messages.constants.ts` — один ApiError/errorHandler та `{ success: false, message, details: [] }`. Валідація 422, malformed JSON 400, oversized 413, charset/encoding 415. Сирі exceptions/SQL/секрети не логувати.
+- `src/config/prisma.config.ts` — один lazy PrismaClient, log: []; під час імпорту немає підключення чи логів.
+- `prisma/schema.prisma` — Employee (усі profile поля optional), UserAccount з унікальними employeeId/email, Prisma Role; SQL-міграції не переписувати.
+- Auth unit-тести: `tests/auth/auth.service.test.ts`, `tests/auth/auth-rate-limit.service.test.ts`. Попередні тести CRM-102.2/Employee/UserAccount/SSR збережені.
+- `src/views/` — Nunjucks; `src/public/` — static. `dist/` і `node_modules/` не редагувати.
 
-## Commands
+## Команди
 
-Run commands from the project root. The package manager is npm; retain `package-lock.json` and do not add lock files from other package managers.
+Виконуй з кореня проєкту. Менеджер пакетів — npm; зберігай `package-lock.json`, не додавай lock-файли інших менеджерів.
 
-| Command                                 | Purpose / prerequisites                                                                                         |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `npm ci`                                | Install dependencies from the lock file; requires an active Node.js version.                                    |
-| `npx prisma generate --allow-no-models` | Update Prisma Client after installing dependencies or changing the schema.                                      |
-| `npm run start:dev`                     | Nodemon + tsx, watching `.ts` files in `src`; requires environment variables and an accessible database.        |
-| `npx tsc --noEmit`                      | Check types without creating `dist`.                                                                            |
-| `npm run build`                         | Compile TypeScript into `dist`.                                                                                 |
-| `npm start`                             | Run `node dist/app.js`; see the ESM caveats below.                                                              |
-| `npm run docker:dev`                    | Build and start the dev app + PostgreSQL in the foreground.                                                     |
-| `npm run docker:dev:down`               | Stop the dev environment without deleting its volume.                                                           |
-| `npm run docker:dev:migrate`            | Run `prisma migrate dev` inside the running dev container; creates/applies migrations and changes the database. |
-| `npm run docker:prod`                   | Build and start production in the background; startup applies `prisma migrate deploy`.                          |
-| `npm run docker:prod:down`              | Stop production without deleting its volume.                                                                    |
-| `npx prisma validate`                   | Validate the Prisma schema; requires `DATABASE_URL` to be set.                                                  |
+| Команда                      | Призначення / передумови                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `npm ci`                     | Встановити залежності за lock-файлом; потрібна активна версія Node.js.                    |
+| `npx prisma generate`        | Оновити Prisma Client після встановлення залежностей або зміни схеми.                     |
+| `npm run start:dev`          | Nodemon + tsx, стеження за `.ts` у `src`; потрібні env та доступна БД.                    |
+| `npx tsc --noEmit`           | Перевірити типи без створення `dist`.                                                     |
+| `npm run build`              | Компілювати TypeScript у `dist`.                                                          |
+| `npm start`                  | Виконати `node dist/app.js`; див. застереження щодо ESM нижче.                            |
+| `npm run docker:dev`         | Зібрати й запустити dev app + PostgreSQL; працює у foreground.                            |
+| `npm run docker:dev:down`    | Зупинити dev-оточення без видалення volume.                                               |
+| `npm run docker:dev:migrate` | `prisma migrate dev` у запущеному dev-контейнері; створює/застосовує міграції, змінює БД. |
+| `npm run docker:prod`        | Зібрати й запустити production у background; старт застосовує `prisma migrate deploy`.    |
+| `npm run docker:prod:down`   | Зупинити production-оточення без видалення volume.                                        |
+| `npx prisma validate`        | Перевірити Prisma-схему; потрібен заданий `DATABASE_URL`.                                 |
 
-Unit tests use Vitest from `dependencies`. ESLint 9 checks code through `npm run lint`; Prettier formats through `npm run format`. Do not report checks that do not exist. Do not start production, run migrations, or stop services as routine verification of a code change.
+Юніт-тести використовують Vitest у `dependencies`. ESLint 9 перевіряє код через `npm run lint`; Prettier форматує через `npm run format`. Не звітуй про неіснуючі перевірки. Не запускай production, міграції чи зупинку сервісів як звичайну перевірку зміни коду.
 
-## Layer Boundaries and New Modules
+## Межі шарів і нові модулі
 
-Request flow: **router → validation → asyncCatch(controller) → service → repository → Prisma**.
+Потік запиту: **router → validation → asyncCatch(controller) → service → repository → Prisma**.
 
-| File `src/modules/<module-name>.*.ts` | Responsibility                                                                                                         |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `router`                              | Paths, HTTP methods, middleware order, and default router export.                                                      |
-| `controller`                          | Read the validated request, call the service, and build the HTTP response. No database queries or business rules.      |
-| `service`                             | Business rules, existence checks, repository calls, and domain errors through `ApiError`. No Express Request/Response. |
-| `repository`                          | Prisma queries and data operations. No HTTP responses or statuses.                                                     |
-| `schema`                              | Zod input schemas. Use `.partial()` for PATCH when appropriate to the requirements.                                    |
-| `types`                               | DTOs through `z.infer<typeof schema>`; do not manually duplicate Zod schema fields.                                    |
-| `constants`                           | Repeated messages and constants for this domain.                                                                       |
+| Файл `src/modules/<module-name>.*.ts` | Відповідальність                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `router`                              | Шляхи, HTTP-методи, порядок middleware, експорт router за замовчуванням.                                                 |
+| `controller`                          | Прочитати валідований запит, викликати service, сформувати HTTP-відповідь. Без запитів до БД і бізнес-правил.            |
+| `service`                             | Бізнес-правила, перевірки існування, виклики repository, доменні помилки через `ApiError`. Без Express Request/Response. |
+| `repository`                          | Prisma-запити та операції з даними. Без HTTP-відповідей і статусів.                                                      |
+| `schema`                              | Zod-схеми вхідних даних. Для PATCH використай `.partial()`, якщо це відповідає вимогам.                                  |
+| `types`                               | DTO через `z.infer<typeof schema>`; не дублюй поля Zod-схем вручну.                                                      |
+| `constants`                           | Повторювані повідомлення та константи цього домену.                                                                      |
 
-- Build new CRUD modules using the `example` snippets below. Do not create empty files for unused layers.
-- For API modules, name classes `<Module>Controller`, `<Module>Service`, `<Module>Repository`; also export instances `<module>Controller`, `<module>Service`, `<module>Repository`. For SSR, use service/controller objects as shown below.
-- Inject dependencies through `constructor(private readonly ... = existingInstance)`, as in the examples below. Use the shared PrismaClient; do not create a client per request.
-- Bind controller methods passed to the router using `.bind(this)` in the constructor, following the current pattern.
-- Register API routers in `src/routes/api/index.ts` and SSR routers in `src/routes/ssr/index.ts`. Do not accumulate domain routes in `app.ts`.
-- Use relative imports within a module; import shared components through existing `#config`, `#middlewares`, `#constants`, `#schemas`, `#types`, `#utils`, `#modules`, `#routes` aliases.
-- `#modules/<module>/...` is sufficient for a new module; do not add a separate alias for each domain without a need.
+- Новий CRUD-модуль будуй за прикладами `example` нижче в цьому документі. Не створюй порожні файли для невикористаних шарів.
+- Класи називай `<Module>Controller`, `<Module>Service`, `<Module>Repository`; експортуй також екземпляри `<module>Controller`, `<module>Service`, `<module>Repository`.
+- Залежності передавай через `constructor(private readonly ... = existingInstance)`, як у прикладах нижче. Використовуй спільний PrismaClient, не створюй клієнт на кожен запит.
+- Методи controller, які передаєш у router, прив'язуй через `.bind(this)` у конструкторі за поточним шаблоном.
+- Підключай API-router у `src/routes/api/index.ts`; SSR-router — у `src/routes/ssr/index.ts`. Не накопичуй доменні маршрути в `app.ts`.
+- Усередині модуля використовуй відносні імпорти; спільні компоненти — через наявні `#config`, `#middlewares`, `#constants`, `#schemas`, `#types`, `#utils`, `#modules`, `#routes`.
+- Для нового модуля достатньо `#modules/<module>/...`; не додавай окремий alias для кожного домену без потреби.
 
-## Consistent Code Style
+## Єдиний стиль коду
 
-- For new code: 4 spaces, double quotes, semicolons, trailing commas in multiline objects/lists, and spaces after commas and around operators. Do not reformat unrelated sections solely for style.
-- Files: `<module>.<role>.ts`; classes/types: PascalCase; variables/methods: camelCase; constant groups: UPPER_SNAKE_CASE. Preserve existing public export names.
-- Group imports: external dependencies → internal aliases → relative imports → `import type`; separate groups with a blank line. Use `import type` for types.
-- Include `.js` in internal ESM imports, even when the source is `.ts`. This also applies to `import type`. Do not add imports without extensions.
-- Do not add `any`, `@ts-ignore`, or unjustified `!` and `as`. Use `unknown` and type narrowing for unknown values; typing does not replace runtime validation.
-- Code identifiers must be in English. Keep user-facing messages in the language of the relevant module; the project currently contains Ukrainian and English messages. Do not translate existing messages without a task requiring it.
-- Comments explain a reason or constraint rather than restating the code. Avoid obvious comments, unnecessary abstractions, and creating a shared helper for a single call.
+- У новому коді: 4 пробіли, подвійні лапки, крапки з комою, завершальні коми в багаторядкових об'єктах/списках, пробіл після коми та навколо операторів. Не переформатовуй сторонні ділянки заради стилю.
+- Файли — `<module>.<role>.ts`; класи/типи — PascalCase, змінні/методи — camelCase, групи констант — UPPER_SNAKE_CASE. Зберігай наявні імена публічних експортів.
+- Імпорти групуй: зовнішні залежності → внутрішні aliases → відносні → `import type`; групи відділяй порожнім рядком. Для типів використовуй `import type`.
+- Для внутрішніх ESM-імпортів вказуй `.js`, навіть коли джерело — `.ts`. Це стосується також `import type`. Не додавай імпортів без розширення.
+- Не додавай `any`, `@ts-ignore` чи необґрунтованих `!` і `as`. Для невідомих значень використовуй `unknown` і звуження типів; типізація не замінює runtime-валідацію.
+- Ідентифікатори в коді — англійською. Повідомлення користувачу зберігай мовою відповідного модуля; зараз у проєкті є українські й англійські повідомлення, не перекладай існуючі без задачі.
+- Коментарі пояснюють причину або обмеження, а не переказують код. Уникай очевидних коментарів, зайвих абстракцій і створення загального helper заради одного виклику.
 
-## Validation and API Contract
+## Валідація та контракт API
 
-- Validate POST/PATCH with `validateBody`; validate `/:id` with `validateParams(uuidSchema)` before the controller. After validation, use the data parsed by the middleware.
-- Wrap asynchronous handlers with the existing `asyncCatch`, even with Express 5, to preserve a consistent approach. Do not duplicate identical try/catch blocks in every controller.
-- Use statuses from `HttpStatus`. Throw expected business errors as `throw new ApiError(status, moduleMessage)` in the service; central error mapping belongs in `errorHandler`.
-- Current success contract: `{ success: true, <entity> }` or `{ success: true, <entities> }`; create/update/delete also include `message`. Create returns 201; read/update/delete return 200; delete returns JSON with a message.
-- Error contract: `{ success: false, message, details? }`; validation `details` contain `{ field, message }`. Do not introduce a `data` wrapper, different field names, or 204 for existing endpoints without an explicit task.
-- `validateBody` rejects an empty body and directly returns JSON for schema errors; `validateParams` also returns JSON. `errorHandler` supports JSON/SSR and Prisma codes P2002, P2003, P2025, P2000, P2005, P2006. Account for this when changing error handling.
-- Do not pass an unvalidated body directly to Prisma. Return only public fields for new models; passwords, tokens, and internal secrets must not enter responses.
+- POST/PATCH — validateBody(schema), /:id — validateParams(uuidSchema), далі asyncCatch(controller). Дані для service беруться після Zod parsing.
+- Єдина валідація без режимів і auth-залежностей: не-об'єктне/відсутнє тіло — 400; поля/UUID — 422. Порожній {} валідний, якщо це дозволяє schema, зокрема для Employee.
+- Всі помилки передавати next/throw ApiError; тільки errorHandler формує JSON. API-помилки мають success=false, message, details завжди масив (field/message). Внутрішні SQL/exception.message/stack не повертати й не логувати.
+- Статуси — HttpStatus. Загальні повідомлення — API_MESSAGES, auth-повідомлення — текстові рядки AUTH_MESSAGES.
+- Успіх: success=true і message для create/update/delete та login/logout; читання може містити публічну entity/entities. Create — 201, решта — 200; не додавати data wrapper.
+- Token, строк дії, passwordHash і credentials не включати до JSON. JWT доступний лише в HttpOnly cookie.
+- express.json() працює стандартно; нестандартні parser, режими та окремі auth-error класи не додавати.
 
-## Database and Configuration
+## База даних і конфігурація
 
-- Start model changes in `prisma/schema.prisma`; retain SQL migrations in `prisma/migrations`. Do not rewrite already applied migration history.
-- In the documented example, `Example.id` is a String containing a UUID generated by PostgreSQL through `gen_random_uuid()`; `createdAt` uses `@default(now())` and `@map("created_at")`. Follow this approach for similar new models unless requirements differ.
-- Use a Prisma transaction within the data layer for related records that must change atomically. Avoid unsafe raw SQL built by concatenating input data.
-- Do not use `prisma db push` instead of migration history. Database resets, volume deletion, and destructive migrations require explicit user authorization.
-- JWT uses `JWT_SECRET` and `JWT_EXPIRES_IN`; expiration is specified as a positive integer number of seconds (3600 for one hour).
-- Environment variable names: `DATABASE_URL`, `SESSION_SECRET`, `PORT`, `NODE_ENV`; Compose also uses `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_PORT`.
-- `.env` is ignored by Git. Do not print its contents or add secrets to code, documentation, or logs. Variable names and safe placeholders are sufficient for configuration documentation.
+- Зміни моделей починай з `prisma/schema.prisma`; зберігай SQL-міграції у `prisma/migrations`. Не переписуй уже застосовану історію міграцій.
+- У документованому прикладі `Example.id` — String із UUID, створеним PostgreSQL через `gen_random_uuid()`; `createdAt` має `@default(now())` і `@map("created_at")`. Для нових аналогічних моделей дотримуйся цього підходу, якщо немає іншої вимоги.
+- Для пов'язаних записів, що мають змінитися атомарно, використовуй Prisma-транзакцію в межах шару даних. Уникай небезпечного raw SQL із конкатенацією вхідних даних.
+- Не використовуй `prisma db push` замість історії міграцій. Reset БД, видалення volume та руйнівні міграції потребують явного дозволу користувача.
+- Назви env: `DATABASE_URL`, `PORT`, `NODE_ENV`, `JWT_SECRET`, `JWT_EXPIRES_IN`; Compose також використовує `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_PORT`.
+- `.env` ігнорується Git. Не друкуй його вміст, не додавай секрети в код, документацію чи логи. Для опису конфігурації достатньо назв змінних і безпечних placeholders.
 
-## Known Caveats — Avoid Repeated Discovery
+## Відомі особливості — не витрачай час на повторне відкриття
 
-- Older files have mixed styles; this is not a reason for bulk formatting. Apply the standard above to your code.
-- `package.json#imports` points to `./src/`. The production Dockerfile rewrites these paths to `./dist/` inside the container. Local `npm start` does not perform this rewrite; successful compilation does not guarantee successful startup.
-- Older code contains imports without `.js` (notably in `app.ts`) and direct Prisma runtime imports. For production/ESM tasks, check them together with aliases; do not automatically expand scope for other tasks.
-- `dotenv.config()` is called in `app.ts` after static imports; Prisma initializes on import. For local startup, check that `DATABASE_URL` is available at initialization time. Compose supplies it through the environment.
-- The production Dockerfile copies `src/views` and `src/public`; there is no separate asset build step. Git does not retain empty views/public directories. Check that these directories exist before working on Docker builds.
-- `errorHandler` renders the SSR template `error`, which does not currently exist. Having Nunjucks configured does not mean SSR is complete.
-- Sessions use the default express-session store; secure cookies are enabled in production, and `trust proxy` is 1. Do not treat the current configuration as a finished, scalable auth solution.
+- Стиль старих файлів змішаний; це не привід для масового форматування. Застосовуй стандарт вище до свого коду.
+- `package.json#imports` спрямовані на `./src/`. Production Dockerfile замінює їх на `./dist/` у контейнері. Локальний `npm start` такої заміни не робить; успішна компіляція не гарантує успішний запуск.
+- У старому коді є імпорти без `.js` (зокрема в `app.ts`) і прямі імпорти Prisma runtime. Якщо задача стосується production/ESM, перевір їх разом з aliases; для інших задач не розширюй scope автоматично.
+- `import "dotenv/config"` виконується перед імпортами модулів у app/seed. Prisma підключається лише на першому запиті.
+- Production Dockerfile копіює `src/views` і `src/public`; окремого етапу збірки assets немає. Порожні views/public не зберігаються Git. Перед задачею Docker-збірки перевір наявність цих каталогів.
+- `errorHandler` повертає SSR-помилки як text/plain зі збереженням HTTP-статусу, без шаблону error.njk; API та запити з Accept: application/json отримують JSON.
+- JWT не використовує express-session. Trust proxy=false для прямого доступу; при reverse proxy довіру налаштувати явно для реальної інфраструктури.
 
-## Efficient Workflow and Verification
+## Як працювати швидко та перевіряти зміни
 
-1. Identify the task's module/layer using the map above. Start with `rg --files src prisma` or a targeted `rg -n <symbol> src`; read only matched files and direct dependencies. Do not scan `node_modules`, `dist`, `.git`, the lock file, or the entire repository without a need.
-2. Check `git status --short` before editing; preserve unrelated changes. Choose the smallest change that fully solves the task; do not add dependencies, frameworks, or architectural layers without a need.
-3. For JavaScript/TypeScript changes, run `npm run lint`; for TypeScript, also run `npx tsc --noEmit`. For build changes, run `npm run build`; for Prisma schema changes, run `npx prisma validate` and `npx prisma generate --allow-no-models`. Checks without code changes do not require starting a database.
-4. For API behavior changes, check relevant scenarios: success, invalid body/id, and a missing record. Use Vitest for unit tests; perform HTTP/database checks separately in the dev environment. Do not invent results or install a testing stack for minor refactoring.
-5. If the environment blocks a check, report the exact reason; do not install tools or change configuration solely for a documentation task. A Node shim message about a missing active Node.js version indicates an environment issue, not a code diagnostic.
-6. Before finishing, review the diff, accidental files, and secrets. Briefly state changes, performed checks, and actual limitations in the response. Do not repeat the full architecture analysis.
-7. If a task changes the structure, scripts, contract, or documented caveats, update the relevant part of this `AGENTS.md`. Keep it concise: rules and a map, not a journal of every completed task.
+1. Визнач модуль/шар задачі за картою вище. Почни з `rg --files src prisma` або адресного `rg -n <symbol> src`; читай лише знайдені файли й прямі залежності. Не скануй `node_modules`, `dist`, `.git`, lock-файл чи весь репозиторій без потреби.
+2. Перед редагуванням перевір `git status --short`; збережи сторонні зміни. Обери найменшу зміну, що повністю вирішує задачу; не додавай залежності, фреймворки чи нові архітектурні шари без потреби.
+3. Для змін JavaScript/TypeScript виконай `npm run lint`; для TypeScript також `npx tsc --noEmit`. Для змін збірки — `npm run build`; для Prisma-схеми — `npx prisma validate` і `npx prisma generate`. Перевірки без змін коду не потребують запуску БД.
+4. Для зміни поведінки API перевір релевантні сценарії: успіх, неправильне тіло/id, відсутній запис. Використовуй Vitest для юніт-тестів, а перевірку HTTP/БД виконуй окремо в dev-оточенні. Не вигадуй результатів і не встановлюй тестовий стек для дрібного рефакторингу.
+5. Якщо перевірка заблокована середовищем, повідом точну причину; не встановлюй інструменти й не міняй конфігурацію лише заради документаційної задачі. Повідомлення Node shim про відсутність активної версії Node.js означає проблему середовища, а не діагностику помилки коду.
+6. Перед завершенням перевір diff, випадкові файли й секрети. У відповіді коротко зазнач зміни, виконані перевірки та реальні обмеження. Не повторюй повний аналіз архітектури.
+7. Якщо задача змінює структуру, scripts, контракт або описані особливості, онови відповідний пункт цього `AGENTS.md`. Зберігай його коротким: правила й карта, а не журнал кожної виконаної задачі.
 
-## Definition of Done for PRs
+## ESLint, Prettier і CI
 
-- Develop each feature on a separate working branch. Keep the feature's commits on that branch and integrate completed work through a PR.
-- Once the work is complete, create a PR and assign a reviewer. If you do not know who should review it, ask the developer or team in chat before creating the PR; do not choose a reviewer arbitrarily.
-- Check the actual CI result for the latest PR revision, including any formatting commit or review fixes. Confirm that all required checks passed; do not treat pending, skipped, cancelled, or failed checks as successful. Report failures or checks that require attention before considering the PR ready to merge.
-- Use `.github/pull_request_template.md` for every PR you create or update: problem and outcome, actual checks, DoD, risks, and exceptions. Include the template explicitly when supplying a PR description through CLI/API.
-- Mark DoD items only on the basis of performed checks. Explain "not applicable" for irrelevant items; leave blocked checks unchecked and describe the reason. Do not add unnecessary tests or start a database for documentation changes.
-- Before a PR is ready to merge, review the final diff and current CI after the formatting commit. Do not treat the checklist as an automated check: CI performs technical checks; the author and reviewer confirm the rest.
+- `npm run lint` — ESLint 9 із JS/TS recommended і eslint-config-prettier. Конфіг: `eslint.config.js`; `dist`, `node_modules`, `coverage` та кеш npm виключено.
+- `npm run lint:openapi` — перевіряє `docs/openapi.yaml` за правилами `redocly.yaml`. Виконується локально після змін контракту та в CI. Перевіряє структуру, посилання, використання компонентів і відповідність прикладів схемам; не замінює перевірку бізнес-вимог та FE/BE review.
+- `@typescript-eslint/no-explicit-any` і `@typescript-eslint/consistent-type-imports` — errors. Використовуй `unknown` зі звуженням типів та `import type`; не вимикай правила заради проходження CI. Невикористані обов'язкові аргументи middleware позначай префіксом `_`.
+- `npm run format` — Prettier із `.prettierrc`: semi true, singleQuote false, tabWidth 4, trailingComma all, printWidth 100. Виключення — у `.prettierignore`. Для локальної зміни формату можна запускати Prettier тільки для змінених файлів; не переформатовуй сторонній код без потреби.
+- TypeScript зафіксовано в сумісній гілці 6.0: поточний typescript-eslint не підтримує TypeScript 7. Не обходь peer dependencies через force/legacy-peer-deps.
+- CI автоматично форматує PR із гілок цього репозиторію через npm run format; після успішних перевірок комітить зміни у гілку PR. Forks, Dependabot і push у master/staging проходять лише prettier --check. Не додавай pull_request_target чи force push для обходу обмежень. Після коміту бота синхронізуй локальну гілку.
+- `.github/workflows/ci.yml` запускається для push і pull request у master/staging. Кроки: Node.js 24 → npm ci → генерація Prisma → lint → типи src → типи тестів. Юніт-тести запускаються через npm test.
 
-## ESLint, Prettier, and CI
+## Юніт-тести (Vitest)
 
-- `npm run lint` — ESLint 9 with JS/TS recommended and eslint-config-prettier. Configuration: `eslint.config.js`; `dist`, `node_modules`, `coverage`, and the npm cache are excluded.
-- `npm run lint:openapi` — checks `docs/openapi.yaml` against `redocly.yaml`. Run it locally after contract changes and in CI. It checks structure, references, component usage, and example/schema consistency; it does not replace business requirements validation or FE/BE review.
-- `@typescript-eslint/no-explicit-any` and `@typescript-eslint/consistent-type-imports` are errors. Use `unknown` with narrowing and `import type`; do not disable rules to pass CI. Prefix unused required middleware arguments with `_`.
-- `npm run format` — Prettier with `.prettierrc`: semi true, singleQuote false, tabWidth 4, trailingComma all, printWidth 100. Exclusions are in `.prettierignore`. You may run Prettier only on changed files for a local formatting change; do not reformat unrelated code without a need.
-- TypeScript is pinned to the compatible 6.0 release line: the current typescript-eslint does not support TypeScript 7. Do not bypass peer dependencies through force/legacy-peer-deps.
-- CI automatically formats PRs from branches in this repository through npm run format; after successful checks it commits changes to the PR branch. Forks, Dependabot, and pushes to master/staging only run prettier --check. Do not add pull_request_target or force pushes to bypass restrictions. Synchronize your local branch after the bot's commit.
-- `.github/workflows/ci.yml` runs on push and pull request to master/staging. Steps: Node.js 24 → npm ci → Prisma generation → lint → src types → test types. Unit tests run through npm test.
+Vitest встановлено в `dependencies` за вимогою користувача. Середовище — Node.js; конфігурація шукає тільки `tests/**/*.test.ts`. Імпортуй `describe`, `it`, `expect`, `vi` явно з `vitest`; глобальні функції вимкнені. Моки очищуються й spies відновлюються після кожного тесту.
 
-## Unit Tests (Vitest)
+| Що тестуємо              | Шлях                                         |
+| ------------------------ | -------------------------------------------- |
+| Шар доменного модуля     | `tests/<module>/<module>.<layer>.test.ts`    |
+| Middleware               | `tests/middleware/<name>.middleware.test.ts` |
+| Script                   | `tests/script/<name>.script.test.ts`         |
+| Utils                    | `tests/utils/<name>.utils.test.ts`           |
+| Інший спільний компонент | `tests/<category>/<name>.<category>.test.ts` |
 
-Vitest is installed in `dependencies` at the user's request. The environment is Node.js; the configuration searches only `tests/**/*.test.ts`. Explicitly import `describe`, `it`, `expect`, `vi` from `vitest`; globals are disabled. Mocks are cleared and spies restored after each test.
+Наприклад: `tests/customer/customer.service.test.ts`, `tests/customer/customer.repository.test.ts`, `tests/middleware/validate.middleware.test.ts`, `tests/script/import.script.test.ts`, `tests/utils/error.utils.test.ts`. Не розміщуй тести у `src`, не використовуй `.spec.ts` і не відновлюй демонстраційний модуль заради тестів.
 
-| Test target            | Path                                         |
-| ---------------------- | -------------------------------------------- |
-| Domain module layer    | `tests/<module>/<module>.<layer>.test.ts`    |
-| Middleware             | `tests/middleware/<name>.middleware.test.ts` |
-| Script                 | `tests/script/<name>.script.test.ts`         |
-| Utils                  | `tests/utils/<name>.utils.test.ts`           |
-| Other shared component | `tests/<category>/<name>.<category>.test.ts` |
+| Команда                                               | Призначення                                                 |
+| ----------------------------------------------------- | ----------------------------------------------------------- |
+| `npm test`                                            | Одноразово запустити всі юніт-тести.                        |
+| `npm run test:watch`                                  | Запустити тести у watch-режимі.                             |
+| `npm test -- tests/customer/customer.service.test.ts` | Запустити конкретний файл.                                  |
+| `npm run test:typecheck`                              | Перевірити типи тестів і конфігурації без генерації файлів. |
 
-Examples: `tests/customer/customer.service.test.ts`, `tests/customer/customer.repository.test.ts`, `tests/middleware/validate.middleware.test.ts`, `tests/script/import.script.test.ts`, `tests/utils/error.utils.test.ts`. Do not put tests in `src`, use `.spec.ts`, or restore the demonstration module for testing.
-
-| Command                                               | Purpose                                                          |
-| ----------------------------------------------------- | ---------------------------------------------------------------- |
-| `npm test`                                            | Run all unit tests once.                                         |
-| `npm run test:watch`                                  | Run tests in watch mode.                                         |
-| `npm test -- tests/customer/customer.service.test.ts` | Run a specific file.                                             |
-| `npm run test:typecheck`                              | Check types of tests and configuration without generating files. |
-
-- Test behavior: success, boundary values, and expected errors. Use clear scenario names and follow arrange → act → assert.
-- Unit tests do not start the server, Docker, migrations, or connect to a real database. Do not import `src/app.ts`.
-- Mock the repository for service tests, the service for controller tests, and PrismaClient for repository tests. If an import initializes the shared PrismaClient, mock its module with `vi.mock` before importing the component under test.
-- For middleware, mock `req`, `res`, `next`; verify status, response body, and control flow. Type assertions are acceptable for partial Express/Prisma test doubles; do not transfer them into production code.
-- Add complex shared fixtures/helpers only when multiple tests need them. Do not add coverage/UI dependencies without a specific need.
-- Vitest executes TypeScript without type checking: after test changes, run relevant tests and `npm run test:typecheck`; after production code changes, also run `npx tsc --noEmit`.
+- Тестуй поведінку: успіх, граничні значення й очікувані помилки. Використовуй зрозумілі назви сценаріїв; дотримуйся порядку підготовка → дія → перевірка.
+- Юніт-тести не запускають сервер, Docker, міграції та не підключаються до справжньої БД. Не імпортуй `src/app.ts`.
+- Для service підміняй repository, для controller — service; для repository підміняй PrismaClient. Якщо імпорт запускає спільний PrismaClient, мокай його модуль через `vi.mock` до імпорту тестованого компонента.
+- Для middleware підміняй `req`, `res`, `next`; перевіряй статус, тіло відповіді й передачу керування. Приведення типів допустимі для часткових Express/Prisma doubles у тестах; не перенось їх у production-код.
+- Складні загальні fixtures/helpers додавай лише коли вони потрібні кільком тестам. Не додавай залежності coverage/UI без окремої потреби.
+- Vitest виконує TypeScript без перевірки типів: після зміни тестів запускай відповідні тести та `npm run test:typecheck`; після зміни production-коду також `npx tsc --noEmit`.
 
 ## SSR Module Structure
 
@@ -805,7 +801,3 @@ export const EXAMPLE_SUCCESSFUL_MESSAGES = {
     DELETED: "Example was deleted",
 };
 ```
-
-## Removal of the Demonstration Table from an Existing Database
-
-The module, its alias, Prisma model, and both demonstration migrations were removed from the repository at the user's explicit request. The schema currently has no models, so Prisma Client generation requires `--allow-no-models`. The examples above exist only as documentation.
