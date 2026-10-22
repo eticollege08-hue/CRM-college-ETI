@@ -37,8 +37,7 @@ model UserAccount {
   roleKey      Role      @map("role_key")
   isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
-
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
 
   @@map("user_accounts")
 }
