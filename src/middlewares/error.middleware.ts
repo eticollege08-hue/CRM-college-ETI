@@ -65,10 +65,10 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
         if (entry) error = new ApiError(entry[0], entry[1]);
     }
 
-    if (error.status === HttpStatus.INTERNAL_SERVER_ERROR) {
+    /*if (error.status === HttpStatus.INTERNAL_SERVER_ERROR) {
         // Upstream messages and stacks may contain credentials or database parameters.
         console.error("Request failed.");
-    }
+    }*/
 
     if (res.headersSent) {
         return next(new ApiError(error.status, error.message, error.details));
@@ -85,9 +85,5 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
         });
     }
 
-    return res.status(error.status).render("error", {
-        success: false,
-        status: error.status,
-        message: error.message,
-    });
+    return res.status(error.status).type("text/plain").send(error.message);
 }

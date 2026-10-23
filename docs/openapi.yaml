@@ -14,6 +14,8 @@ tags:
       description: Account login and logout
     - name: Employees
       description: Employee profiles (development only)
+    - name: Hierarchy
+      description: Employee manager and subordinate relationships
 paths:
     /auth/login:
         post:
@@ -342,6 +344,192 @@ paths:
                     $ref: "#/components/responses/ValidationError"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+    /hierarchy:
+        get:
+            tags:
+                - Hierarchy
+            operationId: getHierarchyRelationships
+            summary: List hierarchy relationships
+            description: Available to every authenticated role. Returns a flat list of relationships.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Hierarchy relationships returned.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - hierarchies
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    hierarchies:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/HierarchyRelationship"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        post:
+            tags:
+                - Hierarchy
+            operationId: createHierarchyRelationship
+            summary: Create a hierarchy relationship
+            description:
+                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. employeeId is the manager; subordinateId is the
+                subordinate. Multiple managers are allowed. Rejects self-assignment, duplicates and
+                cycles. Checks and write share a Serializable transaction with up to three P2034
+                attempts."
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/HierarchyCreateInput"
+            responses:
+                "201":
+                    description: Hierarchy relationship created.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/HierarchyWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/HierarchyNotFound"
+                "409":
+                    $ref: "#/components/responses/HierarchyConflict"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /hierarchy/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        get:
+            tags:
+                - Hierarchy
+            operationId: getHierarchyRelationship
+            summary: Get a hierarchy relationship
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Hierarchy relationship returned.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/HierarchyReadSuccess"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "404":
+                    $ref: "#/components/responses/HierarchyNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        patch:
+            tags:
+                - Hierarchy
+            operationId: updateHierarchyRelationship
+            summary: Update a hierarchy relationship
+            description:
+                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Both fields are optional; an empty object is valid.
+                Omitted values are preserved. The replaced relationship is excluded during cycle
+                detection. Checks and write share a Serializable transaction with up to three P2034
+                attempts."
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/HierarchyUpdateInput"
+            responses:
+                "200":
+                    description: Hierarchy relationship updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/HierarchyWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/HierarchyNotFound"
+                "409":
+                    $ref: "#/components/responses/HierarchyConflict"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        delete:
+            tags:
+                - Hierarchy
+            operationId: deleteHierarchyRelationship
+            summary: Delete a hierarchy relationship
+            description: "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Deletes the relationship without deleting employees."
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Hierarchy relationship deleted.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/HierarchyNotFound"
+                "409":
+                    $ref: "#/components/responses/HierarchyConflict"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
 components:
     headers:
         NoStore:
@@ -364,6 +552,73 @@ components:
                 used. Use credentials: include / withCredentials: true. Deploy same-origin, or
                 explicitly configure credentialed CORS for separate origins."
     schemas:
+        HierarchyRelationship:
+            type: object
+            required:
+                - id
+                - employeeId
+                - subordinateId
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                employeeId:
+                    type: string
+                    format: uuid
+                    description: Manager employee ID.
+                subordinateId:
+                    type: string
+                    format: uuid
+                    description: Subordinate employee ID.
+        HierarchyCreateInput:
+            type: object
+            additionalProperties: false
+            required:
+                - employeeId
+                - subordinateId
+            properties:
+                employeeId:
+                    type: string
+                    format: uuid
+                    description: Manager employee ID.
+                subordinateId:
+                    type: string
+                    format: uuid
+                    description: Subordinate employee ID.
+        HierarchyUpdateInput:
+            type: object
+            additionalProperties: false
+            properties:
+                employeeId:
+                    type: string
+                    format: uuid
+                    description: Manager employee ID.
+                subordinateId:
+                    type: string
+                    format: uuid
+                    description: Subordinate employee ID.
+        HierarchyReadSuccess:
+            type: object
+            required:
+                - success
+                - hierarchy
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                hierarchy:
+                    $ref: "#/components/schemas/HierarchyRelationship"
+        HierarchyWriteSuccess:
+            allOf:
+                - $ref: "#/components/schemas/HierarchyReadSuccess"
+                - type: object
+                  required:
+                      - message
+                  properties:
+                      message:
+                          type: string
         Employee:
             type: object
             required:
@@ -488,6 +743,30 @@ components:
                         $ref: "#/components/schemas/ErrorDetail"
                     description: Field errors; [] if absent. No credentials or technical details.
     responses:
+        HierarchyUnauthorized:
+            description: Missing, invalid or expired authentication cookie.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        HierarchyForbidden:
+            description: The authenticated role cannot perform this operation.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        HierarchyNotFound:
+            description: The hierarchy relationship, manager or subordinate does not exist.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        HierarchyConflict:
+            description: Duplicate relationship, self-assignment, hierarchy cycle or exhausted serialization retries.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
         BadRequest:
             description:
                 Malformed JSON or a missing/non-object body for a validated endpoint. Standard

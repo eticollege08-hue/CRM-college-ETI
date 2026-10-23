@@ -26,7 +26,7 @@ router.post(
     accessFor(["OWNER", "RECRUITER"]), 
     validateBody(employeeCreateSchema), 
     asyncCatch(employeeController.create)
-);
+)
 
 router.patch(
     "/:id",
