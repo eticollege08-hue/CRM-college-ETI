@@ -1,12 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EmployeeService } from "../../src/modules/employees/employee.service.js";
+import { EMPLOYEE_MESSAGES } from "../../src/modules/employees/employee.constants.js";
 
 import type { EmployeeRepository } from "../../src/modules/employees/employee.repository.js";
+import type { HierarchyService } from "../../src/modules/hierarchy/hierarchy.service.js";
+import type { UserAccountRepository } from "../../src/modules/user-accounts/user-account.repository.js";
 
 vi.mock("#config/prisma.config.js", () => ({ default: {} }));
+vi.mock("#modules/hierarchy/hierarchy.service.js", () => ({ hierarchyService: {} }));
 
 const employeeId = "550e8400-e29b-41d4-a716-446655440000";
+const accountId = "550e8400-e29b-41d4-a716-446655440001";
+const managerId = "550e8400-e29b-41d4-a716-446655440002";
+const managerAccount = {
+    id: accountId,
+    employeeId: managerId,
+    email: "manager@example.com",
+    passwordHash: "test-hash",
+    roleKey: "MANAGER" as const,
+    isActive: true,
+    lastLoginAt: null,
+};
 const employee = {
     id: employeeId,
     fullName: "Olena Kovalenko",
@@ -24,6 +39,8 @@ describe("EmployeeService", () => {
         delete: ReturnType<typeof vi.fn>;
     };
     let service: EmployeeService;
+    const hierarchy = { isManager: vi.fn<HierarchyService["isManager"]>() };
+    const accounts = { getById: vi.fn<UserAccountRepository["getById"]>() };
 
     beforeEach(() => {
         repository = {
@@ -33,7 +50,13 @@ describe("EmployeeService", () => {
             update: vi.fn(),
             delete: vi.fn(),
         };
-        service = new EmployeeService(repository as unknown as EmployeeRepository);
+        hierarchy.isManager.mockReset();
+        accounts.getById.mockReset();
+        service = new EmployeeService(
+            repository as unknown as EmployeeRepository,
+            hierarchy as unknown as HierarchyService,
+            accounts as unknown as UserAccountRepository,
+        );
     });
 
     it("creates an employee from the supplied profile fields", async () => {
@@ -75,7 +98,7 @@ describe("EmployeeService", () => {
         repository.update.mockResolvedValue({ ...employee, position: "Manager" });
         const input = { position: "Manager" };
 
-        const result = await service.update(employeeId, input);
+        const result = await service.update(employeeId, input, "OWNER", accountId);
 
         expect(repository.getById).toHaveBeenCalledWith(employeeId);
         expect(repository.update).toHaveBeenCalledWith(employeeId, input);
@@ -85,10 +108,86 @@ describe("EmployeeService", () => {
     it("does not update a missing employee", async () => {
         repository.getById.mockResolvedValue(null);
 
-        await expect(service.update(employeeId, { position: "Manager" })).rejects.toMatchObject({
+        await expect(
+            service.update(employeeId, { position: "Manager" }, "OWNER", accountId),
+        ).rejects.toMatchObject({
             status: 404,
         });
         expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    describe("manager update access", () => {
+        beforeEach(() => {
+            repository.getById.mockResolvedValue(employee);
+            accounts.getById.mockResolvedValue(managerAccount);
+        });
+
+        it("allows a direct manager and resolves their employee ID from the account", async () => {
+            hierarchy.isManager.mockResolvedValue(true);
+            repository.update.mockResolvedValue(employee);
+
+            await expect(service.update(employeeId, {}, "MANAGER", accountId)).resolves.toEqual(
+                employee,
+            );
+
+            expect(accounts.getById).toHaveBeenCalledWith(accountId);
+            expect(hierarchy.isManager).toHaveBeenCalledWith(employeeId, managerId);
+            expect(repository.update).toHaveBeenCalledWith(employeeId, {});
+        });
+
+        it("rejects a manager without a direct relationship before writing", async () => {
+            hierarchy.isManager.mockResolvedValue(false);
+
+            await expect(
+                service.update(employeeId, {}, "MANAGER", accountId),
+            ).rejects.toMatchObject({
+                status: 403,
+                message: EMPLOYEE_MESSAGES.NOT_DIRECT_MANAGER,
+            });
+            expect(repository.update).not.toHaveBeenCalled();
+        });
+
+        it("rejects a missing manager account without querying the hierarchy", async () => {
+            accounts.getById.mockResolvedValue(null);
+
+            await expect(
+                service.update(employeeId, {}, "MANAGER", accountId),
+            ).rejects.toMatchObject({
+                status: 403,
+                message: EMPLOYEE_MESSAGES.NOT_DIRECT_MANAGER,
+            });
+            expect(hierarchy.isManager).not.toHaveBeenCalled();
+            expect(repository.update).not.toHaveBeenCalled();
+        });
+
+        it.each(["OWNER", "HR"] as const)("allows %s without hierarchy checks", async (role) => {
+            repository.update.mockResolvedValue(employee);
+
+            await expect(service.update(employeeId, {}, role, accountId)).resolves.toEqual(
+                employee,
+            );
+
+            expect(accounts.getById).not.toHaveBeenCalled();
+            expect(hierarchy.isManager).not.toHaveBeenCalled();
+        });
+
+        it("preserves 404 for a missing target employee", async () => {
+            repository.getById.mockResolvedValue(null);
+
+            await expect(
+                service.update(employeeId, {}, "MANAGER", accountId),
+            ).rejects.toMatchObject({ status: 404 });
+            expect(accounts.getById).not.toHaveBeenCalled();
+            expect(repository.update).not.toHaveBeenCalled();
+        });
+
+        it("propagates hierarchy errors without updating the employee", async () => {
+            const error = new Error("Hierarchy lookup failed");
+            hierarchy.isManager.mockRejectedValue(error);
+
+            await expect(service.update(employeeId, {}, "MANAGER", accountId)).rejects.toBe(error);
+            expect(repository.update).not.toHaveBeenCalled();
+        });
     });
 
     it("deletes an existing employee", async () => {
