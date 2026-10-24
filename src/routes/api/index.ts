@@ -14,5 +14,4 @@ router.use("/auth", authRoutes);
 router.use("/employees", isAuth, employeeRouter);
 router.use("/hierarchy", isAuth, hierarchyRouter);
 
-
 export default router;

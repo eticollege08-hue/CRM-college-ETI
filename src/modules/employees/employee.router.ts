@@ -10,23 +10,16 @@ import { employeeCreateSchema, employeeUpdateSchema } from "./employee.schema.js
 
 const router = Router();
 
-router.get(
-    "/", 
-    asyncCatch(employeeController.getAll)
-);
+router.get("/", asyncCatch(employeeController.getAll));
 
-router.get(
-    "/:id", 
-    validateParams(uuidSchema), 
-    asyncCatch(employeeController.getById)
-);
+router.get("/:id", validateParams(uuidSchema), asyncCatch(employeeController.getById));
 
 router.post(
-    "/", 
-    accessFor(["OWNER", "RECRUITER"]), 
-    validateBody(employeeCreateSchema), 
-    asyncCatch(employeeController.create)
-)
+    "/",
+    accessFor(["OWNER", "RECRUITER"]),
+    validateBody(employeeCreateSchema),
+    asyncCatch(employeeController.create),
+);
 
 router.patch(
     "/:id",
@@ -38,9 +31,9 @@ router.patch(
 
 router.delete(
     "/:id",
-    accessFor(["OWNER", "HR"]), 
-    validateParams(uuidSchema), 
-    asyncCatch(employeeController.delete)
+    accessFor(["OWNER", "HR"]),
+    validateParams(uuidSchema),
+    asyncCatch(employeeController.delete),
 );
 
 export default router;

@@ -17,7 +17,7 @@ export class EmployeeService {
     constructor(
         private readonly repository: EmployeeRepository = employeeRepository,
         private readonly hierarchy: HierarchyService = hierarchyService,
-        private readonly accounts: UserAccountRepository = userAccountRepository
+        private readonly accounts: UserAccountRepository = userAccountRepository,
     ) {}
 
     async create(data: EmployeeCreateInput) {
