@@ -273,8 +273,10 @@ paths:
             tags:
                 - Employees
             operationId: updateEmployee
-            summary: Update an employee (development only)
-            security: []
+            summary: Update an employee
+            description: OWNER and HR can update employees. MANAGER can update only direct subordinates; the acting account ID is resolved to its employee ID.
+            security:
+                - cookieAuth: []
             requestBody:
                 required: true
                 content:
@@ -303,8 +305,14 @@ paths:
                                         $ref: "#/components/schemas/Employee"
                 "400":
                     $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
                 "403":
-                    $ref: "#/components/responses/DevelopmentOnly"
+                    description: The role is not allowed, or the manager does not directly manage this employee.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "422":
@@ -864,7 +872,7 @@ components:
                         $ref: "#/components/schemas/ErrorResponse"
                     example:
                         success: false
-                        message: Співробітника не знайдено
+                        message: Employee not found
                         details: []
         DevelopmentOnly:
             description: Employee routes are enabled only in development.

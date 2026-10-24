@@ -1,5 +1,7 @@
 import { HttpStatus } from "#constants/http-status.constants.js";
+import { API_MESSAGES } from "#constants/api-messages.constants.js";
 import { uuidSchema } from "#schemas/id.schema.js";
+import { ApiError } from "#utils/error.util.js";
 
 import { EMPLOYEE_MESSAGES } from "./employee.constants.js";
 import { employeeService } from "./employee.service.js";
@@ -38,7 +40,8 @@ export class EmployeeController {
 
     async update(req: Request, res: Response) {
         const { id } = uuidSchema.parse(req.params);
-        const employee = await this.service.update(id, req.body);
+
+        const employee = await this.service.update(id, req.body, req.user!.role, req.user!.userId);
         res.status(HttpStatus.OK).json({
             success: true,
             message: EMPLOYEE_MESSAGES.UPDATED,
