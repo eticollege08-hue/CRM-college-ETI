@@ -2,8 +2,9 @@ import { EventType } from "@prisma/client";
 import { Temporal } from "@js-temporal/polyfill";
 import { z } from "zod";
 
+import { dayBounds, isTimeZone } from "#utils/event-time.util.js";
+
 import { EVENT_MAX_RANGE_DAYS } from "./event.constants.js";
-import { dayBounds, isTimeZone } from "./event-time.util.js";
 
 export const eventTimeZoneSchema = z
     .string()

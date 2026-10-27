@@ -5,7 +5,7 @@ import {
     monthBounds,
     localDate,
     validEventRange,
-} from "../../src/modules/events/event-time.util.js";
+} from "../../src/utils/event-time.util.js";
 
 describe("calendar time zones", () => {
     it("uses the Kyiv local day rather than the UTC date", () => {

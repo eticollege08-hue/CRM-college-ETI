@@ -3,7 +3,7 @@ import { EventType } from "@prisma/client";
 
 import { employeeService } from "#modules/employees/employee.service.js";
 import { eventService } from "#modules/events/event.service.js";
-import { monthBounds } from "#modules/events/event-time.util.js";
+import { monthBounds } from "#utils/event-time.util.js";
 
 import type { CalendarQuery } from "#modules/events/event.types.js";
 

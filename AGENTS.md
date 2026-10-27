@@ -31,8 +31,8 @@
 - Auth unit-тести: `tests/auth/auth.service.test.ts`, `tests/auth/auth-rate-limit.service.test.ts`. Попередні тести CRM-102.2/Employee/UserAccount/SSR збережені.
 - `src/views/` — Nunjucks; `src/public/` — static. `dist/` і `node_modules/` не редагувати.
 - `src/modules/events/` — спільні події для всіх авторизованих ролей; лише автор UserAccount може змінювати подію/учасників або видаляти з точною confirmationTitle. Автор не стає учасником автоматично. П'ять EventType, без Room Booking; EventParticipant пов'язаний з Employee без вимоги акаунта.
-- EventRepository керує Serializable-транзакцією з максимум трьома спробами P2034; EventService виконує всі перевірки й writes в одному tx. Інтервали [start,end), суміжні дозволені; останнього учасника видалити не можна. Temporal polyfill обчислює локальні дні/місяці та DST; timestamptz(3) зберігає інстанти, IANA-зона — окремо.
-- `src/modules/calendar-ssr/` — захищений GET /calendar, порожній pages/calendar.njk, locals currentDate/month/timeZone/range/events/eventTypes/employees та css/js/activePage. API /api/events захищено isAuth; зміни також перевіряють Origin. Детальний контракт/межі — docs/calendar.md та OpenAPI.
+- EventRepository керує Serializable-транзакцією з максимум трьома спробами P2034; EventService виконує всі перевірки й writes в одному tx. Інтервали [start,end), суміжні дозволені; останнього учасника видалити не можна. `src/utils/event-time.util.ts` через Temporal polyfill обчислює локальні дні/місяці та DST; timestamptz(3) зберігає інстанти, IANA-зона — окремо.
+- `src/modules/calendar-ssr/` — захищений GET /calendar, порожній pages/calendar.njk, locals currentDate/month/timeZone/range/events/eventTypes/employees та css/js/activePage. API /api/events захищено isAuth; зміни також перевіряють Origin. Контракт — docs/openapi.yaml.
 - `npm run test:calendar:integration` — тільки development і явний запуск: міграції/HTTP/конкурентні запити в новій випадковій схемі dev-БД з очищенням лише цієї схеми; не входить до npm test/CI unit tests.
 
 ## Команди

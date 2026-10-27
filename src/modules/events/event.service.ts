@@ -1,9 +1,9 @@
 import { HttpStatus } from "#constants/http-status.constants.js";
 import { userAccountRepository } from "#modules/user-accounts/user-account.repository.js";
 import { ApiError } from "#utils/error.util.js";
+import { dayBounds, validEventRange } from "#utils/event-time.util.js";
 
 import { EVENT_MESSAGES } from "./event.constants.js";
-import { dayBounds, validEventRange } from "./event-time.util.js";
 import { eventRepository } from "./event.repository.js";
 
 import type { Prisma } from "@prisma/client";
