@@ -9,7 +9,7 @@ export const employeesPageController = {
         res.render(EMPLOYEES_PAGE.path, { ...EMPLOYEES_PAGE.data, ...payload });
     },
 
-    add(_req: Request, res: Response) {
+    async add(_req: Request, res: Response) {
         res.render(ADD_EMPLOYEE_PAGE.path, ADD_EMPLOYEE_PAGE.data);
     },
 };
