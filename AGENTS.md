@@ -15,6 +15,7 @@
 - `src/middlewares/auth-origin.middleware.ts` — точний обов'язковий Origin за AUTH_ALLOWED_ORIGINS. Перевірка використовується лише в auth POST routes.
 - `src/utils/auth-cookie.util.ts` — HttpOnly, SameSite=Lax, host-only, Path=/; встановлення/очищення також видаляють legacy cookie на /api. Cache-Control: no-store. Logout лише очищає cookie, не відкликає JWT.
 - `src/config/jwt.config.ts` — єдине джерело TTL (JWT_EXPIRES_IN, default 3600); JWT_SECRET без default, мінімум 32 байти. `src/utils/jwt.util.ts` і isAuth перевіряють HS256, signature, expiry та claims.
+- `src/middlewares/access.middleware.ts` — `accessFor(roles)` перевіряє лише `req.user.role`; без користувача або дозволеної ролі передає ApiError 403 у errorHandler. Порядок у захищеному маршруті: `isAuth, accessFor(["OWNER", "WORKER"])`.
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
 - `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
 - `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить сторінку входу, успішний login перенаправляє на захищений GET /dashboard (Employee Hierarchy наразі з демонстраційними даними), GET /registration-preview — форма-макет із клієнтською валідацією без створення акаунта; GET /design-preview — відкритий перегляд dashboard; глобальні стилі в `src/public/css/variables.css`, спільний layout — `src/views/base/base.njk`.
@@ -26,6 +27,10 @@
 - `prisma/schema.prisma` — Employee (усі profile поля optional), UserAccount з унікальними employeeId/email, Prisma Role; SQL-міграції не переписувати.
 - Auth unit-тести: `tests/auth/auth.service.test.ts`, `tests/auth/auth-rate-limit.service.test.ts`. Попередні тести CRM-102.2/UserAccount/SSR збережені.
 - `src/views/` — Nunjucks; `src/public/` — static. `dist/` і `node_modules/` не редагувати.
+- `src/modules/events/` — спільні події для всіх авторизованих ролей; лише автор UserAccount може змінювати подію/учасників або видаляти з точною confirmationTitle. Автор не стає учасником автоматично. П'ять EventType, без Room Booking; EventParticipant пов'язаний з Employee без вимоги акаунта.
+- EventRepository керує Serializable-транзакцією з максимум трьома спробами P2034; EventService виконує всі перевірки й writes в одному tx. Інтервали [start,end), суміжні дозволені; останнього учасника видалити не можна. `src/utils/event-time.util.ts` через Temporal polyfill обчислює локальні дні/місяці та DST; timestamptz(3) зберігає інстанти, IANA-зона — окремо.
+- `src/modules/calendar-ssr/` — захищений GET /calendar, порожній pages/calendar.njk, locals currentDate/month/timeZone/range/events/eventTypes/employees та css/js/activePage. API /api/events захищено isAuth; зміни також перевіряють Origin. Контракт — docs/openapi.yaml.
+- `npm run test:calendar:integration` — тільки development і явний запуск: міграції/HTTP/конкурентні запити в новій випадковій схемі dev-БД з очищенням лише цієї схеми; не входить до npm test/CI unit tests.
 
 ## Команди
 
@@ -106,7 +111,7 @@
 - У старому коді є імпорти без `.js` (зокрема в `app.ts`) і прямі імпорти Prisma runtime. Якщо задача стосується production/ESM, перевір їх разом з aliases; для інших задач не розширюй scope автоматично.
 - `import "dotenv/config"` виконується перед імпортами модулів у app/seed. Prisma підключається лише на першому запиті.
 - Production Dockerfile копіює `src/views` і `src/public`; окремого етапу збірки assets немає. Порожні views/public не зберігаються Git. Перед задачею Docker-збірки перевір наявність цих каталогів.
-- `errorHandler` рендерить SSR-шаблон `error`, якого наразі немає. Наявність Nunjucks не означає завершений SSR.
+- `errorHandler` повертає SSR-помилки як text/plain зі збереженням HTTP-статусу, без шаблону error.njk; API та запити з Accept: application/json отримують JSON.
 - JWT не використовує express-session. Trust proxy=false для прямого доступу; при reverse proxy довіру налаштувати явно для реальної інфраструктури.
 
 ## Як працювати швидко та перевіряти зміни

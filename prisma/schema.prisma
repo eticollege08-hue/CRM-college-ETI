@@ -23,6 +23,10 @@ model Employee {
   position    String?
   userAccount UserAccount?
 
+  subordinates        Hierarchy[]        @relation("HierarchyManager")
+  managers            Hierarchy[]        @relation("HierarchySubordinate")
+  eventParticipations EventParticipant[]
+
   @@map("employees")
 }
 
@@ -34,7 +38,59 @@ model UserAccount {
   roleKey      Role      @map("role_key")
   isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
-  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  ownedEvents Event[]
 
   @@map("user_accounts")
+}
+
+model Hierarchy {
+  id            String @id @default(dbgenerated("gen_random_uuid()"))
+  employeeId    String @map("employee_id")
+  subordinateId String @map("subordinate_id")
+
+  manager     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, name: "HierarchyManager")
+  subordinate Employee @relation(fields: [subordinateId], references: [id], onDelete: Cascade, name: "HierarchySubordinate")
+
+  @@unique([employeeId, subordinateId])
+  @@map("hierarchy")
+}
+
+enum EventType {
+  LEAVE
+  SICK_LEAVE
+  VACATION
+  TIME_OFF
+  MEETING
+}
+
+model Event {
+  id             String             @id @default(dbgenerated("gen_random_uuid()"))
+  ownerAccountId String             @map("owner_account_id")
+  type           EventType
+  title          String             @db.VarChar(200)
+  description    String             @db.VarChar(4000)
+  startsAt       DateTime           @map("starts_at") @db.Timestamptz(3)
+  endsAt         DateTime           @map("ends_at") @db.Timestamptz(3)
+  timeZone       String             @map("time_zone") @db.VarChar(100)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  owner          UserAccount        @relation(fields: [ownerAccountId], references: [id], onDelete: Restrict)
+  participants   EventParticipant[]
+
+  @@index([startsAt, endsAt])
+  @@index([ownerAccountId])
+  @@map("events")
+}
+
+model EventParticipant {
+  eventId    String   @map("event_id")
+  employeeId String   @map("employee_id")
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@id([eventId, employeeId])
+  @@index([employeeId, eventId])
+  @@map("event_participants")
 }
