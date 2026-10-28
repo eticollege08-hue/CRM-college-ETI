@@ -54,7 +54,9 @@
     outline: none;
     background: var(--color-surface);
     color: var(--color-ink);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast);
 }
 
 .form-field input:hover:not(:focus):not(:disabled) {
@@ -153,7 +155,9 @@
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
     cursor: pointer;
-    transition: background-color var(--transition-fast), opacity var(--transition-fast);
+    transition:
+        background-color var(--transition-fast),
+        opacity var(--transition-fast);
 }
 
 .primary-button:hover:not(:disabled) {

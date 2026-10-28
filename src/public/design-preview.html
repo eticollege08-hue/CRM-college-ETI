@@ -1,100 +1,186 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <title>Employee hierarchy · CRM</title>
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/home.css">
-    
-  </head>
-  <body>
-    
-  <header class="topbar">
-  <a class="brand" href="/" aria-label="CRM home">
-    <span class="brand-mark" aria-hidden="true">C</span>
-    <span class="brand-name">CRM<small>Design System &amp; UI Kit</small></span>
-  </a>
-  <div class="topbar-actions">
-    <button class="icon-button" type="button" aria-label="Notifications">♧</button>
-    <span class="avatar avatar-small" aria-hidden="true">UN</span>
-    <span class="user-menu"><strong>User Name</strong><small>Owner⌄</small></span>
-  </div>
-</header>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light" />
+        <title>Employee hierarchy · CRM</title>
+        <link rel="stylesheet" href="css/variables.css" />
+        <link rel="stylesheet" href="css/home.css" />
+    </head>
+    <body>
+        <header class="topbar">
+            <a class="brand" href="/" aria-label="CRM home">
+                <span class="brand-mark" aria-hidden="true">C</span>
+                <span class="brand-name">CRM<small>Design System &amp; UI Kit</small></span>
+            </a>
+            <div class="topbar-actions">
+                <button class="icon-button" type="button" aria-label="Notifications">♧</button>
+                <span class="avatar avatar-small" aria-hidden="true">UN</span>
+                <span class="user-menu"><strong>User Name</strong><small>Owner⌄</small></span>
+            </div>
+        </header>
 
-  <main class="workspace">
-    <div class="page-heading">
-      <div><h1>Employee Hierarchy</h1><p>Manage and view your team structure</p></div>
-      <button class="primary-button add-button" type="button">＋ Add employee</button>
-    </div>
-    <div class="dashboard-layout">
-      <aside class="team-panel card">
-        <label class="search-box"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search by employee name…"></label>
-        <div class="filter-row"><button type="button">Filters</button><button type="button">Team⌄</button><button type="button">Level⌄</button><button type="button">Position⌄</button><a href="#clear">Clear</a></div>
-        <ul class="team-list">
-          
-          <li class="team-member is-selected" style="--depth: 0">
-            <span class="tree-branch" aria-hidden="true">⌄</span>
-            <span class="avatar">UN</span>
-            <span class="member-copy"><strong>User Name</strong><small>CEO · Level 1</small></span>
-            <span class="role-badge role-hr">CRM Owner</span>
-          </li>
-          
-          <li class="team-member" style="--depth: 1">
-            <span class="tree-branch" aria-hidden="true">↳</span>
-            <span class="avatar">UN</span>
-            <span class="member-copy"><strong>User Name</strong><small>CTO · Level 2</small></span>
-            <span class="role-badge role-team">CRM Manager</span>
-          </li>
-          
-          <li class="team-member" style="--depth: 2">
-            <span class="tree-branch" aria-hidden="true">↳</span>
-            <span class="avatar">UN</span>
-            <span class="member-copy"><strong>User Name</strong><small>HR Manager · Level 3</small></span>
-            <span class="role-badge role-hr">CRM HR</span>
-          </li>
-          
-          <li class="team-member" style="--depth: 2">
-            <span class="tree-branch" aria-hidden="true">↳</span>
-            <span class="avatar">UN</span>
-            <span class="member-copy"><strong>User Name</strong><small>Developer · Level 3</small></span>
-            <span class="role-badge role-lead">CRM Developer</span>
-          </li>
-          
-          <li class="team-member" style="--depth: 2">
-            <span class="tree-branch" aria-hidden="true">↳</span>
-            <span class="avatar">UN</span>
-            <span class="member-copy"><strong>User Name</strong><small>Recruiter · Level 3</small></span>
-            <span class="role-badge role-lead">CRM Recruiter</span>
-          </li>
-          
-          <li class="team-member" style="--depth: 2">
-            <span class="tree-branch" aria-hidden="true">↳</span>
-            <span class="avatar">UN</span>
-            <span class="member-copy"><strong>User Name</strong><small>Sales Specialist · Level 3</small></span>
-            <span class="role-badge role-team">CRM Worker</span>
-          </li>
-          
-        </ul>
-      </aside>
-      <section class="profile-panel card" aria-label="Employee profile">
-        <div class="profile-overview">
-          <span class="avatar avatar-large" aria-hidden="true">UN</span>
-          <div class="profile-title"><h2>User Name <span class="role-badge role-hr">CRM HR</span></h2><p>HR Manager&nbsp; · &nbsp;Level 3</p><div class="contact-line"><a href="mailto:user@email.company.com">✉ user@email.company.com</a><a href="tel:+380000000000">☎ +380 00 000 00 00</a><span>⌖ Kyiv, Ukraine</span></div></div>
-          <button class="primary-button edit-button" type="button">Edit</button>
-          <button class="icon-button more-button" type="button" aria-label="More actions">⋮</button>
-        </div>
-        <nav class="profile-tabs" aria-label="Employee details"><a class="is-active" href="#overview">Overview</a><a href="#projects">Projects</a><a href="#leave">Leave</a><a href="#tickets">Tickets</a><a href="#documents">Documents</a><a href="#history">History</a></nav>
-        <div class="profile-grid">
-          <article class="detail-card card"><h3>▣ Personal Information <button aria-label="Edit personal information">✎</button></h3><dl><dt>Full name</dt><dd>User Name</dd><dt>Position</dt><dd>HR Manager</dd><dt>Level</dt><dd>Level 3</dd><dt>Team</dt><dd>Team name</dd><dt>Experience</dt><dd>5 years</dd><dt>Certifications</dt><dd>HR Management&nbsp; · &nbsp;Recruiting</dd></dl></article>
-          <article class="detail-card card"><h3>♧ Contact Information <button aria-label="Edit contact information">✎</button></h3><dl><dd>+380 00 000 00 00</dd><dd>user@email.company.com</dd><dd>@user</dd><dd>Kyiv, Ukraine</dd></dl></article>
-          <article class="detail-card card"><h3>▤ Salary <button aria-label="Edit salary">✎</button></h3><dl><dt>Monthly salary</dt><dd>$4,500</dd><dt>Hourly rate</dt><dd>$27.50</dd><dt>Bonus</dt><dd>$500</dd></dl></article>
-          <article class="detail-card card"><h3>▦ Projects <span class="count-badge">2</span><button aria-label="Edit projects">✎</button></h3><div class="project-placeholder"><span></span><span></span><span></span></div><a class="view-link" href="#projects">View all projects →</a></article>
-        </div>
-      </section>
-    </div>
-  </main>
-    
-  </body>
+        <main class="workspace">
+            <div class="page-heading">
+                <div>
+                    <h1>Employee Hierarchy</h1>
+                    <p>Manage and view your team structure</p>
+                </div>
+                <button class="primary-button add-button" type="button">＋ Add employee</button>
+            </div>
+            <div class="dashboard-layout">
+                <aside class="team-panel card">
+                    <label class="search-box"
+                        ><span aria-hidden="true">⌕</span
+                        ><input type="search" placeholder="Search by employee name…"
+                    /></label>
+                    <div class="filter-row">
+                        <button type="button">Filters</button><button type="button">Team⌄</button
+                        ><button type="button">Level⌄</button
+                        ><button type="button">Position⌄</button><a href="#clear">Clear</a>
+                    </div>
+                    <ul class="team-list">
+                        <li class="team-member is-selected" style="--depth: 0">
+                            <span class="tree-branch" aria-hidden="true">⌄</span>
+                            <span class="avatar">UN</span>
+                            <span class="member-copy"
+                                ><strong>User Name</strong><small>CEO · Level 1</small></span
+                            >
+                            <span class="role-badge role-hr">CRM Owner</span>
+                        </li>
+
+                        <li class="team-member" style="--depth: 1">
+                            <span class="tree-branch" aria-hidden="true">↳</span>
+                            <span class="avatar">UN</span>
+                            <span class="member-copy"
+                                ><strong>User Name</strong><small>CTO · Level 2</small></span
+                            >
+                            <span class="role-badge role-team">CRM Manager</span>
+                        </li>
+
+                        <li class="team-member" style="--depth: 2">
+                            <span class="tree-branch" aria-hidden="true">↳</span>
+                            <span class="avatar">UN</span>
+                            <span class="member-copy"
+                                ><strong>User Name</strong><small>HR Manager · Level 3</small></span
+                            >
+                            <span class="role-badge role-hr">CRM HR</span>
+                        </li>
+
+                        <li class="team-member" style="--depth: 2">
+                            <span class="tree-branch" aria-hidden="true">↳</span>
+                            <span class="avatar">UN</span>
+                            <span class="member-copy"
+                                ><strong>User Name</strong><small>Developer · Level 3</small></span
+                            >
+                            <span class="role-badge role-lead">CRM Developer</span>
+                        </li>
+
+                        <li class="team-member" style="--depth: 2">
+                            <span class="tree-branch" aria-hidden="true">↳</span>
+                            <span class="avatar">UN</span>
+                            <span class="member-copy"
+                                ><strong>User Name</strong><small>Recruiter · Level 3</small></span
+                            >
+                            <span class="role-badge role-lead">CRM Recruiter</span>
+                        </li>
+
+                        <li class="team-member" style="--depth: 2">
+                            <span class="tree-branch" aria-hidden="true">↳</span>
+                            <span class="avatar">UN</span>
+                            <span class="member-copy"
+                                ><strong>User Name</strong
+                                ><small>Sales Specialist · Level 3</small></span
+                            >
+                            <span class="role-badge role-team">CRM Worker</span>
+                        </li>
+                    </ul>
+                </aside>
+                <section class="profile-panel card" aria-label="Employee profile">
+                    <div class="profile-overview">
+                        <span class="avatar avatar-large" aria-hidden="true">UN</span>
+                        <div class="profile-title">
+                            <h2>User Name <span class="role-badge role-hr">CRM HR</span></h2>
+                            <p>HR Manager&nbsp; · &nbsp;Level 3</p>
+                            <div class="contact-line">
+                                <a href="mailto:user@email.company.com">✉ user@email.company.com</a
+                                ><a href="tel:+380000000000">☎ +380 00 000 00 00</a
+                                ><span>⌖ Kyiv, Ukraine</span>
+                            </div>
+                        </div>
+                        <button class="primary-button edit-button" type="button">Edit</button>
+                        <button
+                            class="icon-button more-button"
+                            type="button"
+                            aria-label="More actions"
+                        >
+                            ⋮
+                        </button>
+                    </div>
+                    <nav class="profile-tabs" aria-label="Employee details">
+                        <a class="is-active" href="#overview">Overview</a
+                        ><a href="#projects">Projects</a><a href="#leave">Leave</a
+                        ><a href="#tickets">Tickets</a><a href="#documents">Documents</a
+                        ><a href="#history">History</a>
+                    </nav>
+                    <div class="profile-grid">
+                        <article class="detail-card card">
+                            <h3>
+                                ▣ Personal Information
+                                <button aria-label="Edit personal information">✎</button>
+                            </h3>
+                            <dl>
+                                <dt>Full name</dt>
+                                <dd>User Name</dd>
+                                <dt>Position</dt>
+                                <dd>HR Manager</dd>
+                                <dt>Level</dt>
+                                <dd>Level 3</dd>
+                                <dt>Team</dt>
+                                <dd>Team name</dd>
+                                <dt>Experience</dt>
+                                <dd>5 years</dd>
+                                <dt>Certifications</dt>
+                                <dd>HR Management&nbsp; · &nbsp;Recruiting</dd>
+                            </dl>
+                        </article>
+                        <article class="detail-card card">
+                            <h3>
+                                ♧ Contact Information
+                                <button aria-label="Edit contact information">✎</button>
+                            </h3>
+                            <dl>
+                                <dd>+380 00 000 00 00</dd>
+                                <dd>user@email.company.com</dd>
+                                <dd>@user</dd>
+                                <dd>Kyiv, Ukraine</dd>
+                            </dl>
+                        </article>
+                        <article class="detail-card card">
+                            <h3>▤ Salary <button aria-label="Edit salary">✎</button></h3>
+                            <dl>
+                                <dt>Monthly salary</dt>
+                                <dd>$4,500</dd>
+                                <dt>Hourly rate</dt>
+                                <dd>$27.50</dd>
+                                <dt>Bonus</dt>
+                                <dd>$500</dd>
+                            </dl>
+                        </article>
+                        <article class="detail-card card">
+                            <h3>
+                                ▦ Projects <span class="count-badge">2</span
+                                ><button aria-label="Edit projects">✎</button>
+                            </h3>
+                            <div class="project-placeholder">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <a class="view-link" href="#projects">View all projects →</a>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </body>
 </html>

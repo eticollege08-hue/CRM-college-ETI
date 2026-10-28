@@ -37,7 +37,11 @@ if (form instanceof HTMLFormElement) {
 
             const errors = [
                 fullName ? "" : "Full Name is required.",
-                !email ? "Email is required." : emailPattern.test(email) ? "" : "Enter a valid email address.",
+                !email
+                    ? "Email is required."
+                    : emailPattern.test(email)
+                      ? ""
+                      : "Enter a valid email address.",
                 password ? "" : "Password is required.",
                 !confirmPassword
                     ? "Please confirm your password."

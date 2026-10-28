@@ -1,53 +1,89 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <title>Sign up for CRM</title>
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/login.css">
-    
-  </head>
-  <body>
-    
-  <main class="auth-page">
-    <section class="auth-panel" aria-labelledby="auth-title">
-      <header class="auth-heading">
-        <h1 id="auth-title">Sign up for CRM</h1>
-        <p>Create your account to get started</p>
-      </header>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light" />
+        <title>Sign up for CRM</title>
+        <link rel="stylesheet" href="css/variables.css" />
+        <link rel="stylesheet" href="css/login.css" />
+    </head>
+    <body>
+        <main class="auth-page">
+            <section class="auth-panel" aria-labelledby="auth-title">
+                <header class="auth-heading">
+                    <h1 id="auth-title">Sign up for CRM</h1>
+                    <p>Create your account to get started</p>
+                </header>
 
-      <form class="auth-form" id="registration-form" novalidate>
-        <div class="form-field">
-          <label for="full-name">Full Name</label>
-          <input id="full-name" name="fullName" type="text" autocomplete="name" required aria-describedby="full-name-error">
-          <span class="field-error" id="full-name-error" aria-live="polite"></span>
-        </div>
-        <div class="form-field">
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" autocomplete="email" required aria-describedby="email-error">
-          <span class="field-error" id="email-error" aria-live="polite"></span>
-        </div>
-        <div class="form-field">
-          <label for="password">Password</label>
-          <input id="password" name="password" type="password" autocomplete="new-password" required aria-describedby="password-error">
-          <span class="field-error" id="password-error" aria-live="polite"></span>
-        </div>
-        <div class="form-field">
-          <label for="confirm-password">Confirm Password</label>
-          <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" required aria-describedby="confirm-password-error">
-          <span class="field-error" id="confirm-password-error" aria-live="polite"></span>
-        </div>
-        <p class="form-message" id="registration-message" role="status" aria-live="polite" hidden></p>
-        <button class="primary-button" type="submit">Sign up</button>
-      </form>
+                <form class="auth-form" id="registration-form" novalidate>
+                    <div class="form-field">
+                        <label for="full-name">Full Name</label>
+                        <input
+                            id="full-name"
+                            name="fullName"
+                            type="text"
+                            autocomplete="name"
+                            required
+                            aria-describedby="full-name-error"
+                        />
+                        <span class="field-error" id="full-name-error" aria-live="polite"></span>
+                    </div>
+                    <div class="form-field">
+                        <label for="email">Email</label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            required
+                            aria-describedby="email-error"
+                        />
+                        <span class="field-error" id="email-error" aria-live="polite"></span>
+                    </div>
+                    <div class="form-field">
+                        <label for="password">Password</label>
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autocomplete="new-password"
+                            required
+                            aria-describedby="password-error"
+                        />
+                        <span class="field-error" id="password-error" aria-live="polite"></span>
+                    </div>
+                    <div class="form-field">
+                        <label for="confirm-password">Confirm Password</label>
+                        <input
+                            id="confirm-password"
+                            name="confirmPassword"
+                            type="password"
+                            autocomplete="new-password"
+                            required
+                            aria-describedby="confirm-password-error"
+                        />
+                        <span
+                            class="field-error"
+                            id="confirm-password-error"
+                            aria-live="polite"
+                        ></span>
+                    </div>
+                    <p
+                        class="form-message"
+                        id="registration-message"
+                        role="status"
+                        aria-live="polite"
+                        hidden
+                    ></p>
+                    <button class="primary-button" type="submit">Sign up</button>
+                </form>
 
-      <p class="auth-footer">Already have an account? <a href="/login">Sign in</a></p>
-    </section>
-  </main>
+                <p class="auth-footer">Already have an account? <a href="/login">Sign in</a></p>
+            </section>
+        </main>
 
-    <script src="js/auth.js" defer></script>
-    <script src="js/register.js" defer></script>
-  </body>
+        <script src="js/auth.js" defer></script>
+        <script src="js/register.js" defer></script>
+    </body>
 </html>
