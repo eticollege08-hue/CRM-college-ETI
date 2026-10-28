@@ -770,6 +770,203 @@ components:
                     minLength: 1
                     maxLength: 72
                     description: At most 72 UTF-8 bytes. Do not trim or truncate.
+        EventParticipant:
+            type: object
+            additionalProperties: false
+            required: [employee]
+            properties:
+                employee:
+                    type: object
+                    additionalProperties: false
+                    required: [id, fullName, imageId, position]
+                    properties:
+                        id:
+                            type: string
+                            format: uuid
+                        fullName:
+                            type: string
+                            nullable: true
+                        imageId:
+                            type: string
+                            nullable: true
+                        position:
+                            type: string
+                            nullable: true
+        Event:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - ownerAccountId
+                - type
+                - title
+                - description
+                - startsAt
+                - endsAt
+                - timeZone
+                - createdAt
+                - updatedAt
+                - participants
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                ownerAccountId:
+                    type: string
+                    format: uuid
+                type:
+                    type: string
+                    enum: [LEAVE, SICK_LEAVE, VACATION, TIME_OFF, MEETING]
+                title:
+                    type: string
+                    maxLength: 200
+                description:
+                    type: string
+                    maxLength: 4000
+                startsAt:
+                    type: string
+                    format: date-time
+                endsAt:
+                    type: string
+                    format: date-time
+                timeZone:
+                    type: string
+                    maxLength: 100
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                participants:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/EventParticipant"
+        EventListSuccess:
+            type: object
+            additionalProperties: false
+            required: [success, events]
+            properties:
+                success:
+                    type: boolean
+                    enum: [true]
+                events:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/Event"
+        EventReadSuccess:
+            type: object
+            additionalProperties: false
+            required: [success, event]
+            properties:
+                success:
+                    type: boolean
+                    enum: [true]
+                event:
+                    $ref: "#/components/schemas/Event"
+        EventWriteSuccess:
+            type: object
+            additionalProperties: false
+            required: [success, message, event]
+            properties:
+                success:
+                    type: boolean
+                    enum: [true]
+                message:
+                    type: string
+                event:
+                    $ref: "#/components/schemas/Event"
+        EventCreateInput:
+            type: object
+            additionalProperties: false
+            required: [type, title, description, startsAt, endsAt, timeZone, participantIds]
+            properties:
+                type:
+                    type: string
+                    enum: [LEAVE, SICK_LEAVE, VACATION, TIME_OFF, MEETING]
+                title:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                description:
+                    type: string
+                    maxLength: 4000
+                startsAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 with Z or an explicit offset, at most millisecond precision.
+                endsAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 with Z or an explicit offset, at most millisecond precision.
+                timeZone:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                    description: Valid IANA time zone.
+                participantIds:
+                    type: array
+                    minItems: 1
+                    maxItems: 200
+                    uniqueItems: true
+                    items:
+                        type: string
+                        format: uuid
+        EventUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                type:
+                    type: string
+                    enum: [LEAVE, SICK_LEAVE, VACATION, TIME_OFF, MEETING]
+                title:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                description:
+                    type: string
+                    maxLength: 4000
+                startsAt:
+                    type: string
+                    format: date-time
+                endsAt:
+                    type: string
+                    format: date-time
+                timeZone:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                participantIds:
+                    type: array
+                    minItems: 1
+                    maxItems: 200
+                    uniqueItems: true
+                    items:
+                        type: string
+                        format: uuid
+        EventDeleteInput:
+            type: object
+            additionalProperties: false
+            required: [confirmationTitle]
+            properties:
+                confirmationTitle:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+        EventParticipantsInput:
+            type: object
+            additionalProperties: false
+            required: [participantIds]
+            properties:
+                participantIds:
+                    type: array
+                    minItems: 1
+                    maxItems: 200
+                    uniqueItems: true
+                    items:
+                        type: string
+                        format: uuid
         ErrorDetail:
             type: object
             additionalProperties: false
@@ -927,30 +1124,6 @@ components:
                                 details:
                                     - field: participantIds
                                       message: Choose between 1 and 200 employees.
-        HierarchyUnauthorized:
-            description: Missing, invalid or expired authentication cookie.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-        HierarchyForbidden:
-            description: The authenticated role cannot perform this operation.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-        HierarchyNotFound:
-            description: The hierarchy relationship, manager or subordinate does not exist.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-        HierarchyConflict:
-            description: Duplicate relationship, self-assignment, hierarchy cycle or exhausted serialization retries.
-            content:
-                application/json:
-                    schema:
-                        $ref: "#/components/schemas/ErrorResponse"
         BadRequest:
             description:
                 Malformed JSON or a missing/non-object body for a validated endpoint. Standard
