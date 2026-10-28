@@ -8,4 +8,12 @@ export const authPageController = {
         const data = await authPageService.getLoginPageData();
         res.render(PAGE_PATH.LOGIN, data);
     },
+    async home(_req: Request, res: Response) {
+        const data = await authPageService.getHomePageData();
+        res.render(PAGE_PATH.HOME, data);
+    },
+    async register(_req: Request, res: Response) {
+        const data = await authPageService.getRegisterPageData();
+        res.render(PAGE_PATH.REGISTER, data);
+    },
 };
