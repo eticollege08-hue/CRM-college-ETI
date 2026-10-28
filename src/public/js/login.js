@@ -63,11 +63,13 @@ if (form instanceof HTMLFormElement) {
             const result = await response.json().catch(() => ({}));
 
             if (response.ok) {
-                setMessage(result.message || "Signed in successfully.");
+                window.location.assign("/design-preview.html");
                 return;
             }
 
             if (response.status === 401) {
+                setFieldError(emailInput, "Check your email and password.");
+                setFieldError(passwordInput, "Check your email and password.");
                 setMessage(result.message || "Invalid email or password.");
             } else if (response.status === 429) {
                 setMessage(result.message || "Too many attempts. Please try again later.");

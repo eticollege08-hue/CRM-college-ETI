@@ -17,7 +17,7 @@
 - `src/config/jwt.config.ts` — єдине джерело TTL (JWT_EXPIRES_IN, default 3600); JWT_SECRET без default, мінімум 32 байти. `src/utils/jwt.util.ts` і isAuth перевіряють HS256, signature, expiry та claims.
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
 - `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
-- `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить pages/login.njk нульової довжини, без HTML-розмітки; дані css/js/activePage збережені.
+- `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить сторінку входу, успішний login перенаправляє на захищений GET /dashboard (Employee Hierarchy наразі з демонстраційними даними), GET /registration-preview — форма-макет із клієнтською валідацією без створення акаунта; GET /design-preview — відкритий перегляд dashboard; глобальні стилі в `src/public/css/variables.css`, спільний layout — `src/views/base/base.njk`.
 - `src/routes/api/index.ts` — /auth, /docs; `src/routes/ssr/index.ts` — SSR registry під /.
 - `docs/openapi.yaml` — єдиний контракт API, Swagger UI /api/docs; `docs/auth-integration.md` — конфігурація, seed та dev-перевірка. JSON login/logout: success і message, без JWT/строку дії.
 - `src/middlewares/validate.middleware.ts` — єдина strict Zod-валідація тіла; parsed data замінюють req.body; {} вирішує schema. Невідомі поля відхиляються.
