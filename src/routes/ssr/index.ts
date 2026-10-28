@@ -1,6 +1,8 @@
 import express from "express";
 
 import authPageRoutes from "#modules/auth-ssr/auth-ssr.routes.js";
+import calendarPageRoutes from "#modules/calendar-ssr/calendar-ssr.routes.js";
+import hierarchyPageRoutes from "#modules/hierarchy-ssr/hierarchy-ssr.routes.js";
 
 const router = express.Router();
 

@@ -1,12 +1,16 @@
 import prisma from "#config/prisma.config.js";
 
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
 export class EmployeeRepository {
     constructor(private readonly db: PrismaClient = prisma) {}
 
-    async getById(id: string) {
-        return await this.db.employee.findUnique({ where: { id } });
+    async getAll() {
+        return await this.db.employee.findMany();
+    }
+
+    async getById(id: string, tx: Prisma.TransactionClient = this.db) {
+        return await tx.employee.findUnique({ where: { id } });
     }
 }
 
