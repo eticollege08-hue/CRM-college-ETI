@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { employeeDetailsPageService } from "../../src/modules/employee-details-ssr/employee-details-ssr.service.js";
+import { employeesPageService } from "../../src/modules/employees-ssr/employees-ssr.service.js";
 
 const { getById } = vi.hoisted(() => ({ getById: vi.fn() }));
 
@@ -17,7 +17,7 @@ const employee = {
     position: "HR",
 };
 
-describe("employeeDetailsPageService", () => {
+describe("employeesPageService profile data", () => {
     beforeEach(() => {
         getById.mockReset();
     });
@@ -25,7 +25,7 @@ describe("employeeDetailsPageService", () => {
     it("loads and returns the requested employee", async () => {
         getById.mockResolvedValue(employee);
 
-        const result = await employeeDetailsPageService.getPageData(employeeId);
+        const result = await employeesPageService.getProfilePageData(employeeId);
 
         expect(getById).toHaveBeenCalledWith(employeeId);
         expect(result).toEqual({ employee });
@@ -35,6 +35,6 @@ describe("employeeDetailsPageService", () => {
         const error = new Error("Employee lookup failed");
         getById.mockRejectedValue(error);
 
-        await expect(employeeDetailsPageService.getPageData(employeeId)).rejects.toBe(error);
+        await expect(employeesPageService.getProfilePageData(employeeId)).rejects.toBe(error);
     });
 });

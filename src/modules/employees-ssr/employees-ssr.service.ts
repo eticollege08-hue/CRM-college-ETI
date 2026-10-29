@@ -5,4 +5,9 @@ export const employeesPageService = {
         const employees = await employeeService.getAll();
         return { employees };
     },
+
+    async getProfilePageData(employeeId: string) {
+        const employee = await employeeService.getById(employeeId);
+        return { employee };
+    },
 };
