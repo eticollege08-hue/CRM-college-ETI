@@ -54,3 +54,11 @@ model Hierarchy {
   @@unique([employeeId, subordinateId])
   @@map("hierarchy")
 }
+
+model AboutUs {
+  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  title       String
+  description String
+
+  @@map("about_us")
+}
