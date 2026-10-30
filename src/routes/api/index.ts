@@ -7,6 +7,7 @@ import docsRouter from "#modules/docs/docs.router.js";
 import employeeRouter from "#modules/employees/employee.router.js";
 import hierarchyRouter from "#modules/hierarchy/hierarchy.router.js";
 import eventRouter from "#modules/events/event.router.js";
+import projectsRouter from "#modules/projects/projects.router.js";
 
 const router = express.Router();
 
@@ -15,5 +16,6 @@ router.use("/auth", authRoutes);
 router.use("/employees", isAuth, employeeRouter);
 router.use("/hierarchy", isAuth, hierarchyRouter);
 router.use("/events", isAuth, eventRouter);
+router.use("/projects", isAuth, projectsRouter);
 
 export default router;
