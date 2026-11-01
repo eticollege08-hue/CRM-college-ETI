@@ -94,3 +94,11 @@ model EventParticipant {
   @@index([employeeId, eventId])
   @@map("event_participants")
 }
+
+model Project {
+  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  title       String
+  description String
+
+  @@map("projects")
+}
