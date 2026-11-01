@@ -29,6 +29,10 @@ export class UserAccountRepository {
         return userAccount.employee;
     }
 
+    async getById(id: string) {
+        return await this.db.userAccount.findUnique({ where: { id } });
+    }
+
     async updateLastLoginAt(id: string, date: Date) {
         return await this.db.userAccount.update({ where: { id }, data: { lastLoginAt: date } });
     }

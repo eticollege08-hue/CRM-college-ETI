@@ -65,6 +65,15 @@ export class HierarchyService {
         });
     }
 
+    async isManager(employeeId: string, managerId: string): Promise<boolean> {
+        if (employeeId === managerId) return false;
+
+        const relationship = await this.repository.getByPair(managerId, employeeId);
+        return relationship !== null;
+    }
+
+    /* HELPERS */
+
     private async checkRelationship(
         data: HierarchyCreateInput,
         tx: Prisma.TransactionClient,

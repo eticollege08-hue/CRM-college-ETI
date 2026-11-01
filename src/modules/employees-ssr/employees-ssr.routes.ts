@@ -7,5 +7,6 @@ import { employeesPageController } from "./employees-ssr.controller.js";
 const router = Router();
 
 router.get("/employees", asyncCatch(employeesPageController.index));
+router.get("/employees/create", asyncCatch(employeesPageController.add));
 
 export default router;
