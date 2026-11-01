@@ -62,6 +62,52 @@ describe("HierarchyService", () => {
         }));
     });
 
+    describe("isManager", () => {
+        it("returns true for a direct manager and checks the pair in manager-subordinate order", async () => {
+            repository.getByPair.mockResolvedValue(hierarchy);
+
+            await expect(service.isManager(input.subordinateId, input.employeeId)).resolves.toBe(
+                true,
+            );
+
+            expect(repository.getByPair).toHaveBeenCalledExactlyOnceWith(
+                input.employeeId,
+                input.subordinateId,
+            );
+        });
+
+        it("returns false without a direct relationship and does not search indirect paths", async () => {
+            repository.getByPair.mockResolvedValue(null);
+
+            await expect(service.isManager(input.subordinateId, input.employeeId)).resolves.toBe(
+                false,
+            );
+
+            expect(repository.getByPair).toHaveBeenCalledExactlyOnceWith(
+                input.employeeId,
+                input.subordinateId,
+            );
+            expect(repository.getAllRelationships).not.toHaveBeenCalled();
+        });
+
+        it("returns false when the employee and manager are the same person", async () => {
+            await expect(service.isManager(input.employeeId, input.employeeId)).resolves.toBe(
+                false,
+            );
+
+            expect(repository.getByPair).not.toHaveBeenCalled();
+        });
+
+        it("propagates lookup errors rather than returning false", async () => {
+            const error = new Error("Lookup failed");
+            repository.getByPair.mockRejectedValue(error);
+
+            await expect(service.isManager(input.subordinateId, input.employeeId)).rejects.toBe(
+                error,
+            );
+        });
+    });
+
     it("delegates all five operations and returns their results", async () => {
         repository.create.mockResolvedValue(hierarchy);
         repository.getAll.mockResolvedValue([hierarchy]);

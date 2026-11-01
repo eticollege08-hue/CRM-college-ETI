@@ -12,6 +12,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:typecheck": "tsc --project tests/tsconfig.json --noEmit",
+        "test:calendar:integration": "tsx tests/integration/calendar.integration.ts",
         "docker:dev": "docker compose -f docker-compose.dev.yaml up --build",
         "docker:dev:down": "docker compose -f docker-compose.dev.yaml down",
         "docker:dev:down:volumes": "docker compose -f docker-compose.dev.yaml down -v",
@@ -25,6 +26,7 @@
     "license": "ISC",
     "type": "module",
     "dependencies": {
+        "@js-temporal/polyfill": "0.5.1",
         "@prisma/client": "^5.22.0",
         "bcryptjs": "^3.0.3",
         "cookie-parser": "^1.4.7",

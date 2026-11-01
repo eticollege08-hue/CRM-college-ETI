@@ -13,6 +13,9 @@ export class UserAccountRepository {
     async getByEmail(email: string) {
         return await this.db.userAccount.findUnique({ where: { email } });
     }
+    async getById(id: string) {
+        return await this.db.userAccount.findUnique({ where: { id } });
+    }
     async updateLastLoginAt(id: string, date: Date) {
         return await this.db.userAccount.update({ where: { id }, data: { lastLoginAt: date } });
     }
