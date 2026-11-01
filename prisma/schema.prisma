@@ -57,6 +57,14 @@ model Hierarchy {
   @@map("hierarchy")
 }
 
+model AboutUs {
+  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  title       String
+  description String
+
+  @@map("about_us")
+}
+
 enum EventType {
   LEAVE
   SICK_LEAVE
