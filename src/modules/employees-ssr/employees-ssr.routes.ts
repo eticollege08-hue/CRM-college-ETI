@@ -14,5 +14,6 @@ router.get(
     validateParams(uuidSchema),
     asyncCatch(employeesPageController.profile),
 );
+router.get("/employees/create", asyncCatch(employeesPageController.add));
 
 export default router;

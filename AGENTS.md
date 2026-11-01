@@ -10,6 +10,7 @@
 - AuthService використовує реальний userAccountService: нормалізований email, bcrypt/dummy hash, isActive, JWT userId+roleKey, оновлення lastLoginAt. Ніяких Employee-запитів/створення під час login.
 - `src/modules/user-accounts/` — внутрішні service/repository; timestamp і атомарне створення Employee+UserAccount із заданою роллю для seed. Ідемпотентний seed не оновлює існуючі credentials; concurrent duplicate обробляється після відкату вкладеного write.
 - `src/modules/employees/` — dev-only CRUD; створення порожнього профілю {} дозволено. Однаковий API error contract застосовується і тут.
+- PATCH employees: для MANAGER service перевіряє пряме керівництво через hierarchyService.isManager; JWT userId спочатку зіставляється з UserAccount.employeeId. Відсутність прямого зв'язку повертає 403; OWNER/HR проходять без цієї перевірки.
 - `src/modules/hierarchy/` — CRUD зв'язків керівник–підлеглий (controller/service/repository); service повертає 404 для відсутніх записів/працівників і 409 для дублікатів, самопризначення та циклів. Обхід використовує getAllRelationships (лише ID), при update виключає поточний зв'язок. За погодженим винятком service керує Prisma Serializable-транзакціями create/update/delete й повторює P2034 до трьох спроб; усі перевірки й запис використовують один tx. Методи hierarchy repository та employeeRepository.getById приймають необов'язковий tx.
 - `src/schemas/auth.schema.ts`, `src/schemas/jwt.schema.ts` — strict login та claims; JWT role береться з Prisma Role, типи виведені зі schema.
 - `src/services/auth-rate-limit.service.ts` — спільний singleton, sliding window 5 failures/300s (env), черга email+IP. Технічні помилки не рахуються, успіх не стирає невдачі, заблоковані запити не подовжують вікно. Перезапуск скидає пам'ять, процеси не мають спільного ліміту.
@@ -29,6 +30,10 @@
 - `prisma/schema.prisma` — Employee (усі profile поля optional), UserAccount з унікальними employeeId/email, Prisma Role; SQL-міграції не переписувати.
 - Auth unit-тести: `tests/auth/auth.service.test.ts`, `tests/auth/auth-rate-limit.service.test.ts`. Попередні тести CRM-102.2/Employee/UserAccount/SSR збережені.
 - `src/views/` — Nunjucks; `src/public/` — static. `dist/` і `node_modules/` не редагувати.
+- `src/modules/events/` — спільні події для всіх авторизованих ролей; лише автор UserAccount може змінювати подію/учасників або видаляти з точною confirmationTitle. Автор не стає учасником автоматично. П'ять EventType, без Room Booking; EventParticipant пов'язаний з Employee без вимоги акаунта.
+- EventRepository керує Serializable-транзакцією з максимум трьома спробами P2034; EventService виконує всі перевірки й writes в одному tx. Інтервали [start,end), суміжні дозволені; останнього учасника видалити не можна. `src/utils/event-time.util.ts` через Temporal polyfill обчислює локальні дні/місяці та DST; timestamptz(3) зберігає інстанти, IANA-зона — окремо.
+- `src/modules/calendar-ssr/` — захищений GET /calendar, порожній pages/calendar.njk, locals currentDate/month/timeZone/range/events/eventTypes/employees та css/js/activePage. API /api/events захищено isAuth; зміни також перевіряють Origin. Контракт — docs/openapi.yaml.
+- `npm run test:calendar:integration` — тільки development і явний запуск: міграції/HTTP/конкурентні запити в новій випадковій схемі dev-БД з очищенням лише цієї схеми; не входить до npm test/CI unit tests.
 
 ## Команди
 

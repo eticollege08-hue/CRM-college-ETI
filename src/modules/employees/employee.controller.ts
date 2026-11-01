@@ -38,7 +38,8 @@ export class EmployeeController {
 
     async update(req: Request, res: Response) {
         const { id } = uuidSchema.parse(req.params);
-        const employee = await this.service.update(id, req.body);
+
+        const employee = await this.service.update(id, req.body, req.user!.role, req.user!.userId);
         res.status(HttpStatus.OK).json({
             success: true,
             message: EMPLOYEE_MESSAGES.UPDATED,

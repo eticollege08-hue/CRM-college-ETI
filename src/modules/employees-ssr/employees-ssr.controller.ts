@@ -1,6 +1,10 @@
 import { uuidSchema } from "#schemas/id.schema.js";
 
-import { EMPLOYEE_DETAILS_PAGE, EMPLOYEES_PAGE } from "./employees-ssr.constants.js";
+import {
+    ADD_EMPLOYEE_PAGE,
+    EMPLOYEE_DETAILS_PAGE,
+    EMPLOYEES_PAGE,
+} from "./employees-ssr.constants.js";
 import { employeesPageService } from "./employees-ssr.service.js";
 
 import type { Request, Response } from "express";
@@ -15,5 +19,9 @@ export const employeesPageController = {
         const { id } = uuidSchema.parse(req.params);
         const payload = await employeesPageService.getProfilePageData(id);
         res.render(EMPLOYEE_DETAILS_PAGE.path, { ...EMPLOYEE_DETAILS_PAGE.data, ...payload });
+    },
+
+    async add(_req: Request, res: Response) {
+        res.render(ADD_EMPLOYEE_PAGE.path, ADD_EMPLOYEE_PAGE.data);
     },
 };
