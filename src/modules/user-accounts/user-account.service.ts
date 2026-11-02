@@ -8,7 +8,10 @@ import { userAccountRepository } from "./user-account.repository.js";
 
 import type { EmployeeRepository } from "#modules/employees/employee.repository.js";
 import type { UserAccountRepository } from "./user-account.repository.js";
-import type { UserAccountCreateInput, UserAccountProfileUpdateInput } from "./user-account.types.js";
+import type {
+    UserAccountCreateInput,
+    UserAccountProfileUpdateInput,
+} from "./user-account.types.js";
 
 export class UserAccountService {
     constructor(

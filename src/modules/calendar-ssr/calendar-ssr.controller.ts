@@ -8,7 +8,11 @@ export const calendarPageController = {
     async calendar(req: Request, res: Response) {
         const accountId = req.user?.userId;
         if (!accountId) return res.redirect("/login");
-        const payload = await authPageService.getComingSoonPageData(accountId, "Calendar", "calendar");
+        const payload = await authPageService.getComingSoonPageData(
+            accountId,
+            "Calendar",
+            "calendar",
+        );
         res.setHeader("Cache-Control", "no-store");
         res.render(PAGE_PATH.CALENDAR, payload);
     },

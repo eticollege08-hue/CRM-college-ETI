@@ -14,7 +14,20 @@ vi.mock("../../src/modules/events/event.service.js", () => ({
 describe("calendarPageService", () => {
     it("loads a zone-aware month, events and only public employee picker fields", async () => {
         vi.mocked(employeeService.getAll).mockResolvedValue([
-            { id: "employee", fullName: "Employee", imageId: null, position: "HR", level: null },
+            {
+                id: "employee",
+                fullName: "Employee",
+                imageId: null,
+                position: "HR",
+                level: null,
+                phoneNumber: null,
+                slack: null,
+                telegram: null,
+                viber: null,
+                whatsapp: null,
+                discord: null,
+                userAccount: null,
+            },
         ]);
         vi.mocked(eventService.getRange).mockResolvedValue([]);
         const data = await calendarPageService.getPageData({

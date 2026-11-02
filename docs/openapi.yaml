@@ -2,7 +2,8 @@ openapi: 3.0.3
 info:
     title: CRM API
     version: 0.3.0
-    description: "Login/logout use UserAccount and JWT cookies. Handled API errors use { success: false,
+    description:
+        "Login/logout use UserAccount and JWT cookies. Handled API errors use { success: false,
         message, details }. Unmatched routes retain the default Express 404 response. Public
         self-registration is unavailable."
     license:
@@ -194,7 +195,8 @@ paths:
                 - cookieAuth: []
             operationId: listCalendarEvents
             summary: Read events for a local date or UTC range
-            description: All authenticated roles see all events. Use date plus timeZone, or from/to (inclusive
+            description:
+                All authenticated roles see all events. Use date plus timeZone, or from/to (inclusive
                 start, exclusive end). Returns overlapping events sorted by startsAt/id; no role
                 filters. Explicit ranges must be positive and no longer than 366 days; unknown query
                 parameters are rejected.
@@ -274,7 +276,8 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description: Owner is the JWT UserAccount ID and cannot be supplied by clients. The creator is NOT
+            description:
+                Owner is the JWT UserAccount ID and cannot be supplied by clients. The creator is NOT
                 automatically a participant. Include their Employee ID explicitly to occupy their
                 time. At least one participant is required; employees need not have accounts.
                 Starts/ends are absolute instants and are checked within a single local day in
@@ -407,7 +410,8 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description: Only the author can update, including participants. Requires at least one field.
+            description:
+                Only the author can update, including participants. Requires at least one field.
                 participantIds replaces the full membership list. Checks the merged values against
                 the current schedule, excluding the event itself; ownerAccountId is immutable.
             requestBody:
@@ -479,7 +483,8 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description: Checks ownership and exact current title in the same transaction; deletion cascades to
+            description:
+                Checks ownership and exact current title in the same transaction; deletion cascades to
                 event participants only.
             requestBody:
                 required: true
@@ -552,7 +557,8 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description: Existing members are kept and repeated additions are idempotent. Final membership may
+            description:
+                Existing members are kept and repeated additions are idempotent. Final membership may
                 not exceed 200 employees. Rechecks schedule conflicts atomically.
             requestBody:
                 required: true
@@ -638,7 +644,8 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description: Rejects removing the last participant. Returns 404 for an employee not assigned to this
+            description:
+                Rejects removing the last participant. Returns 404 for an employee not assigned to this
                 event.
             responses:
                 "200":
@@ -689,7 +696,8 @@ paths:
                 - url: /
             operationId: renderCalendarPage
             summary: Render the calendar SSR template without frontend markup
-            description: Renders the zero-byte pages/calendar.njk template. Locals contain currentDate, month,
+            description:
+                Renders the zero-byte pages/calendar.njk template. Locals contain currentDate, month,
                 timeZone, UTC range, events, eventTypes, employee picker data and css/js/activePage.
                 The response is HTML, NOT JSON. Month defaults to the current month in timeZone. Use
                 /api/events to fetch data from the client; GET /api/employees supplies the employee
@@ -746,7 +754,8 @@ paths:
             operationId: login
             summary: Sign in
             security: []
-            description: Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
+            description:
+                Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
                 accounts, wrong passwords and inactive accounts produce identical 401 responses. No
                 public registration. Sets the authentication cookie at Path=/ only.
             requestBody:
@@ -769,7 +778,8 @@ paths:
                             description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
                                 type: string
-                            example: crm_access_token=example-token-not-a-real-credential; Path=/; Max-Age=3600; HttpOnly;
+                            example:
+                                crm_access_token=example-token-not-a-real-credential; Path=/; Max-Age=3600; HttpOnly;
                                 Secure; SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
@@ -802,7 +812,8 @@ paths:
                 - Auth
             operationId: logout
             summary: Sign out
-            description: After JWT verification, clears the authentication cookie at Path=/ only. No server-side
+            description:
+                After JWT verification, clears the authentication cookie at Path=/ only. No server-side
                 token revocation; a copied token remains usable until expiry. No body is needed;
                 parsed bodies are ignored. Without a cookie, repeated logout returns 401.
             security:
@@ -818,7 +829,8 @@ paths:
                             description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
                                 type: string
-                            example: crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure;
+                            example:
+                                crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure;
                                 SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
@@ -839,7 +851,8 @@ paths:
                             description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
                                 type: string
-                            example: crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure;
+                            example:
+                                crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure;
                                 SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
@@ -903,7 +916,8 @@ paths:
                 - Employees
             operationId: createEmployee
             summary: Create an employee
-            description: Only OWNER and RECRUITER can create profiles. Every field is optional; an empty object
+            description:
+                Only OWNER and RECRUITER can create profiles. Every field is optional; an empty object
                 is valid. Strings are trimmed before validation.
             security:
                 - cookieAuth: []
@@ -997,7 +1011,8 @@ paths:
                 - cookieAuth: []
             operationId: updateEmployeeProfile
             summary: Update an employee name, position, or level
-            description: Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
+            description:
+                Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
                 AUTH_ALLOWED_ORIGINS. Empty position or level values clear those fields.
             requestBody:
                 required: true
@@ -1037,7 +1052,8 @@ paths:
                 - Employees
             operationId: deleteEmployee
             summary: Delete an employee
-            description: Only OWNER and HR can delete profiles. Related accounts or event participation can
+            description:
+                Only OWNER and HR can delete profiles. Related accounts or event participation can
                 prevent deletion with 422.
             security:
                 - cookieAuth: []
@@ -1102,11 +1118,11 @@ paths:
                         application/json:
                             schema:
                                 type: object
-                                required: [ success, projects ]
+                                required: [success, projects]
                                 properties:
                                     success:
                                         type: boolean
-                                        enum: [ true ]
+                                        enum: [true]
                                     projects:
                                         type: array
                                         items:
@@ -1227,11 +1243,11 @@ paths:
                         application/json:
                             schema:
                                 type: object
-                                required: [ success, message ]
+                                required: [success, message]
                                 properties:
                                     success:
                                         type: boolean
-                                        enum: [ true ]
+                                        enum: [true]
                                     message:
                                         type: string
                 "401":
@@ -1279,7 +1295,8 @@ paths:
                 - Hierarchy
             operationId: createHierarchyRelationship
             summary: Create a hierarchy relationship
-            description: "Allowed roles: OWNER, RECRUITER, HR, MANAGER. employeeId is the manager; subordinateId
+            description:
+                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. employeeId is the manager; subordinateId
                 is the subordinate. Multiple managers are allowed. Rejects self-assignment,
                 duplicates and cycles. Checks and write share a Serializable transaction with up to
                 three P2034 attempts."
@@ -1352,7 +1369,8 @@ paths:
                 - Hierarchy
             operationId: updateHierarchyRelationship
             summary: Update a hierarchy relationship
-            description: "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Both fields are optional; an empty
+            description:
+                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Both fields are optional; an empty
                 object is valid. Omitted values are preserved. The replaced relationship is excluded
                 during cycle detection. Checks and write share a Serializable transaction with up to
                 three P2034 attempts."
@@ -1394,7 +1412,8 @@ paths:
                 - Hierarchy
             operationId: deleteHierarchyRelationship
             summary: Delete a hierarchy relationship
-            description: "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Deletes the relationship without
+            description:
+                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Deletes the relationship without
                 deleting employees."
             security:
                 - cookieAuth: []
@@ -1435,7 +1454,8 @@ paths:
                 - cookieAuth: []
             operationId: updateOwnProfile
             summary: Update the authenticated user's profile and contact details
-            description: Only the profile belonging to the authenticated account is updated. Email changes
+            description:
+                Only the profile belonging to the authenticated account is updated. Email changes
                 update the login email. Empty contact fields clear the saved value. Mutation Origin
                 must match AUTH_ALLOWED_ORIGINS.
             requestBody:
@@ -1477,7 +1497,8 @@ components:
             in: header
             name: Origin
             required: true
-            description: Exact origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically. Missing or
+            description:
+                Exact origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically. Missing or
                 disallowed values return 403.
             schema:
                 type: string
@@ -1489,14 +1510,15 @@ components:
             description: Do not cache authentication responses.
             schema:
                 type: string
-                enum: [ no-store ]
+                enum: [no-store]
             example: no-store
     securitySchemes:
         cookieAuth:
             type: apiKey
             in: cookie
             name: crm_access_token
-            description: "JWT in HttpOnly cookie only; never in JSON or Authorization. Path=/; SameSite=Lax;
+            description:
+                "JWT in HttpOnly cookie only; never in JSON or Authorization. Path=/; SameSite=Lax;
                 host-only. Secure defaults to true and can be disabled only for local development.
                 Max-Age equals JWT_EXPIRES_IN (default 3600 seconds). JWT claims use UserAccount ID
                 and Prisma Role. Auth POST requests require an exact allowed Origin; Referer is not
@@ -1886,7 +1908,7 @@ components:
                           type: string
         Project:
             type: object
-            required: [ id, title, description ]
+            required: [id, title, description]
             properties:
                 id:
                     type: string
@@ -1901,7 +1923,7 @@ components:
         ProjectInput:
             type: object
             additionalProperties: false
-            required: [ title, description ]
+            required: [title, description]
             properties:
                 title:
                     type: string
@@ -1922,18 +1944,18 @@ components:
                     minLength: 1
         ProjectReadSuccess:
             type: object
-            required: [ success, project ]
+            required: [success, project]
             properties:
                 success:
                     type: boolean
-                    enum: [ true ]
+                    enum: [true]
                 project:
                     $ref: "#/components/schemas/Project"
         ProjectWriteSuccess:
             allOf:
                 - $ref: "#/components/schemas/ProjectReadSuccess"
                 - type: object
-                  required: [ message ]
+                  required: [message]
                   properties:
                       message:
                           type: string
@@ -2026,7 +2048,8 @@ components:
                     writeOnly: true
                     minLength: 1
                     x-maxUtf8Bytes: 72
-                    description: At most 72 UTF-8 bytes, not 72 characters. Clients must check the encoded byte length;
+                    description:
+                        At most 72 UTF-8 bytes, not 72 characters. Clients must check the encoded byte length;
                         OpenAPI 3.0 maxLength cannot express this constraint. Do not trim or
                         truncate.
         ErrorDetail:
@@ -2149,7 +2172,8 @@ components:
                                 message: An active account is required.
                                 details: []
         EventForbidden:
-            description: Only the owner may mutate an event, regardless of role. Mutation Origin must be in
+            description:
+                Only the owner may mutate an event, regardless of role. Mutation Origin must be in
                 AUTH_ALLOWED_ORIGINS.
             content:
                 application/json:
@@ -2189,7 +2213,8 @@ components:
                                 message: Employee is not a participant of this event.
                                 details: []
         EventConflict:
-            description: Participant schedule overlap or exhausted serialization retries; no partial write is
+            description:
+                Participant schedule overlap or exhausted serialization retries; no partial write is
                 committed.
             content:
                 application/json:
@@ -2207,7 +2232,8 @@ components:
                                 message: The schedule changed concurrently. Please try again.
                                 details: []
         EventValidation:
-            description: 422 for invalid fields/UUID/query, time range, participant count, or incorrect deletion
+            description:
+                422 for invalid fields/UUID/query, time range, participant count, or incorrect deletion
                 confirmation.
             content:
                 application/json:
@@ -2224,11 +2250,13 @@ components:
                         range:
                             value:
                                 success: false
-                                message: Event must start before it ends and stay within one local day; all-day events are not
+                                message:
+                                    Event must start before it ends and stay within one local day; all-day events are not
                                     supported.
                                 details:
                                     - field: endsAt
-                                      message: Event must start before it ends and stay within one local day; all-day events are not
+                                      message:
+                                          Event must start before it ends and stay within one local day; all-day events are not
                                           supported.
                         confirmation:
                             value:
@@ -2281,14 +2309,16 @@ components:
                     schema:
                         $ref: "#/components/schemas/ErrorResponse"
         HierarchyConflict:
-            description: Duplicate relationship, self-assignment, hierarchy cycle or exhausted serialization
+            description:
+                Duplicate relationship, self-assignment, hierarchy cycle or exhausted serialization
                 retries.
             content:
                 application/json:
                     schema:
                         $ref: "#/components/schemas/ErrorResponse"
         BadRequest:
-            description: Malformed JSON or a missing/non-object body for a validated endpoint. Standard
+            description:
+                Malformed JSON or a missing/non-object body for a validated endpoint. Standard
                 express.json() may turn a zero-byte JSON body into {}; validation then returns 422.
                 An empty Employee object is valid.
             content:
@@ -2340,7 +2370,8 @@ components:
                         message: You do not have permission to perform this action.
                         details: []
         ValidationError:
-            description: Invalid fields, UUID or unknown properties; all validators forward parsed Zod data on
+            description:
+                Invalid fields, UUID or unknown properties; all validators forward parsed Zod data on
                 success. Auth {} reports missing fields. Employee {} is allowed.
             content:
                 application/json:
@@ -2353,7 +2384,8 @@ components:
                             - field: email
                               message: Enter a valid email address.
         TooManyAttempts:
-            description: Five failed attempts per normalized email + IP in a sliding 5-minute window by default;
+            description:
+                Five failed attempts per normalized email + IP in a sliding 5-minute window by default;
                 configurable. No waiting-time response metadata.
             content:
                 application/json:

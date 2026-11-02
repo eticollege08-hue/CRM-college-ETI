@@ -10,8 +10,13 @@ if (form instanceof HTMLFormElement) {
         const error = control.parentElement?.querySelector("small");
         let text = "";
         if (!control.value.trim()) text = "This field is required";
-        else if (control.type === "email" && !control.validity.valid) text = "Enter a valid email address";
-        else if (control.type === "number" && (!control.validity.valid || Number(control.value) < 0)) text = "Enter a valid positive number";
+        else if (control.type === "email" && !control.validity.valid)
+            text = "Enter a valid email address";
+        else if (
+            control.type === "number" &&
+            (!control.validity.valid || Number(control.value) < 0)
+        )
+            text = "Enter a valid positive number";
         control.setAttribute("aria-invalid", text ? "true" : "false");
         if (error) error.textContent = text;
         return !text;

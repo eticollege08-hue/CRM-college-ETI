@@ -90,7 +90,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
 .header-popover {
     position: relative;
 }
@@ -442,7 +441,19 @@
     line-height: 28px !important;
 }
 
-.app-shell > .workspace :is(small, label, dt, .role-badge, .field-error, .avatar-hint, .muted, .tree-status, .filter-row) {
+.app-shell
+    > .workspace
+    :is(
+        small,
+        label,
+        dt,
+        .role-badge,
+        .field-error,
+        .avatar-hint,
+        .muted,
+        .tree-status,
+        .filter-row
+    ) {
     font-size: var(--font-size-xs) !important;
     line-height: 16px !important;
 }

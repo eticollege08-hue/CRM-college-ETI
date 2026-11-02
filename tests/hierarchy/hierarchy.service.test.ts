@@ -19,6 +19,19 @@ const hierarchy = {
     subordinateId: "550e8400-e29b-41d4-a716-446655440002",
 };
 const input = { employeeId: hierarchy.employeeId, subordinateId: hierarchy.subordinateId };
+const employee = (id: string) => ({
+    id,
+    fullName: null,
+    imageId: null,
+    level: null,
+    position: null,
+    phoneNumber: null,
+    slack: null,
+    telegram: null,
+    viber: null,
+    whatsapp: null,
+    discord: null,
+});
 const edge = (
     employeeId: string,
     subordinateId: string,
@@ -53,13 +66,7 @@ describe("HierarchyService", () => {
         repository.getById.mockResolvedValue(hierarchy);
         repository.getByPair.mockResolvedValue(null);
         repository.getAllRelationships.mockResolvedValue([]);
-        employees.getById.mockImplementation(async (id) => ({
-            id,
-            fullName: null,
-            imageId: null,
-            level: null,
-            position: null,
-        }));
+        employees.getById.mockImplementation(async (id) => employee(id));
     });
 
     describe("isManager", () => {
@@ -200,9 +207,7 @@ describe("HierarchyService", () => {
         async (operation) => {
             for (const missingId of [input.employeeId, input.subordinateId]) {
                 employees.getById.mockImplementation(async (id) =>
-                    id === missingId
-                        ? null
-                        : { id, fullName: null, imageId: null, level: null, position: null },
+                    id === missingId ? null : employee(id),
                 );
 
                 const result =
