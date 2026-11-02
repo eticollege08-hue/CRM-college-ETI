@@ -21,6 +21,12 @@ model Employee {
   imageId     String?      @map("image_id")
   level       String?
   position    String?
+  phoneNumber String?      @map("phone_number")
+  slack       String?
+  telegram    String?
+  viber       String?
+  whatsapp    String?
+  discord     String?
   userAccount UserAccount?
 
   subordinates        Hierarchy[]        @relation("HierarchyManager")

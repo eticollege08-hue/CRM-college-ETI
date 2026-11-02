@@ -1,0 +1,436 @@
+/* Shared page frame, navigation, and typography scale from the CRM reference. */
+.topbar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--color-border);
+    background: white;
+}
+
+.topbar.topbar-compact {
+    justify-content: flex-end;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.topbar .icon-button {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--color-primary-700);
+    cursor: pointer;
+}
+
+.topbar .icon-button svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+.topbar .avatar-small {
+    display: grid;
+    width: 29px;
+    height: 29px;
+    place-items: center;
+    border-radius: 50%;
+    background: #e8eef5;
+    color: #718198;
+    font-size: var(--font-size-xs);
+}
+
+.topbar .user-menu {
+    color: var(--color-ink);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    list-style: none;
+}
+
+.topbar .user-menu::-webkit-details-marker,
+.topbar summary::-webkit-details-marker {
+    display: none;
+}
+
+.topbar .user-menu small {
+    display: block;
+    color: var(--color-muted);
+    font-size: var(--font-size-xs);
+}
+
+.header-popover {
+    position: relative;
+}
+
+.header-popover-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    display: grid;
+    min-width: 180px;
+    gap: 7px;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 8px 24px rgb(23 35 52 / 14%);
+    font-size: 12px;
+}
+
+.header-popover-panel a,
+.header-popover-panel button {
+    padding: 6px;
+    border: 0;
+    background: transparent;
+    color: var(--color-primary-700);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.header-popover-panel p,
+.header-popover-panel small {
+    margin: 0;
+    color: var(--color-muted);
+}
+
+.app-shell {
+    display: grid;
+    min-height: calc(100vh - 44px);
+    grid-template-columns: clamp(150px, 12vw, 210px) minmax(0, 1fr);
+}
+
+.app-shell.profile-shell {
+    grid-template-columns: clamp(150px, 12vw, 210px) minmax(0, 1fr);
+}
+
+.app-shell > .sidebar {
+    min-width: 0;
+    min-height: calc(100vh - 44px);
+    padding: 14px 8px;
+    border-right: 1px solid var(--color-border);
+    background: #eaf3fc;
+}
+
+.sidebar .primary-nav {
+    display: grid;
+    align-content: start;
+    gap: 3px;
+}
+
+.sidebar .primary-nav > a,
+.sidebar-parent > a,
+.sidebar-submenu > a {
+    display: flex;
+    min-width: 0;
+    min-height: 32px;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 8px;
+    border-radius: 9px;
+    color: var(--color-primary-700);
+    font-size: var(--font-size-sm);
+    line-height: 1.2;
+    text-decoration: none;
+}
+
+.app-shell > .sidebar .primary-nav > a,
+.app-shell > .sidebar .sidebar-parent > a {
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: var(--font-size-sm);
+}
+
+.sidebar .primary-nav > a:hover,
+.sidebar-parent:hover,
+.sidebar-submenu > a:hover,
+.sidebar .primary-nav > a.is-active,
+.sidebar-submenu > a.is-active {
+    background: #dceafa;
+}
+
+.sidebar .primary-nav svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+.sidebar .primary-nav a span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-group {
+    min-width: 0;
+    color: var(--color-primary-700);
+}
+
+.sidebar-parent {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    border-radius: 9px;
+}
+
+.sidebar-parent > a {
+    flex: 1;
+    padding-right: 2px;
+}
+
+.sidebar-parent > a.is-active {
+    background: transparent;
+}
+
+.sidebar-toggle {
+    display: grid;
+    width: 22px;
+    height: 30px;
+    flex: 0 0 22px;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-primary-700);
+    cursor: pointer;
+}
+
+.sidebar-toggle svg {
+    width: 13px !important;
+    height: 13px !important;
+    transition: transform 150ms ease;
+}
+
+.sidebar-toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+
+.sidebar-submenu {
+    padding-left: 10px;
+}
+
+.sidebar-submenu > a {
+    min-height: 30px;
+    font-size: var(--font-size-sm);
+}
+
+.sidebar-submenu > a svg {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
+}
+
+.sidebar-submenu[hidden] {
+    display: none;
+}
+
+.app-shell > .workspace {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--font-size-base);
+    line-height: 20px;
+}
+
+.app-shell > .workspace .page-heading h1 {
+    font-size: var(--font-size-h1);
+    line-height: 48px;
+}
+
+.app-shell > .workspace .page-heading h1 .heading-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 8px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+    vertical-align: -3px;
+}
+
+.app-shell > .workspace h2 {
+    font-size: var(--font-size-2xl);
+    line-height: 32px;
+}
+
+.app-shell > .workspace h3 {
+    font-size: var(--font-size-xl);
+    line-height: 28px;
+}
+
+.app-shell > .workspace .profile-title h2 {
+    font-size: var(--font-size-2xl);
+    line-height: 32px;
+}
+
+.app-shell > .workspace .member-copy strong {
+    font-size: var(--font-size-sm);
+    line-height: 20px;
+}
+
+.app-shell > .workspace .member-copy small,
+.app-shell > .workspace .role-badge,
+.app-shell > .workspace .detail-card dt {
+    font-size: var(--font-size-xs);
+    line-height: 16px;
+}
+
+.app-shell > .workspace .profile-title p,
+.app-shell > .workspace .contact-line,
+.app-shell > .workspace .profile-tabs a,
+.app-shell > .workspace .detail-card dd {
+    font-size: var(--font-size-sm);
+    line-height: 20px;
+}
+
+.app-shell > .workspace .detail-card h3 {
+    font-size: var(--font-size-xl);
+    line-height: 28px;
+}
+
+.workspace p,
+.workspace a,
+.workspace button,
+.workspace input,
+.workspace select,
+.workspace textarea {
+    font-size: var(--font-size-sm);
+    line-height: 20px;
+}
+
+.workspace small,
+.workspace label,
+.workspace dt,
+.workspace .role-badge,
+.workspace .filter-row {
+    font-size: var(--font-size-xs);
+    line-height: 16px;
+}
+
+.workspace input,
+.workspace select,
+.workspace textarea {
+    font-size: var(--font-size-sm);
+}
+
+@media (max-width: 1000px) {
+    .app-shell > .workspace .profile-title h2 {
+        font-size: 20px;
+        line-height: 28px;
+    }
+}
+
+@media (max-width: 760px) {
+    .app-shell {
+        display: block;
+    }
+
+    .app-shell.profile-shell {
+        display: block;
+    }
+
+    .app-shell > .sidebar {
+        min-height: auto;
+        padding: 7px 10px;
+        border-right: 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .sidebar .primary-nav {
+        display: flex;
+        overflow-x: auto;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .sidebar .primary-nav > a,
+    .sidebar-parent > a {
+        min-height: 34px;
+        flex: 0 0 auto;
+    }
+
+    .sidebar-group {
+        position: relative;
+        flex: 0 0 auto;
+    }
+
+    .sidebar-submenu {
+        position: absolute;
+        top: calc(100% + 3px);
+        left: 0;
+        z-index: 20;
+        min-width: 155px;
+        padding: 5px;
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 6px 18px rgb(23 35 52 / 14%);
+    }
+
+    .app-shell > .workspace .page-heading h1 {
+        font-size: 32px;
+        line-height: 40px;
+    }
+
+    .app-shell > .workspace .page-heading h1 .heading-icon {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+/* Normalize every content label after legacy page styles have loaded. */
+.app-shell > .workspace,
+.app-shell > .workspace * {
+    font-size: var(--font-size-base) !important;
+    line-height: 20px !important;
+}
+
+.app-shell > .workspace h1 {
+    font-size: var(--font-size-h1) !important;
+    line-height: 48px !important;
+}
+
+.app-shell > .workspace h2 {
+    font-size: var(--font-size-2xl) !important;
+    line-height: 32px !important;
+}
+
+.app-shell > .workspace h3 {
+    font-size: var(--font-size-xl) !important;
+    line-height: 28px !important;
+}
+
+.app-shell > .workspace :is(small, label, dt, .role-badge, .field-error, .avatar-hint, .muted, .tree-status, .filter-row) {
+    font-size: var(--font-size-xs) !important;
+    line-height: 16px !important;
+}
+
+@media (max-width: 760px) {
+    .app-shell > .workspace h1 {
+        font-size: 32px !important;
+        line-height: 40px !important;
+    }
+}

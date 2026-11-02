@@ -7,11 +7,13 @@
     <title>{% block title %}CRM{% endblock %}</title>
     <link rel="stylesheet" href="/css/variables.css">
     {% if css %}<link rel="stylesheet" href="/css/{{ css }}.css">{% endif %}
+    <link rel="stylesheet" href="/css/app-shell.css">
     {% block head %}{% endblock %}
   </head>
   <body>
     {% block content %}{% endblock %}
     <script src="/js/auth.js" defer></script>
+    <script src="/js/navigation.js" defer></script>
     {% if js %}<script src="/js/{{ js }}.js" defer></script>{% endif %}
   </body>
 </html>

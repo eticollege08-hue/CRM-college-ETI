@@ -1,11 +1,25 @@
-<header class="topbar">
-  <a class="brand" href="/" aria-label="CRM home">
+<header class="topbar{% if hideBrand %} topbar-compact{% endif %}">
+  {% if not hideBrand %}<a class="brand" href="/" aria-label="CRM home">
     <span class="brand-mark" aria-hidden="true">C</span>
     <span class="brand-name">CRM<small>Design System &amp; UI Kit</small></span>
-  </a>
-  <div class="topbar-actions">
-    <button class="icon-button" type="button" aria-label="Notifications">♧</button>
-    <span class="avatar avatar-small" aria-hidden="true">UN</span>
-    <span class="user-menu"><strong>User Name</strong><small>Owner⌄</small></span>
+  </a>{% endif %}
+  <div class="topbar-actions" data-current-user-role="{% if profile %}{{ profile.roleKey }}{% endif %}">
+    <details class="header-popover notifications-popover">
+      <summary class="icon-button" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></summary>
+      <div class="header-popover-panel"><strong>Notifications</strong><p>No new notifications.</p></div>
+    </details>
+    <span class="avatar avatar-small" aria-hidden="true">{% if profile %}{{ profile.initials }}{% else %}UN{% endif %}</span>
+    <details class="header-popover user-popover">
+      <summary class="user-menu">
+        <strong data-current-user-name>{% if profile %}{{ profile.employee.fullName or "User Name" }}{% else %}User Name{% endif %}</strong>
+        <small>{% if profile %}{{ profile.roleKey }}{% else %}Owner{% endif %}⌄</small>
+      </summary>
+      <div class="header-popover-panel">
+        <a href="/profile">Profile</a>
+        <a href="/profile#account-information">Settings</a>
+        <button type="button" data-logout>Log out</button>
+        <small data-logout-status role="status"></small>
+      </div>
+    </details>
   </div>
 </header>

@@ -29,13 +29,14 @@
     --color-info: #3986f5;
     --color-info-soft: #e9f2ff;
 
-    /* Type scale follows the compact hierarchy in the supplied CRM UI kit. */
-    --font-size-xs: 0.6875rem;
-    --font-size-sm: 0.8125rem;
-    --font-size-base: 0.9375rem;
-    --font-size-lg: 1.125rem;
-    --font-size-xl: 1.375rem;
-    --font-size-2xl: 1.75rem;
+    /* Type scale matches the supplied typography reference. */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 0.875rem;
+    --font-size-lg: 1rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-h1: 2.5rem;
     --font-weight-regular: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;

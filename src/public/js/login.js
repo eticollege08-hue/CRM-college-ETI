@@ -63,7 +63,7 @@ if (form instanceof HTMLFormElement) {
             const result = await response.json().catch(() => ({}));
 
             if (response.ok) {
-                window.location.assign("/design-preview.html");
+                window.location.assign("/dashboard");
                 return;
             }
 

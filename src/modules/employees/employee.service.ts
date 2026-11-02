@@ -6,6 +6,7 @@ import { employeeRepository } from "./employee.repository.js";
 
 import type { Prisma } from "@prisma/client";
 import type { EmployeeRepository } from "./employee.repository.js";
+import type { EmployeeUpdateInput } from "./employee.types.js";
 
 export class EmployeeService {
     constructor(private readonly repository: EmployeeRepository = employeeRepository) {}
@@ -18,6 +19,11 @@ export class EmployeeService {
         const employee = await this.repository.getById(id, tx);
         if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
         return employee;
+    }
+
+    async update(id: string, data: EmployeeUpdateInput) {
+        await this.getById(id);
+        return await this.repository.update(id, data);
     }
 }
 

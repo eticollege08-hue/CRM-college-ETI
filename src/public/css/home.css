@@ -95,7 +95,7 @@ body {
     border-radius: var(--radius-pill);
     background: #e8eef5;
     color: #8795a6;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: var(--font-weight-semibold);
 }
 
@@ -362,7 +362,7 @@ body {
 
 .member-copy small {
     color: var(--color-muted);
-    font-size: 9px;
+    font-size: 10px;
     line-height: 1.1;
 }
 
@@ -375,7 +375,7 @@ body {
     border-radius: var(--radius-pill);
     background: var(--color-warning-soft);
     color: #a87000;
-    font-size: 8px;
+    font-size: 10px;
     font-weight: var(--font-weight-semibold);
     white-space: nowrap;
 }
@@ -498,7 +498,8 @@ body {
     font-weight: var(--font-weight-semibold);
 }
 
-.detail-card h3 button {
+.detail-card h3 button,
+.detail-card h3 a {
     display: inline-grid;
     width: 25px;
     height: 25px;
@@ -509,9 +510,11 @@ body {
     background: transparent;
     color: var(--color-primary-700);
     cursor: pointer;
+    text-decoration: none;
 }
 
-.detail-card h3 button:hover {
+.detail-card h3 button:hover,
+.detail-card h3 a:hover {
     border-color: var(--color-border);
     background: var(--color-primary-50);
 }
@@ -526,7 +529,7 @@ body {
 .detail-card dt {
     grid-column: 1 / -1;
     color: var(--color-muted);
-    font-size: 9px;
+    font-size: 10px;
     line-height: 1.4;
 }
 
@@ -544,7 +547,7 @@ body {
     border-radius: var(--radius-pill);
     background: var(--color-primary-50);
     color: var(--color-primary-700);
-    font-size: 9px;
+    font-size: 10px;
 }
 
 .project-placeholder {
@@ -570,7 +573,7 @@ body {
 .view-link {
     display: block;
     text-align: right;
-    font-size: 9px;
+    font-size: 10px;
     text-decoration: none;
 }
 
@@ -630,6 +633,6 @@ body {
     }
 
     .role-badge {
-        font-size: 7px;
+        font-size: 10px;
     }
 }

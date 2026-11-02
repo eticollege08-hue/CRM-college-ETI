@@ -1,11 +1,13 @@
+import { userAccountService } from "#modules/user-accounts/user-account.service.js";
+
 import { PAGE_DATA } from "./auth-ssr.constants.js";
 
 export const authPageService = {
     async getLoginPageData() {
         return { ...PAGE_DATA.LOGIN };
     },
-    async getHomePageData() {
-        return {
+    async getHomePageData(accountId?: string) {
+        const pageData = {
             ...PAGE_DATA.HOME,
             team: [
                 {
@@ -58,8 +60,32 @@ export const authPageService = {
                 },
             ],
         };
+        if (!accountId) return pageData;
+        const { profile } = await this.getProfilePageData(accountId);
+        return { ...pageData, profile };
     },
     async getRegisterPageData() {
         return { ...PAGE_DATA.REGISTER };
+    },
+    async getProfilePageData(accountId: string) {
+        const account = await userAccountService.getProfileById(accountId);
+        const initials = (account.employee.fullName ?? "?")
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toLocaleUpperCase() ?? "")
+            .join("");
+        const profile = { ...account, initials };
+        return { ...PAGE_DATA.PROFILE, profile };
+    },
+    async getComingSoonPageData(accountId: string, pageTitle: string, activePage: string) {
+        const { profile } = await this.getProfilePageData(accountId);
+        return {
+            css: "coming-soon",
+            activePage,
+            hideBrand: true,
+            pageTitle,
+            profile,
+        };
     },
 };

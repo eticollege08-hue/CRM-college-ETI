@@ -8,7 +8,7 @@ import { userAccountRepository } from "./user-account.repository.js";
 
 import type { EmployeeRepository } from "#modules/employees/employee.repository.js";
 import type { UserAccountRepository } from "./user-account.repository.js";
-import type { UserAccountCreateInput } from "./user-account.types.js";
+import type { UserAccountCreateInput, UserAccountProfileUpdateInput } from "./user-account.types.js";
 
 export class UserAccountService {
     constructor(
@@ -34,6 +34,17 @@ export class UserAccountService {
 
     async getByEmail(email: string) {
         return await this.repository.getByEmail(email.trim().toLowerCase());
+    }
+    async getProfileById(accountId: string) {
+        const profile = await this.repository.getProfileById(accountId);
+        if (!profile) {
+            throw new ApiError(HttpStatus.NOT_FOUND, USER_ACCOUNT_MESSAGES.PROFILE_NOT_FOUND);
+        }
+        return profile;
+    }
+    async updateProfile(accountId: string, data: UserAccountProfileUpdateInput) {
+        await this.getProfileById(accountId);
+        return await this.repository.updateProfile(accountId, data);
     }
     async updateLastLoginAt(accountId: string) {
         return await this.repository.updateLastLoginAt(accountId, new Date());

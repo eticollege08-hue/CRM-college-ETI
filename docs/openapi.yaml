@@ -16,7 +16,107 @@ tags:
       description: Calendar SSR page
     - name: Auth
       description: Account login and logout
+    - name: Employees
+      description: Employee profile fields used by the hierarchy page
+    - name: Profile
+      description: The authenticated user's own profile
 paths:
+    /profile:
+        patch:
+            tags:
+                - Profile
+            security:
+                - cookieAuth: []
+            operationId: updateOwnProfile
+            summary: Update the authenticated user's profile and contact details
+            description:
+                Only the profile belonging to the authenticated account is updated. Email changes
+                update the login email. Empty contact fields clear the saved value. Mutation Origin
+                must match AUTH_ALLOWED_ORIGINS.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProfileUpdateInput"
+                        example:
+                            fullName: Alex Johnson
+                            email: alex.johnson@example.com
+                            phoneNumber: "+380 00 000 00 00"
+                            slack: alex_johnson
+                            telegram: "@alex_johnson"
+            responses:
+                "200":
+                    description: Profile updated successfully.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AuthSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EventUnauthorized"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/EventValidation"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /employees/{id}:
+        patch:
+            tags:
+                - Employees
+            security:
+                - cookieAuth: []
+            operationId: updateEmployeeProfile
+            summary: Update an employee name, position, or level
+            description:
+                Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
+                AUTH_ALLOWED_ORIGINS. Empty position or level values clear those fields.
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/EmployeeUpdateInput"
+                        example:
+                            fullName: Alex Johnson
+                            position: HR Manager
+                            level: "3"
+            responses:
+                "200":
+                    description: Employee profile updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/EmployeeUpdateSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EventUnauthorized"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "404":
+                    $ref: "#/components/responses/EventNotFound"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/EventValidation"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
     /events:
         get:
             tags:
@@ -738,6 +838,71 @@ components:
                 used. Use credentials: include / withCredentials: true. Deploy same-origin, or
                 explicitly configure credentialed CORS for separate origins."
     schemas:
+        ProfileUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                fullName:
+                    type: string
+                    minLength: 1
+                    maxLength: 150
+                email:
+                    type: string
+                    format: email
+                    maxLength: 254
+                    description: Trimmed and lowercased; this becomes the new login email.
+                phoneNumber:
+                    type: string
+                    maxLength: 30
+                    description: Send an empty string to clear the value.
+                slack:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the value.
+                telegram:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the value.
+                viber:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the value.
+                whatsapp:
+                    type: string
+                    maxLength: 30
+                    description: Send an empty string to clear the value.
+                discord:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the value.
+        EmployeeUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                fullName:
+                    type: string
+                    minLength: 1
+                    maxLength: 150
+                position:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the position.
+                level:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the level.
+        EmployeeUpdateSuccess:
+            type: object
+            additionalProperties: false
+            required: [success, message]
+            properties:
+                success:
+                    type: boolean
+                    enum: [true]
+                message:
+                    type: string
         AuthSuccess:
             type: object
             additionalProperties: false
@@ -1128,7 +1293,7 @@ components:
             description:
                 Malformed JSON or a missing/non-object body for a validated endpoint. Standard
                 express.json() may turn a zero-byte JSON body into {}; validation then returns 422.
-                An empty Employee object is valid.
+                Route-specific schemas decide whether an empty object is valid.
             content:
                 application/json:
                     schema:
@@ -1180,7 +1345,7 @@ components:
         ValidationError:
             description:
                 Invalid fields, UUID or unknown properties; all validators forward parsed Zod data on
-                success. Auth {} reports missing fields. Employee {} is allowed.
+                success. Each route schema defines required fields and rejects unknown properties.
             content:
                 application/json:
                     schema:

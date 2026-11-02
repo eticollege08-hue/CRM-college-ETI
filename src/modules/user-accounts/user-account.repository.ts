@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "#config/prisma.config.js";
 
 import type { PrismaClient } from "@prisma/client";
-import type { UserAccountCreateInput } from "./user-account.types.js";
+import type { UserAccountCreateInput, UserAccountProfileUpdateInput } from "./user-account.types.js";
 
 export class UserAccountRepository {
     constructor(private readonly db: PrismaClient = prisma) {}
@@ -15,6 +15,54 @@ export class UserAccountRepository {
     }
     async getById(id: string) {
         return await this.db.userAccount.findUnique({ where: { id } });
+    }
+    async getProfileById(id: string) {
+        return await this.db.userAccount.findUnique({
+            where: { id },
+            select: {
+                email: true,
+                roleKey: true,
+                employee: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        position: true,
+                        level: true,
+                        phoneNumber: true,
+                        slack: true,
+                        telegram: true,
+                        viber: true,
+                        whatsapp: true,
+                        discord: true,
+                    },
+                },
+            },
+        });
+    }
+    async updateProfile(id: string, data: UserAccountProfileUpdateInput) {
+        const { email, ...employeeData } = data;
+        return await this.db.userAccount.update({
+            where: { id },
+            data: { email, employee: { update: employeeData } },
+            select: {
+                email: true,
+                roleKey: true,
+                employee: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        position: true,
+                        level: true,
+                        phoneNumber: true,
+                        slack: true,
+                        telegram: true,
+                        viber: true,
+                        whatsapp: true,
+                        discord: true,
+                    },
+                },
+            },
+        });
     }
     async updateLastLoginAt(id: string, date: Date) {
         return await this.db.userAccount.update({ where: { id }, data: { lastLoginAt: date } });

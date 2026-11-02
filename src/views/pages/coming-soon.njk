@@ -1,0 +1,16 @@
+{% extends "base/base.njk" %}
+{% block title %}{{ pageTitle }} · CRM{% endblock %}
+{% block content %}
+{% include "partials/header.njk" %}
+<div class="app-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace coming-soon-workspace">
+    <header class="page-heading"><div><h1>{{ pageTitle }}</h1><p>CRM workspace</p></div></header>
+    <section class="coming-soon-card card" aria-live="polite">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="19"/><path d="M24 14v12l8 5"/></svg>
+      <h2>{{ pageTitle }}</h2>
+      <p>Coming soon</p>
+    </section>
+  </main>
+</div>
+{% endblock %}
