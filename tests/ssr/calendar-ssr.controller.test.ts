@@ -1,39 +1,60 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { calendarPageController } from "../../src/modules/calendar-ssr/calendar-ssr.controller.js";
-import { calendarPageService } from "../../src/modules/calendar-ssr/calendar-ssr.service.js";
+import { authPageService } from "../../src/modules/auth-ssr/auth-ssr.service.js";
 
 import type { Request, Response } from "express";
 
-vi.mock("../../src/modules/calendar-ssr/calendar-ssr.service.js", () => ({
-    calendarPageService: { getPageData: vi.fn() },
+vi.mock("../../src/modules/auth-ssr/auth-ssr.service.js", () => ({
+    authPageService: { getComingSoonPageData: vi.fn() },
 }));
 
 describe("calendarPageController", () => {
-    it("renders pages/calendar with server-side data and resource metadata", async () => {
+    it("renders the calendar placeholder with the authenticated profile", async () => {
         const payload = {
-            currentDate: "2026-10-26",
-            month: "2026-10",
-            timeZone: "UTC",
-            range: { from: "2026-10-01T00:00:00Z", to: "2026-11-01T00:00:00Z" },
-            events: [],
-            eventTypes: [],
-            employees: [],
+            css: "coming-soon",
+            activePage: "calendar",
+            hideBrand: true,
+            pageTitle: "Calendar",
+            profile: {
+                email: "employee@example.com",
+                roleKey: "WORKER" as const,
+                initials: "E",
+                employee: {
+                    id: "employee",
+                    fullName: "Employee",
+                    position: null,
+                    level: null,
+                    phoneNumber: null,
+                    slack: null,
+                    telegram: null,
+                    viber: null,
+                    whatsapp: null,
+                    discord: null,
+                },
+            },
         };
-        vi.mocked(calendarPageService.getPageData).mockResolvedValue(payload);
-        const req = { query: { month: "2026-10" } } as unknown as Request;
+        vi.mocked(authPageService.getComingSoonPageData).mockResolvedValue(payload);
+        const req = { user: { userId: "account" } } as unknown as Request;
         const res = { setHeader: vi.fn(), render: vi.fn() };
         await calendarPageController.calendar(req, res as unknown as Response);
-        expect(calendarPageService.getPageData).toHaveBeenCalledWith({
-            month: "2026-10",
-            timeZone: "UTC",
-        });
+        expect(authPageService.getComingSoonPageData).toHaveBeenCalledExactlyOnceWith(
+            "account",
+            "Calendar",
+            "calendar",
+        );
         expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
-        expect(res.render).toHaveBeenCalledWith("pages/calendar", {
-            css: "calendar",
-            js: "calendar",
-            activePage: "calendar",
-            ...payload,
-        });
+        expect(res.render).toHaveBeenCalledWith("pages/coming-soon", payload);
+    });
+
+    it("redirects to login when the authenticated account is missing", async () => {
+        const req = {} as Request;
+        const res = { redirect: vi.fn(), render: vi.fn(), setHeader: vi.fn() };
+
+        await calendarPageController.calendar(req, res as unknown as Response);
+
+        expect(res.redirect).toHaveBeenCalledWith("/login");
+        expect(authPageService.getComingSoonPageData).not.toHaveBeenCalled();
+        expect(res.render).not.toHaveBeenCalled();
     });
 });

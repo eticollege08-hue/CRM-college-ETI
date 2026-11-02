@@ -1,0 +1,42 @@
+.coming-soon-workspace {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 44px);
+    padding: 22px;
+}
+
+.coming-soon-workspace .page-heading {
+    margin-bottom: 16px;
+}
+
+.coming-soon-card {
+    display: grid;
+    min-height: 280px;
+    flex: 1;
+    align-content: center;
+    justify-items: center;
+    padding: 32px;
+    text-align: center;
+}
+
+.coming-soon-card svg {
+    width: 42px;
+    height: 42px;
+    fill: none;
+    stroke: var(--color-primary-700);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+}
+
+.coming-soon-card h2 {
+    margin: 14px 0 4px;
+    color: var(--color-primary-700);
+    font-size: 16px;
+}
+
+.coming-soon-card p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 12px;
+}

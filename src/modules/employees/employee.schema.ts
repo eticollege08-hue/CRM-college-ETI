@@ -1,12 +1,15 @@
 import { z } from "zod";
 
-export const employeeCreateSchema = z.object({
-    fullName: z.string().trim().min(1).optional(),
-    imageId: z.string().trim().min(1).optional(),
-    level: z.string().trim().min(1).optional(),
-    position: z.string().trim().min(1).optional(),
-});
+const optionalTextSchema = z
+    .string()
+    .trim()
+    .max(100)
+    .transform((value) => (value.length > 0 ? value : null));
 
-export const employeeUpdateSchema = employeeCreateSchema
-    .extend({ imageId: z.string().trim().min(1).nullable().optional() })
-    .partial();
+export const employeeUpdateSchema = z
+    .strictObject({
+        fullName: z.string().trim().min(1).max(150).optional(),
+        position: optionalTextSchema.optional(),
+        level: optionalTextSchema.optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0);
