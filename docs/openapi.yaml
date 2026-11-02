@@ -2,8 +2,9 @@ openapi: 3.0.3
 info:
     title: CRM API
     version: 0.3.0
-    description: "Login/logout use UserAccount and JWT cookies. All API errors use { success: false,
-        message, details }. Public self-registration is unavailable."
+    description:
+        "Login/logout use UserAccount and JWT cookies. Handled API errors use { success: false,
+        message, details }. Unmatched routes retain the default Express 404 response. Public self-registration is unavailable."
     license:
         name: Proprietary
 servers:
@@ -17,10 +18,172 @@ tags:
     - name: Auth
       description: Account login and logout
     - name: Employees
-      description: Employee profiles (development only)
+      description: Employee profiles; authentication and operation-specific roles are required
+    - name: About Us
+      description: About Us records
     - name: Hierarchy
       description: Employee manager and subordinate relationships
+    - name: Projects
+      description: CRM projects
 paths:
+    /about-us:
+        get:
+            tags:
+                - About Us
+            operationId: getAboutUsRecords
+            summary: List About Us records
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: About Us records returned.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AboutUsListSuccess"
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        post:
+            tags:
+                - About Us
+            operationId: createAboutUsRecord
+            summary: Create an About Us record
+            description: Only users with the OWNER role can create records.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AboutUsInput"
+            responses:
+                "201":
+                    description: About Us record created.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AboutUsWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "403":
+                    $ref: "#/components/responses/AboutUsForbidden"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /about-us/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        get:
+            tags:
+                - About Us
+            operationId: getAboutUsRecord
+            summary: Get an About Us record
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: About Us record returned.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AboutUsReadSuccess"
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "404":
+                    $ref: "#/components/responses/AboutUsNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        patch:
+            tags:
+                - About Us
+            operationId: updateAboutUsRecord
+            summary: Update an About Us record
+            description: Only users with the OWNER role can update records. Supply at least one non-empty field.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AboutUsUpdateInput"
+            responses:
+                "200":
+                    description: About Us record updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AboutUsWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "403":
+                    $ref: "#/components/responses/AboutUsForbidden"
+                "404":
+                    $ref: "#/components/responses/AboutUsNotFound"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        delete:
+            tags:
+                - About Us
+            operationId: deleteAboutUsRecord
+            summary: Delete an About Us record
+            description: Only users with the OWNER role can delete records.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: About Us record deleted.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "403":
+                    $ref: "#/components/responses/AboutUsForbidden"
+                "404":
+                    $ref: "#/components/responses/AboutUsNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
     /events:
         get:
             tags:
@@ -590,7 +753,7 @@ paths:
             description:
                 Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
                 accounts, wrong passwords and inactive accounts produce identical 401 responses. No
-                public registration. A stale /api cookie is cleared before setting the root cookie.
+                public registration. Sets the authentication cookie at Path=/ only.
             requestBody:
                 required: true
                 content:
@@ -600,22 +763,18 @@ paths:
                         example:
                             email: olena@example.com
                             password: ExamplePassword123!
+            parameters:
+                - $ref: "#/components/parameters/AuthOrigin"
             responses:
                 "200":
                     description: Signed in successfully.
                     headers:
                         Set-Cookie:
                             required: true
-                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
+                            description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
-                                type: array
-                                items:
-                                    type: string
-                            example:
-                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
-                                  GMT; HttpOnly; Secure; SameSite=Lax
-                                - crm_access_token=example-token-not-a-real-credential; Path=/;
-                                  Max-Age=3600; HttpOnly; Secure; SameSite=Lax
+                                type: string
+                            example: crm_access_token=example-token-not-a-real-credential; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -648,27 +807,23 @@ paths:
             operationId: logout
             summary: Sign out
             description:
-                After JWT verification, clears cookies at / and the legacy /api path. No server-side
+                After JWT verification, clears the authentication cookie at Path=/ only. No server-side
                 token revocation; a copied token remains usable until expiry. No body is needed;
                 parsed bodies are ignored. Without a cookie, repeated logout returns 401.
             security:
                 - cookieAuth: []
+            parameters:
+                - $ref: "#/components/parameters/AuthOrigin"
             responses:
                 "200":
                     description: Signed out successfully.
                     headers:
                         Set-Cookie:
                             required: true
-                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
+                            description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
-                                type: array
-                                items:
-                                    type: string
-                            example:
-                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
-                                  GMT; HttpOnly; Secure; SameSite=Lax
-                                - crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;
-                                  HttpOnly; Secure; SameSite=Lax
+                                type: string
+                            example: crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -681,20 +836,14 @@ paths:
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
-                    description: Missing, invalid or expired JWT; both cookie paths are cleared.
+                    description: Missing, invalid or expired JWT; the Path=/ cookie is cleared.
                     headers:
                         Set-Cookie:
                             required: true
-                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
+                            description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
-                                type: array
-                                items:
-                                    type: string
-                            example:
-                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
-                                  GMT; HttpOnly; Secure; SameSite=Lax
-                                - crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;
-                                  HttpOnly; Secure; SameSite=Lax
+                                type: string
+                            example: crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -725,8 +874,10 @@ paths:
             tags:
                 - Employees
             operationId: getEmployees
-            summary: List employees (development only)
-            security: []
+            summary: List employees
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
             responses:
                 "200":
                     description: Employees returned.
@@ -746,17 +897,18 @@ paths:
                                         type: array
                                         items:
                                             $ref: "#/components/schemas/Employee"
-                "403":
-                    $ref: "#/components/responses/DevelopmentOnly"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
         post:
             tags:
                 - Employees
             operationId: createEmployee
-            summary: Create an employee (development only)
-            description: Every profile field is optional, including all fields together.
-            security: []
+            summary: Create an employee
+            description: Only OWNER and RECRUITER can create profiles. Every field is optional; an empty object is valid. Strings are trimmed before validation.
+            security:
+                - cookieAuth: []
             requestBody:
                 required: true
                 content:
@@ -785,8 +937,14 @@ paths:
                                         $ref: "#/components/schemas/Employee"
                 "400":
                     $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
-                    $ref: "#/components/responses/DevelopmentOnly"
+                    $ref: "#/components/responses/EmployeeForbidden"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
                 "422":
                     $ref: "#/components/responses/ValidationError"
                 "500":
@@ -803,8 +961,10 @@ paths:
             tags:
                 - Employees
             operationId: getEmployee
-            summary: Get an employee (development only)
-            security: []
+            summary: Get an employee
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
             responses:
                 "200":
                     description: Employee returned.
@@ -824,8 +984,8 @@ paths:
                                         $ref: "#/components/schemas/Employee"
                 "400":
                     $ref: "#/components/responses/BadRequest"
-                "403":
-                    $ref: "#/components/responses/DevelopmentOnly"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "422":
@@ -869,7 +1029,7 @@ paths:
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
-                    $ref: "#/components/responses/HierarchyUnauthorized"
+                    $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
                     description: The role is not allowed, or the manager does not directly manage this employee.
                     content:
@@ -878,6 +1038,10 @@ paths:
                                 $ref: "#/components/schemas/ErrorResponse"
                 "404":
                     $ref: "#/components/responses/NotFound"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
                 "422":
                     $ref: "#/components/responses/ValidationError"
                 "500":
@@ -886,8 +1050,10 @@ paths:
             tags:
                 - Employees
             operationId: deleteEmployee
-            summary: Delete an employee (development only)
-            security: []
+            summary: Delete an employee
+            description: Only OWNER and HR can delete profiles. Related accounts or event participation can prevent deletion with 422.
+            security:
+                - cookieAuth: []
             responses:
                 "200":
                     description: Employee deleted.
@@ -907,10 +1073,184 @@ paths:
                                         type: string
                 "400":
                     $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
-                    $ref: "#/components/responses/DevelopmentOnly"
+                    $ref: "#/components/responses/EmployeeForbidden"
                 "404":
                     $ref: "#/components/responses/NotFound"
+                "422":
+                    description: Invalid UUID or deletion blocked by a related user account or event participant.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                            examples:
+                                relatedRecord:
+                                    value:
+                                        success: false
+                                        message: Related record not found.
+                                        details: []
+                                invalidId:
+                                    value:
+                                        success: false
+                                        message: Please correct the highlighted fields.
+                                        details:
+                                            - field: id
+                                              message: Invalid UUID
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /projects:
+        get:
+            tags:
+                - Projects
+            operationId: getProjects
+            summary: List projects
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Projects returned.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [success, projects]
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum: [true]
+                                    projects:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Project"
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        post:
+            tags:
+                - Projects
+            operationId: createProject
+            summary: Create a project
+            description: Requires non-empty title and description. No role-based restrictions apply.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProjectInput"
+            responses:
+                "201":
+                    description: Project created.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ProjectWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /projects/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        get:
+            tags:
+                - Projects
+            operationId: getProject
+            summary: Get a project
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Project returned.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ProjectReadSuccess"
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "404":
+                    $ref: "#/components/responses/ProjectNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        patch:
+            tags:
+                - Projects
+            operationId: updateProject
+            summary: Update a project
+            description: At least one non-empty title or description must be supplied.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProjectUpdateInput"
+            responses:
+                "200":
+                    description: Project updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ProjectWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "404":
+                    $ref: "#/components/responses/ProjectNotFound"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        delete:
+            tags:
+                - Projects
+            operationId: deleteProject
+            summary: Delete a project
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Project deleted.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [success, message]
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum: [true]
+                                    message:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "404":
+                    $ref: "#/components/responses/ProjectNotFound"
                 "422":
                     $ref: "#/components/responses/ValidationError"
                 "500":
@@ -1102,6 +1442,16 @@ paths:
                 "500":
                     $ref: "#/components/responses/InternalServerError"
 components:
+    parameters:
+        AuthOrigin:
+            in: header
+            name: Origin
+            required: true
+            description: Exact origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically. Missing or disallowed values return 403.
+            schema:
+                type: string
+                format: uri
+            example: http://localhost:3000
     headers:
         NoStore:
             required: true
@@ -1361,6 +1711,82 @@ components:
                     type: array
                     items:
                         $ref: "#/components/schemas/CalendarEvent"
+        AboutUsRecord:
+            type: object
+            required:
+                - id
+                - title
+                - description
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        AboutUsInput:
+            type: object
+            additionalProperties: false
+            required:
+                - title
+                - description
+            properties:
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        AboutUsUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        AboutUsListSuccess:
+            type: object
+            required:
+                - success
+                - aboutUsRecords
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                aboutUsRecords:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/AboutUsRecord"
+        AboutUsReadSuccess:
+            type: object
+            required:
+                - success
+                - aboutUs
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                aboutUs:
+                    $ref: "#/components/schemas/AboutUsRecord"
+        AboutUsWriteSuccess:
+            allOf:
+                - $ref: "#/components/schemas/AboutUsReadSuccess"
+                - type: object
+                  required:
+                      - message
+                  properties:
+                      message:
+                          type: string
         HierarchyRelationship:
             type: object
             required:
@@ -1425,6 +1851,59 @@ components:
                 - type: object
                   required:
                       - message
+                  properties:
+                      message:
+                          type: string
+        Project:
+            type: object
+            required: [id, title, description]
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        ProjectInput:
+            type: object
+            additionalProperties: false
+            required: [title, description]
+            properties:
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        ProjectUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        ProjectReadSuccess:
+            type: object
+            required: [success, project]
+            properties:
+                success:
+                    type: boolean
+                    enum: [true]
+                project:
+                    $ref: "#/components/schemas/Project"
+        ProjectWriteSuccess:
+            allOf:
+                - $ref: "#/components/schemas/ProjectReadSuccess"
+                - type: object
+                  required: [message]
                   properties:
                       message:
                           type: string
@@ -1516,8 +1995,8 @@ components:
                     format: password
                     writeOnly: true
                     minLength: 1
-                    maxLength: 72
-                    description: At most 72 UTF-8 bytes. Do not trim or truncate.
+                    x-maxUtf8Bytes: 72
+                    description: At most 72 UTF-8 bytes, not 72 characters. Clients must check the encoded byte length; OpenAPI 3.0 maxLength cannot express this constraint. Do not trim or truncate.
         ErrorDetail:
             type: object
             additionalProperties: false
@@ -1552,6 +2031,18 @@ components:
                         $ref: "#/components/schemas/ErrorDetail"
                     description: Field errors; [] if absent. No credentials or technical details.
     responses:
+        ProjectsUnauthorized:
+            description: Missing, invalid or expired authentication cookie.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        ProjectNotFound:
+            description: Project does not exist.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
         EventUnauthorized:
             description: Missing/invalid authentication; creating also requires an existing active account.
             content:
@@ -1675,6 +2166,24 @@ components:
                                 details:
                                     - field: participantIds
                                       message: Choose between 1 and 200 employees.
+        AboutUsUnauthorized:
+            description: Missing, invalid or expired authentication cookie.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        AboutUsForbidden:
+            description: Only users with the OWNER role can modify About Us records.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        AboutUsNotFound:
+            description: About Us record does not exist.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
         HierarchyUnauthorized:
             description: Missing, invalid or expired authentication cookie.
             content:
@@ -1798,13 +2307,19 @@ components:
                         success: false
                         message: Employee not found
                         details: []
-        DevelopmentOnly:
-            description: Employee routes are enabled only in development.
+        EmployeeUnauthorized:
+            description: Missing, invalid or expired authentication cookie.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        EmployeeForbidden:
+            description: The authenticated role cannot perform this employee operation.
             content:
                 application/json:
                     schema:
                         $ref: "#/components/schemas/ErrorResponse"
                     example:
                         success: false
-                        message: Маршрут доступний лише в середовищі розробки
+                        message: You do not have permission to perform this action.
                         details: []

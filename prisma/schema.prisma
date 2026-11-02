@@ -38,7 +38,6 @@ model UserAccount {
   roleKey      Role      @map("role_key")
   isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
-
   employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   ownedEvents Event[]
 
@@ -55,6 +54,14 @@ model Hierarchy {
 
   @@unique([employeeId, subordinateId])
   @@map("hierarchy")
+}
+
+model AboutUs {
+  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  title       String
+  description String
+
+  @@map("about_us")
 }
 
 enum EventType {
@@ -93,4 +100,12 @@ model EventParticipant {
   @@id([eventId, employeeId])
   @@index([employeeId, eventId])
   @@map("event_participants")
+}
+
+model Project {
+  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  title       String
+  description String
+
+  @@map("projects")
 }

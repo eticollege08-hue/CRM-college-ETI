@@ -35,6 +35,12 @@ export class UserAccountService {
     async getByEmail(email: string) {
         return await this.repository.getByEmail(email.trim().toLowerCase());
     }
+
+    async getEmployeeByAccountId(accountId: string) {
+        const employee = await this.repository.getEmployeeByAccountId(accountId);
+        return employee;
+    }
+
     async updateLastLoginAt(accountId: string) {
         return await this.repository.updateLastLoginAt(accountId, new Date());
     }
