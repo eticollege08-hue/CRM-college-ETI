@@ -54,7 +54,7 @@ export const hierarchyPageService = {
             subordinate.managerIds.push(manager.id);
             subordinate.managerNames.push(manager.fullName ?? "Unnamed employee");
             subordinate.managerRelationshipIds.push(relationship.id);
-            if (!subordinateIds.has(subordinate.id)) manager.subordinates.push(subordinate);
+            manager.subordinates.push(subordinate);
             subordinateIds.add(subordinate.id);
         }
 
