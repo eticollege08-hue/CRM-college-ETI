@@ -2,8 +2,9 @@ openapi: 3.0.3
 info:
     title: CRM API
     version: 0.3.0
-    description: "Login/logout use UserAccount and JWT cookies. All API errors use { success: false,
-        message, details }. Public self-registration is unavailable."
+    description: "Login/logout use UserAccount and JWT cookies. Handled API errors use { success: false,
+        message, details }. Unmatched routes retain the default Express 404 response. Public
+        self-registration is unavailable."
     license:
         name: Proprietary
 servers:
@@ -17,104 +18,172 @@ tags:
     - name: Auth
       description: Account login and logout
     - name: Employees
-      description: Employee profile fields used by the hierarchy page
+      description: Employee profiles; authentication and operation-specific roles are required
+    - name: About Us
+      description: About Us records
+    - name: Hierarchy
+      description: Employee manager and subordinate relationships
+    - name: Projects
+      description: CRM projects
     - name: Profile
       description: The authenticated user's own profile
 paths:
-    /profile:
-        patch:
+    /about-us:
+        get:
             tags:
-                - Profile
+                - About Us
+            operationId: getAboutUsRecords
+            summary: List About Us records
+            description: Available to every authenticated role.
             security:
                 - cookieAuth: []
-            operationId: updateOwnProfile
-            summary: Update the authenticated user's profile and contact details
-            description:
-                Only the profile belonging to the authenticated account is updated. Email changes
-                update the login email. Empty contact fields clear the saved value. Mutation Origin
-                must match AUTH_ALLOWED_ORIGINS.
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: "#/components/schemas/ProfileUpdateInput"
-                        example:
-                            fullName: Alex Johnson
-                            email: alex.johnson@example.com
-                            phoneNumber: "+380 00 000 00 00"
-                            slack: alex_johnson
-                            telegram: "@alex_johnson"
             responses:
                 "200":
-                    description: Profile updated successfully.
+                    description: About Us records returned.
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/AuthSuccess"
-                "400":
-                    $ref: "#/components/responses/BadRequest"
+                                $ref: "#/components/schemas/AboutUsListSuccess"
                 "401":
-                    $ref: "#/components/responses/EventUnauthorized"
-                "403":
-                    $ref: "#/components/responses/Forbidden"
-                "413":
-                    $ref: "#/components/responses/PayloadTooLarge"
-                "415":
-                    $ref: "#/components/responses/UnsupportedMediaType"
-                "422":
-                    $ref: "#/components/responses/EventValidation"
+                    $ref: "#/components/responses/AboutUsUnauthorized"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
-    /employees/{id}:
-        patch:
+        post:
             tags:
-                - Employees
+                - About Us
+            operationId: createAboutUsRecord
+            summary: Create an About Us record
+            description: Only users with the OWNER role can create records.
             security:
                 - cookieAuth: []
-            operationId: updateEmployeeProfile
-            summary: Update an employee name, position, or level
-            description:
-                Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
-                AUTH_ALLOWED_ORIGINS. Empty position or level values clear those fields.
-            parameters:
-                - in: path
-                  name: id
-                  required: true
-                  schema:
-                      type: string
-                      format: uuid
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
-                            $ref: "#/components/schemas/EmployeeUpdateInput"
-                        example:
-                            fullName: Alex Johnson
-                            position: HR Manager
-                            level: "3"
+                            $ref: "#/components/schemas/AboutUsInput"
             responses:
-                "200":
-                    description: Employee profile updated.
+                "201":
+                    description: About Us record created.
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/EmployeeUpdateSuccess"
+                                $ref: "#/components/schemas/AboutUsWriteSuccess"
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
-                    $ref: "#/components/responses/EventUnauthorized"
+                    $ref: "#/components/responses/AboutUsUnauthorized"
                 "403":
-                    $ref: "#/components/responses/Forbidden"
-                "404":
-                    $ref: "#/components/responses/EventNotFound"
+                    $ref: "#/components/responses/AboutUsForbidden"
                 "413":
                     $ref: "#/components/responses/PayloadTooLarge"
                 "415":
                     $ref: "#/components/responses/UnsupportedMediaType"
                 "422":
-                    $ref: "#/components/responses/EventValidation"
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /about-us/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        get:
+            tags:
+                - About Us
+            operationId: getAboutUsRecord
+            summary: Get an About Us record
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: About Us record returned.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AboutUsReadSuccess"
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "404":
+                    $ref: "#/components/responses/AboutUsNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        patch:
+            tags:
+                - About Us
+            operationId: updateAboutUsRecord
+            summary: Update an About Us record
+            description: Only users with the OWNER role can update records. Supply at least one non-empty field.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AboutUsUpdateInput"
+            responses:
+                "200":
+                    description: About Us record updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AboutUsWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "403":
+                    $ref: "#/components/responses/AboutUsForbidden"
+                "404":
+                    $ref: "#/components/responses/AboutUsNotFound"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        delete:
+            tags:
+                - About Us
+            operationId: deleteAboutUsRecord
+            summary: Delete an About Us record
+            description: Only users with the OWNER role can delete records.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: About Us record deleted.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "403":
+                    $ref: "#/components/responses/AboutUsForbidden"
+                "404":
+                    $ref: "#/components/responses/AboutUsNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
     /events:
@@ -125,8 +194,7 @@ paths:
                 - cookieAuth: []
             operationId: listCalendarEvents
             summary: Read events for a local date or UTC range
-            description:
-                All authenticated roles see all events. Use date plus timeZone, or from/to (inclusive
+            description: All authenticated roles see all events. Use date plus timeZone, or from/to (inclusive
                 start, exclusive end). Returns overlapping events sorted by startsAt/id; no role
                 filters. Explicit ranges must be positive and no longer than 366 days; unknown query
                 parameters are rejected.
@@ -206,14 +274,14 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description:
-                Owner is the JWT UserAccount ID and cannot be supplied by clients. The creator is NOT
-                automatically a participant. Include their Employee ID explicitly to occupy their time.
-                At least one participant is required; employees need not have accounts. Starts/ends are
-                absolute instants and are checked within a single local day in timeZone; an exclusive
-                midnight end is allowed, an entire local day is not. Conflicts are strict overlaps for
-                any participant across every event type; adjoining intervals are allowed. Serializable
-                transactions prevent concurrent double-booking. Room Booking is out of scope.
+            description: Owner is the JWT UserAccount ID and cannot be supplied by clients. The creator is NOT
+                automatically a participant. Include their Employee ID explicitly to occupy their
+                time. At least one participant is required; employees need not have accounts.
+                Starts/ends are absolute instants and are checked within a single local day in
+                timeZone; an exclusive midnight end is allowed, an entire local day is not.
+                Conflicts are strict overlaps for any participant across every event type; adjoining
+                intervals are allowed. Serializable transactions prevent concurrent double-booking.
+                Room Booking is out of scope.
             requestBody:
                 required: true
                 content:
@@ -339,10 +407,9 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description:
-                Only the author can update, including participants. Requires at least one field.
-                participantIds replaces the full membership list. Checks the merged values against the
-                current schedule, excluding the event itself; ownerAccountId is immutable.
+            description: Only the author can update, including participants. Requires at least one field.
+                participantIds replaces the full membership list. Checks the merged values against
+                the current schedule, excluding the event itself; ownerAccountId is immutable.
             requestBody:
                 required: true
                 content:
@@ -412,8 +479,7 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description:
-                Checks ownership and exact current title in the same transaction; deletion cascades to
+            description: Checks ownership and exact current title in the same transaction; deletion cascades to
                 event participants only.
             requestBody:
                 required: true
@@ -486,8 +552,7 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description:
-                Existing members are kept and repeated additions are idempotent. Final membership may
+            description: Existing members are kept and repeated additions are idempotent. Final membership may
                 not exceed 200 employees. Rechecks schedule conflicts atomically.
             requestBody:
                 required: true
@@ -573,8 +638,7 @@ paths:
                       format: uri
                   example: http://localhost:3000
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
-            description:
-                Rejects removing the last participant. Returns 404 for an employee not assigned to this
+            description: Rejects removing the last participant. Returns 404 for an employee not assigned to this
                 event.
             responses:
                 "200":
@@ -625,10 +689,9 @@ paths:
                 - url: /
             operationId: renderCalendarPage
             summary: Render the calendar SSR template without frontend markup
-            description:
-                Renders the zero-byte pages/calendar.njk template. Locals contain currentDate, month,
-                timeZone, UTC range, events, eventTypes, employee picker data and css/js/activePage. The
-                response is HTML, NOT JSON. Month defaults to the current month in timeZone. Use
+            description: Renders the zero-byte pages/calendar.njk template. Locals contain currentDate, month,
+                timeZone, UTC range, events, eventTypes, employee picker data and css/js/activePage.
+                The response is HTML, NOT JSON. Month defaults to the current month in timeZone. Use
                 /api/events to fetch data from the client; GET /api/employees supplies the employee
                 picker. No-store; no frontend implementation.
             parameters:
@@ -683,10 +746,9 @@ paths:
             operationId: login
             summary: Sign in
             security: []
-            description:
-                Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
+            description: Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
                 accounts, wrong passwords and inactive accounts produce identical 401 responses. No
-                public registration. A stale /api cookie is cleared before setting the root cookie.
+                public registration. Sets the authentication cookie at Path=/ only.
             requestBody:
                 required: true
                 content:
@@ -696,22 +758,19 @@ paths:
                         example:
                             email: olena@example.com
                             password: ExamplePassword123!
+            parameters:
+                - $ref: "#/components/parameters/AuthOrigin"
             responses:
                 "200":
                     description: Signed in successfully.
                     headers:
                         Set-Cookie:
                             required: true
-                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
+                            description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
-                                type: array
-                                items:
-                                    type: string
-                            example:
-                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
-                                  GMT; HttpOnly; Secure; SameSite=Lax
-                                - crm_access_token=example-token-not-a-real-credential; Path=/;
-                                  Max-Age=3600; HttpOnly; Secure; SameSite=Lax
+                                type: string
+                            example: crm_access_token=example-token-not-a-real-credential; Path=/; Max-Age=3600; HttpOnly;
+                                Secure; SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -743,28 +802,24 @@ paths:
                 - Auth
             operationId: logout
             summary: Sign out
-            description:
-                After JWT verification, clears cookies at / and the legacy /api path. No server-side
+            description: After JWT verification, clears the authentication cookie at Path=/ only. No server-side
                 token revocation; a copied token remains usable until expiry. No body is needed;
                 parsed bodies are ignored. Without a cookie, repeated logout returns 401.
             security:
                 - cookieAuth: []
+            parameters:
+                - $ref: "#/components/parameters/AuthOrigin"
             responses:
                 "200":
                     description: Signed out successfully.
                     headers:
                         Set-Cookie:
                             required: true
-                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
+                            description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
-                                type: array
-                                items:
-                                    type: string
-                            example:
-                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
-                                  GMT; HttpOnly; Secure; SameSite=Lax
-                                - crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;
-                                  HttpOnly; Secure; SameSite=Lax
+                                type: string
+                            example: crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure;
+                                SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -777,20 +832,15 @@ paths:
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
-                    description: Missing, invalid or expired JWT; both cookie paths are cleared.
+                    description: Missing, invalid or expired JWT; the Path=/ cookie is cleared.
                     headers:
                         Set-Cookie:
                             required: true
-                            description: Separate Set-Cookie headers; Secure is omitted only for local HTTP development.
+                            description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
-                                type: array
-                                items:
-                                    type: string
-                            example:
-                                - crm_access_token=; Path=/api; Expires=Thu, 01 Jan 1970 00:00:00
-                                  GMT; HttpOnly; Secure; SameSite=Lax
-                                - crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;
-                                  HttpOnly; Secure; SameSite=Lax
+                                type: string
+                            example: crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure;
+                                SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -816,28 +866,1202 @@ paths:
                     $ref: "#/components/responses/UnsupportedMediaType"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+    /employees:
+        get:
+            tags:
+                - Employees
+            operationId: getEmployees
+            summary: List employees
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Employees returned.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - employees
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    employees:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Employee"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        post:
+            tags:
+                - Employees
+            operationId: createEmployee
+            summary: Create an employee
+            description: Only OWNER and RECRUITER can create profiles. Every field is optional; an empty object
+                is valid. Strings are trimmed before validation.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/EmployeeInput"
+            responses:
+                "201":
+                    description: Employee created without requiring a user account.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                    - employee
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                                    employee:
+                                        $ref: "#/components/schemas/Employee"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "403":
+                    $ref: "#/components/responses/EmployeeForbidden"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /employees/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        get:
+            tags:
+                - Employees
+            operationId: getEmployee
+            summary: Get an employee
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Employee returned.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - employee
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    employee:
+                                        $ref: "#/components/schemas/Employee"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        patch:
+            tags:
+                - Employees
+            security:
+                - cookieAuth: []
+            operationId: updateEmployeeProfile
+            summary: Update an employee name, position, or level
+            description: Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
+                AUTH_ALLOWED_ORIGINS. Empty position or level values clear those fields.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/EmployeeUpdateInput"
+                        example:
+                            fullName: Alex Johnson
+                            position: HR Manager
+                            level: "3"
+            responses:
+                "200":
+                    description: Employee profile updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/EmployeeUpdateSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        delete:
+            tags:
+                - Employees
+            operationId: deleteEmployee
+            summary: Delete an employee
+            description: Only OWNER and HR can delete profiles. Related accounts or event participation can
+                prevent deletion with 422.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Employee deleted.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "403":
+                    $ref: "#/components/responses/EmployeeForbidden"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    description: Invalid UUID or deletion blocked by a related user account or event participant.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                            examples:
+                                relatedRecord:
+                                    value:
+                                        success: false
+                                        message: Related record not found.
+                                        details: []
+                                invalidId:
+                                    value:
+                                        success: false
+                                        message: Please correct the highlighted fields.
+                                        details:
+                                            - field: id
+                                              message: Invalid UUID
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /projects:
+        get:
+            tags:
+                - Projects
+            operationId: getProjects
+            summary: List projects
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Projects returned.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [ success, projects ]
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum: [ true ]
+                                    projects:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Project"
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        post:
+            tags:
+                - Projects
+            operationId: createProject
+            summary: Create a project
+            description: Requires non-empty title and description. No role-based restrictions apply.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProjectInput"
+            responses:
+                "201":
+                    description: Project created.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ProjectWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /projects/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        get:
+            tags:
+                - Projects
+            operationId: getProject
+            summary: Get a project
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Project returned.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ProjectReadSuccess"
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "404":
+                    $ref: "#/components/responses/ProjectNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        patch:
+            tags:
+                - Projects
+            operationId: updateProject
+            summary: Update a project
+            description: At least one non-empty title or description must be supplied.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProjectUpdateInput"
+            responses:
+                "200":
+                    description: Project updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ProjectWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "404":
+                    $ref: "#/components/responses/ProjectNotFound"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        delete:
+            tags:
+                - Projects
+            operationId: deleteProject
+            summary: Delete a project
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Project deleted.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required: [ success, message ]
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum: [ true ]
+                                    message:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/ProjectsUnauthorized"
+                "404":
+                    $ref: "#/components/responses/ProjectNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /hierarchy:
+        get:
+            tags:
+                - Hierarchy
+            operationId: getHierarchyRelationships
+            summary: List hierarchy relationships
+            description: Available to every authenticated role. Returns a flat list of relationships.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Hierarchy relationships returned.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - hierarchies
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    hierarchies:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/HierarchyRelationship"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        post:
+            tags:
+                - Hierarchy
+            operationId: createHierarchyRelationship
+            summary: Create a hierarchy relationship
+            description: "Allowed roles: OWNER, RECRUITER, HR, MANAGER. employeeId is the manager; subordinateId
+                is the subordinate. Multiple managers are allowed. Rejects self-assignment,
+                duplicates and cycles. Checks and write share a Serializable transaction with up to
+                three P2034 attempts."
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/HierarchyCreateInput"
+            responses:
+                "201":
+                    description: Hierarchy relationship created.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/HierarchyWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/HierarchyNotFound"
+                "409":
+                    $ref: "#/components/responses/HierarchyConflict"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /hierarchy/{id}:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        get:
+            tags:
+                - Hierarchy
+            operationId: getHierarchyRelationship
+            summary: Get a hierarchy relationship
+            description: Available to every authenticated role.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Hierarchy relationship returned.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/HierarchyReadSuccess"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "404":
+                    $ref: "#/components/responses/HierarchyNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        patch:
+            tags:
+                - Hierarchy
+            operationId: updateHierarchyRelationship
+            summary: Update a hierarchy relationship
+            description: "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Both fields are optional; an empty
+                object is valid. Omitted values are preserved. The replaced relationship is excluded
+                during cycle detection. Checks and write share a Serializable transaction with up to
+                three P2034 attempts."
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/HierarchyUpdateInput"
+            responses:
+                "200":
+                    description: Hierarchy relationship updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/HierarchyWriteSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/HierarchyNotFound"
+                "409":
+                    $ref: "#/components/responses/HierarchyConflict"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+        delete:
+            tags:
+                - Hierarchy
+            operationId: deleteHierarchyRelationship
+            summary: Delete a hierarchy relationship
+            description: "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Deletes the relationship without
+                deleting employees."
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: Hierarchy relationship deleted.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/HierarchyNotFound"
+                "409":
+                    $ref: "#/components/responses/HierarchyConflict"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /profile:
+        patch:
+            tags:
+                - Profile
+            security:
+                - cookieAuth: []
+            operationId: updateOwnProfile
+            summary: Update the authenticated user's profile and contact details
+            description: Only the profile belonging to the authenticated account is updated. Email changes
+                update the login email. Empty contact fields clear the saved value. Mutation Origin
+                must match AUTH_ALLOWED_ORIGINS.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProfileUpdateInput"
+                        example:
+                            fullName: Alex Johnson
+                            email: alex.johnson@example.com
+                            phoneNumber: +380 00 000 00 00
+                            slack: alex_johnson
+                            telegram: "@alex_johnson"
+            responses:
+                "200":
+                    description: Profile updated successfully.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AuthSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
 components:
+    parameters:
+        AuthOrigin:
+            in: header
+            name: Origin
+            required: true
+            description: Exact origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically. Missing or
+                disallowed values return 403.
+            schema:
+                type: string
+                format: uri
+            example: http://localhost:3000
     headers:
         NoStore:
             required: true
             description: Do not cache authentication responses.
             schema:
                 type: string
-                enum: [no-store]
+                enum: [ no-store ]
             example: no-store
     securitySchemes:
         cookieAuth:
             type: apiKey
             in: cookie
             name: crm_access_token
-            description:
-                "JWT in HttpOnly cookie only; never in JSON or Authorization. Path=/; SameSite=Lax;
+            description: "JWT in HttpOnly cookie only; never in JSON or Authorization. Path=/; SameSite=Lax;
                 host-only. Secure defaults to true and can be disabled only for local development.
                 Max-Age equals JWT_EXPIRES_IN (default 3600 seconds). JWT claims use UserAccount ID
                 and Prisma Role. Auth POST requests require an exact allowed Origin; Referer is not
                 used. Use credentials: include / withCredentials: true. Deploy same-origin, or
                 explicitly configure credentialed CORS for separate origins."
     schemas:
+        EventFields:
+            type: object
+            additionalProperties: false
+            properties:
+                type:
+                    type: string
+                    enum:
+                        - LEAVE
+                        - SICK_LEAVE
+                        - VACATION
+                        - TIME_OFF
+                        - MEETING
+                title:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                description:
+                    type: string
+                    maxLength: 4000
+                    description: May be empty; title/description are trimmed.
+                startsAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 with Z or explicit offset, at most millisecond precision; responses use UTC.
+                endsAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 with Z or explicit offset, at most millisecond precision; responses use UTC.
+                timeZone:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                    example: Europe/Kyiv
+                    description: IANA time zone identifier or UTC; fixed-offset zone identifiers are rejected.
+                participantIds:
+                    type: array
+                    minItems: 1
+                    maxItems: 200
+                    uniqueItems: true
+                    items:
+                        type: string
+                        format: uuid
+        EventCreateInput:
+            allOf:
+                - $ref: "#/components/schemas/EventFields"
+                - type: object
+                  required:
+                      - type
+                      - title
+                      - description
+                      - startsAt
+                      - endsAt
+                      - timeZone
+                      - participantIds
+        EventUpdateInput:
+            allOf:
+                - $ref: "#/components/schemas/EventFields"
+                - type: object
+                  minProperties: 1
+        EventDeleteInput:
+            type: object
+            additionalProperties: false
+            required:
+                - confirmationTitle
+            properties:
+                confirmationTitle:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                    description: Exact current title, case-sensitive, not trimmed. Not a project name.
+        EventParticipantsInput:
+            type: object
+            additionalProperties: false
+            required:
+                - participantIds
+            properties:
+                participantIds:
+                    type: array
+                    minItems: 1
+                    maxItems: 200
+                    uniqueItems: true
+                    items:
+                        type: string
+                        format: uuid
+        EventPickerEmployee:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - fullName
+                - imageId
+                - position
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                fullName:
+                    type: string
+                    nullable: true
+                imageId:
+                    type: string
+                    nullable: true
+                position:
+                    type: string
+                    nullable: true
+        CalendarEvent:
+            type: object
+            additionalProperties: false
+            required:
+                - id
+                - ownerAccountId
+                - type
+                - title
+                - description
+                - startsAt
+                - endsAt
+                - timeZone
+                - createdAt
+                - updatedAt
+                - participants
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                ownerAccountId:
+                    type: string
+                    format: uuid
+                type:
+                    type: string
+                    enum:
+                        - LEAVE
+                        - SICK_LEAVE
+                        - VACATION
+                        - TIME_OFF
+                        - MEETING
+                title:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                description:
+                    type: string
+                    maxLength: 4000
+                    description: May be empty; title/description are trimmed.
+                startsAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 with Z or explicit offset, at most millisecond precision; responses use UTC.
+                endsAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 with Z or explicit offset, at most millisecond precision; responses use UTC.
+                timeZone:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                    example: Europe/Kyiv
+                    description: IANA time zone identifier or UTC; fixed-offset zone identifiers are rejected.
+                createdAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 with Z or explicit offset, at most millisecond precision; responses use UTC.
+                updatedAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 with Z or explicit offset, at most millisecond precision; responses use UTC.
+                participants:
+                    type: array
+                    minItems: 1
+                    maxItems: 200
+                    items:
+                        type: object
+                        additionalProperties: false
+                        required:
+                            - employee
+                        properties:
+                            employee:
+                                $ref: "#/components/schemas/EventPickerEmployee"
+            example:
+                id: 550e8400-e29b-41d4-a716-446655440010
+                ownerAccountId: 550e8400-e29b-41d4-a716-446655440001
+                type: MEETING
+                title: Planning
+                description: Sprint planning
+                startsAt: 2026-10-26T08:00:00.000Z
+                endsAt: 2026-10-26T09:00:00.000Z
+                timeZone: Europe/Kyiv
+                createdAt: 2026-10-26T07:00:00.000Z
+                updatedAt: 2026-10-26T07:00:00.000Z
+                participants:
+                    - employee:
+                          id: 550e8400-e29b-41d4-a716-446655440002
+                          fullName: Olena Kovalenko
+                          imageId: null
+                          position: HR
+        EventReadSuccess:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - event
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                event:
+                    $ref: "#/components/schemas/CalendarEvent"
+        EventWriteSuccess:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - message
+                - event
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                event:
+                    $ref: "#/components/schemas/CalendarEvent"
+                message:
+                    type: string
+        EventListSuccess:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - events
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                events:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/CalendarEvent"
+        AboutUsRecord:
+            type: object
+            required:
+                - id
+                - title
+                - description
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        AboutUsInput:
+            type: object
+            additionalProperties: false
+            required:
+                - title
+                - description
+            properties:
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        AboutUsUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        AboutUsListSuccess:
+            type: object
+            required:
+                - success
+                - aboutUsRecords
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                aboutUsRecords:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/AboutUsRecord"
+        AboutUsReadSuccess:
+            type: object
+            required:
+                - success
+                - aboutUs
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                aboutUs:
+                    $ref: "#/components/schemas/AboutUsRecord"
+        AboutUsWriteSuccess:
+            allOf:
+                - $ref: "#/components/schemas/AboutUsReadSuccess"
+                - type: object
+                  required:
+                      - message
+                  properties:
+                      message:
+                          type: string
+        HierarchyRelationship:
+            type: object
+            required:
+                - id
+                - employeeId
+                - subordinateId
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                employeeId:
+                    type: string
+                    format: uuid
+                    description: Manager employee ID.
+                subordinateId:
+                    type: string
+                    format: uuid
+                    description: Subordinate employee ID.
+        HierarchyCreateInput:
+            type: object
+            additionalProperties: false
+            required:
+                - employeeId
+                - subordinateId
+            properties:
+                employeeId:
+                    type: string
+                    format: uuid
+                    description: Manager employee ID.
+                subordinateId:
+                    type: string
+                    format: uuid
+                    description: Subordinate employee ID.
+        HierarchyUpdateInput:
+            type: object
+            additionalProperties: false
+            properties:
+                employeeId:
+                    type: string
+                    format: uuid
+                    description: Manager employee ID.
+                subordinateId:
+                    type: string
+                    format: uuid
+                    description: Subordinate employee ID.
+        HierarchyReadSuccess:
+            type: object
+            required:
+                - success
+                - hierarchy
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                hierarchy:
+                    $ref: "#/components/schemas/HierarchyRelationship"
+        HierarchyWriteSuccess:
+            allOf:
+                - $ref: "#/components/schemas/HierarchyReadSuccess"
+                - type: object
+                  required:
+                      - message
+                  properties:
+                      message:
+                          type: string
+        Project:
+            type: object
+            required: [ id, title, description ]
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        ProjectInput:
+            type: object
+            additionalProperties: false
+            required: [ title, description ]
+            properties:
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        ProjectUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                title:
+                    type: string
+                    minLength: 1
+                description:
+                    type: string
+                    minLength: 1
+        ProjectReadSuccess:
+            type: object
+            required: [ success, project ]
+            properties:
+                success:
+                    type: boolean
+                    enum: [ true ]
+                project:
+                    $ref: "#/components/schemas/Project"
+        ProjectWriteSuccess:
+            allOf:
+                - $ref: "#/components/schemas/ProjectReadSuccess"
+                - type: object
+                  required: [ message ]
+                  properties:
+                      message:
+                          type: string
+        Employee:
+            type: object
+            required:
+                - id
+                - fullName
+                - imageId
+                - level
+                - position
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                fullName:
+                    type: string
+                    nullable: true
+                imageId:
+                    type: string
+                    nullable: true
+                level:
+                    type: string
+                    nullable: true
+                position:
+                    type: string
+                    nullable: true
+        EmployeeInput:
+            type: object
+            additionalProperties: false
+            properties:
+                fullName:
+                    type: string
+                    minLength: 1
+                imageId:
+                    type: string
+                    minLength: 1
+                level:
+                    type: string
+                    minLength: 1
+                position:
+                    type: string
+                    minLength: 1
+        EmployeeUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                fullName:
+                    type: string
+                    minLength: 1
+                    maxLength: 150
+                position:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the position.
+                level:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the level.
+        AuthSuccess:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - message
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                message:
+                    type: string
+        LoginRequest:
+            type: object
+            additionalProperties: false
+            required:
+                - email
+                - password
+            properties:
+                email:
+                    type: string
+                    format: email
+                    maxLength: 254
+                    description: Trim and lowercase.
+                password:
+                    type: string
+                    format: password
+                    writeOnly: true
+                    minLength: 1
+                    x-maxUtf8Bytes: 72
+                    description: At most 72 UTF-8 bytes, not 72 characters. Clients must check the encoded byte length;
+                        OpenAPI 3.0 maxLength cannot express this constraint. Do not trim or
+                        truncate.
+        ErrorDetail:
+            type: object
+            additionalProperties: false
+            required:
+                - field
+                - message
+            properties:
+                field:
+                    type: string
+                    minLength: 1
+                message:
+                    type: string
+                    minLength: 1
+        ErrorResponse:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - message
+                - details
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - false
+                message:
+                    type: string
+                    minLength: 1
+                details:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/ErrorDetail"
+                    description: Field errors; [] if absent. No credentials or technical details.
         ProfileUpdateInput:
             type: object
             additionalProperties: false
@@ -876,34 +2100,7 @@ components:
                     type: string
                     maxLength: 100
                     description: Send an empty string to clear the value.
-        EmployeeUpdateInput:
-            type: object
-            additionalProperties: false
-            minProperties: 1
-            properties:
-                fullName:
-                    type: string
-                    minLength: 1
-                    maxLength: 150
-                position:
-                    type: string
-                    maxLength: 100
-                    description: Send an empty string to clear the position.
-                level:
-                    type: string
-                    maxLength: 100
-                    description: Send an empty string to clear the level.
         EmployeeUpdateSuccess:
-            type: object
-            additionalProperties: false
-            required: [success, message]
-            properties:
-                success:
-                    type: boolean
-                    enum: [true]
-                message:
-                    type: string
-        AuthSuccess:
             type: object
             additionalProperties: false
             required:
@@ -916,256 +2113,19 @@ components:
                         - true
                 message:
                     type: string
-        LoginRequest:
-            type: object
-            additionalProperties: false
-            required:
-                - email
-                - password
-            properties:
-                email:
-                    type: string
-                    format: email
-                    maxLength: 254
-                    description: Trim and lowercase.
-                password:
-                    type: string
-                    format: password
-                    writeOnly: true
-                    minLength: 1
-                    maxLength: 72
-                    description: At most 72 UTF-8 bytes. Do not trim or truncate.
-        EventParticipant:
-            type: object
-            additionalProperties: false
-            required: [employee]
-            properties:
-                employee:
-                    type: object
-                    additionalProperties: false
-                    required: [id, fullName, imageId, position]
-                    properties:
-                        id:
-                            type: string
-                            format: uuid
-                        fullName:
-                            type: string
-                            nullable: true
-                        imageId:
-                            type: string
-                            nullable: true
-                        position:
-                            type: string
-                            nullable: true
-        Event:
-            type: object
-            additionalProperties: false
-            required:
-                - id
-                - ownerAccountId
-                - type
-                - title
-                - description
-                - startsAt
-                - endsAt
-                - timeZone
-                - createdAt
-                - updatedAt
-                - participants
-            properties:
-                id:
-                    type: string
-                    format: uuid
-                ownerAccountId:
-                    type: string
-                    format: uuid
-                type:
-                    type: string
-                    enum: [LEAVE, SICK_LEAVE, VACATION, TIME_OFF, MEETING]
-                title:
-                    type: string
-                    maxLength: 200
-                description:
-                    type: string
-                    maxLength: 4000
-                startsAt:
-                    type: string
-                    format: date-time
-                endsAt:
-                    type: string
-                    format: date-time
-                timeZone:
-                    type: string
-                    maxLength: 100
-                createdAt:
-                    type: string
-                    format: date-time
-                updatedAt:
-                    type: string
-                    format: date-time
-                participants:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/EventParticipant"
-        EventListSuccess:
-            type: object
-            additionalProperties: false
-            required: [success, events]
-            properties:
-                success:
-                    type: boolean
-                    enum: [true]
-                events:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/Event"
-        EventReadSuccess:
-            type: object
-            additionalProperties: false
-            required: [success, event]
-            properties:
-                success:
-                    type: boolean
-                    enum: [true]
-                event:
-                    $ref: "#/components/schemas/Event"
-        EventWriteSuccess:
-            type: object
-            additionalProperties: false
-            required: [success, message, event]
-            properties:
-                success:
-                    type: boolean
-                    enum: [true]
-                message:
-                    type: string
-                event:
-                    $ref: "#/components/schemas/Event"
-        EventCreateInput:
-            type: object
-            additionalProperties: false
-            required: [type, title, description, startsAt, endsAt, timeZone, participantIds]
-            properties:
-                type:
-                    type: string
-                    enum: [LEAVE, SICK_LEAVE, VACATION, TIME_OFF, MEETING]
-                title:
-                    type: string
-                    minLength: 1
-                    maxLength: 200
-                description:
-                    type: string
-                    maxLength: 4000
-                startsAt:
-                    type: string
-                    format: date-time
-                    description: ISO 8601 with Z or an explicit offset, at most millisecond precision.
-                endsAt:
-                    type: string
-                    format: date-time
-                    description: ISO 8601 with Z or an explicit offset, at most millisecond precision.
-                timeZone:
-                    type: string
-                    minLength: 1
-                    maxLength: 100
-                    description: Valid IANA time zone.
-                participantIds:
-                    type: array
-                    minItems: 1
-                    maxItems: 200
-                    uniqueItems: true
-                    items:
-                        type: string
-                        format: uuid
-        EventUpdateInput:
-            type: object
-            additionalProperties: false
-            minProperties: 1
-            properties:
-                type:
-                    type: string
-                    enum: [LEAVE, SICK_LEAVE, VACATION, TIME_OFF, MEETING]
-                title:
-                    type: string
-                    minLength: 1
-                    maxLength: 200
-                description:
-                    type: string
-                    maxLength: 4000
-                startsAt:
-                    type: string
-                    format: date-time
-                endsAt:
-                    type: string
-                    format: date-time
-                timeZone:
-                    type: string
-                    minLength: 1
-                    maxLength: 100
-                participantIds:
-                    type: array
-                    minItems: 1
-                    maxItems: 200
-                    uniqueItems: true
-                    items:
-                        type: string
-                        format: uuid
-        EventDeleteInput:
-            type: object
-            additionalProperties: false
-            required: [confirmationTitle]
-            properties:
-                confirmationTitle:
-                    type: string
-                    minLength: 1
-                    maxLength: 200
-        EventParticipantsInput:
-            type: object
-            additionalProperties: false
-            required: [participantIds]
-            properties:
-                participantIds:
-                    type: array
-                    minItems: 1
-                    maxItems: 200
-                    uniqueItems: true
-                    items:
-                        type: string
-                        format: uuid
-        ErrorDetail:
-            type: object
-            additionalProperties: false
-            required:
-                - field
-                - message
-            properties:
-                field:
-                    type: string
-                    minLength: 1
-                message:
-                    type: string
-                    minLength: 1
-        ErrorResponse:
-            type: object
-            additionalProperties: false
-            required:
-                - success
-                - message
-                - details
-            properties:
-                success:
-                    type: boolean
-                    enum:
-                        - false
-                message:
-                    type: string
-                    minLength: 1
-                details:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/ErrorDetail"
-                    description: Field errors; [] if absent. No credentials or technical details.
     responses:
+        ProjectsUnauthorized:
+            description: Missing, invalid or expired authentication cookie.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        ProjectNotFound:
+            description: Project does not exist.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
         EventUnauthorized:
             description: Missing/invalid authentication; creating also requires an existing active account.
             content:
@@ -1189,8 +2149,7 @@ components:
                                 message: An active account is required.
                                 details: []
         EventForbidden:
-            description:
-                Only the owner may mutate an event, regardless of role. Mutation Origin must be in
+            description: Only the owner may mutate an event, regardless of role. Mutation Origin must be in
                 AUTH_ALLOWED_ORIGINS.
             content:
                 application/json:
@@ -1230,8 +2189,7 @@ components:
                                 message: Employee is not a participant of this event.
                                 details: []
         EventConflict:
-            description:
-                Participant schedule overlap or exhausted serialization retries; no partial write is
+            description: Participant schedule overlap or exhausted serialization retries; no partial write is
                 committed.
             content:
                 application/json:
@@ -1249,8 +2207,7 @@ components:
                                 message: The schedule changed concurrently. Please try again.
                                 details: []
         EventValidation:
-            description:
-                422 for invalid fields/UUID/query, time range, participant count, or incorrect deletion
+            description: 422 for invalid fields/UUID/query, time range, participant count, or incorrect deletion
                 confirmation.
             content:
                 application/json:
@@ -1267,13 +2224,11 @@ components:
                         range:
                             value:
                                 success: false
-                                message:
-                                    Event must start before it ends and stay within one local day; all-day events are not
+                                message: Event must start before it ends and stay within one local day; all-day events are not
                                     supported.
                                 details:
                                     - field: endsAt
-                                      message:
-                                          Event must start before it ends and stay within one local day; all-day events are not
+                                      message: Event must start before it ends and stay within one local day; all-day events are not
                                           supported.
                         confirmation:
                             value:
@@ -1289,11 +2244,53 @@ components:
                                 details:
                                     - field: participantIds
                                       message: Choose between 1 and 200 employees.
+        AboutUsUnauthorized:
+            description: Missing, invalid or expired authentication cookie.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        AboutUsForbidden:
+            description: Only users with the OWNER role can modify About Us records.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        AboutUsNotFound:
+            description: About Us record does not exist.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        HierarchyUnauthorized:
+            description: Missing, invalid or expired authentication cookie.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        HierarchyForbidden:
+            description: The authenticated role cannot perform this operation.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        HierarchyNotFound:
+            description: The hierarchy relationship, manager or subordinate does not exist.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        HierarchyConflict:
+            description: Duplicate relationship, self-assignment, hierarchy cycle or exhausted serialization
+                retries.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
         BadRequest:
-            description:
-                Malformed JSON or a missing/non-object body for a validated endpoint. Standard
+            description: Malformed JSON or a missing/non-object body for a validated endpoint. Standard
                 express.json() may turn a zero-byte JSON body into {}; validation then returns 422.
-                Route-specific schemas decide whether an empty object is valid.
+                An empty Employee object is valid.
             content:
                 application/json:
                     schema:
@@ -1343,9 +2340,8 @@ components:
                         message: You do not have permission to perform this action.
                         details: []
         ValidationError:
-            description:
-                Invalid fields, UUID or unknown properties; all validators forward parsed Zod data on
-                success. Each route schema defines required fields and rejects unknown properties.
+            description: Invalid fields, UUID or unknown properties; all validators forward parsed Zod data on
+                success. Auth {} reports missing fields. Employee {} is allowed.
             content:
                 application/json:
                     schema:
@@ -1357,8 +2353,7 @@ components:
                             - field: email
                               message: Enter a valid email address.
         TooManyAttempts:
-            description:
-                Five failed attempts per normalized email + IP in a sliding 5-minute window by default;
+            description: Five failed attempts per normalized email + IP in a sliding 5-minute window by default;
                 configurable. No waiting-time response metadata.
             content:
                 application/json:
@@ -1377,4 +2372,30 @@ components:
                     example:
                         success: false
                         message: Internal server error.
+                        details: []
+        NotFound:
+            description: Employee does not exist.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Employee not found
+                        details: []
+        EmployeeUnauthorized:
+            description: Missing, invalid or expired authentication cookie.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+        EmployeeForbidden:
+            description: The authenticated role cannot perform this employee operation.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: You do not have permission to perform this action.
                         details: []

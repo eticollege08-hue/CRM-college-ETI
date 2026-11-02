@@ -46,6 +46,12 @@ export class UserAccountService {
         await this.getProfileById(accountId);
         return await this.repository.updateProfile(accountId, data);
     }
+
+    async getEmployeeByAccountId(accountId: string) {
+        const employee = await this.repository.getEmployeeByAccountId(accountId);
+        return employee;
+    }
+
     async updateLastLoginAt(accountId: string) {
         return await this.repository.updateLastLoginAt(accountId, new Date());
     }

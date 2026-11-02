@@ -9,21 +9,28 @@
 - `src/modules/auth/` містить лише auth.constants.ts, auth.controller.ts, auth.routes.ts, auth.service.ts, auth.types.ts. Стандартні authService/authController; routes default export під /api/auth. Публічної реєстрації немає.
 - AuthService використовує реальний userAccountService: нормалізований email, bcrypt/dummy hash, isActive, JWT userId+roleKey, оновлення lastLoginAt. Ніяких Employee-запитів/створення під час login.
 - `src/modules/user-accounts/` — внутрішні service/repository; timestamp і атомарне створення Employee+UserAccount із заданою роллю для seed. Ідемпотентний seed не оновлює існуючі credentials; concurrent duplicate обробляється після відкату вкладеного write.
-- Публічного Employee CRUD немає. Є обмежений PATCH /api/employees/:id для fullName/position/level ролями OWNER, RECRUITER, HR, MANAGER; GET /hierarchy показує реальне дерево. PATCH /api/profile змінює профіль лише Employee поточного UserAccount: fullName, login email та контактні поля.
+- `src/modules/employees/` — CRUD для автентифікованих: читання доступне всім ролям, POST — OWNER/RECRUITER, PATCH — OWNER/HR/MANAGER, DELETE — OWNER/HR; PATCH-перевірка MANAGER обмежена прямими підлеглими через hierarchyService.isManager.
+- `src/modules/about-us/` — CRUD About Us: читання для автентифікованих ролей, зміни лише OWNER; SSR-сторінка рендерить записи з БД.
+- `src/modules/hierarchy/` — CRUD зв'язків керівник–підлеглий; захист циклів, самопризначення й дублікатів. Транзакції Serializable з максимум трьома спробами P2034.
+- PATCH /api/profile змінює лише власний Employee: ім'я, login email і контактні поля. GET /hierarchy показує реальне дерево.
 - `src/schemas/auth.schema.ts`, `src/schemas/jwt.schema.ts` — strict login та claims; JWT role береться з Prisma Role, типи виведені зі schema.
 - `src/services/auth-rate-limit.service.ts` — спільний singleton, sliding window 5 failures/300s (env), черга email+IP. Технічні помилки не рахуються, успіх не стирає невдачі, заблоковані запити не подовжують вікно. Перезапуск скидає пам'ять, процеси не мають спільного ліміту.
-- `src/middlewares/auth-origin.middleware.ts` — точний обов'язковий Origin за AUTH_ALLOWED_ORIGINS. Перевірка використовується на state-changing auth, hierarchy, employee, profile та event routes.
-- `src/utils/auth-cookie.util.ts` — HttpOnly, SameSite=Lax, host-only, Path=/; встановлення/очищення також видаляють legacy cookie на /api. Cache-Control: no-store. Logout лише очищає cookie, не відкликає JWT.
+- `src/middlewares/auth-origin.middleware.ts` — точний обов'язковий Origin за AUTH_ALLOWED_ORIGINS для state-changing auth, hierarchy, employee, profile та event routes.
+- `src/utils/auth-cookie.util.ts` — HttpOnly, SameSite=Lax, host-only, Path=/; встановлення/очищення видаляють legacy cookie на /api. Cache-Control: no-store. Logout очищає cookie, але не відкликає JWT.
+
 - `src/config/jwt.config.ts` — єдине джерело TTL (JWT_EXPIRES_IN, default 3600); JWT_SECRET без default, мінімум 32 байти. `src/utils/jwt.util.ts` і isAuth перевіряють HS256, signature, expiry та claims.
 - `src/middlewares/access.middleware.ts` — `accessFor(roles)` перевіряє лише `req.user.role`; без користувача або дозволеної ролі передає ApiError 403 у errorHandler. Порядок у захищеному маршруті: `isAuth, accessFor(["OWNER", "WORKER"])`.
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
 - `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
-- `src/modules/auth-ssr/` — constants/service/controller/routes; GET /login рендерить сторінку входу, успішний login перенаправляє на захищений GET /dashboard (демо дані), GET /profile показує дані поточного акаунта з редагуванням імені та контактів через PATCH /api/profile; фото профілю зберігається у localStorage браузера. GET /registration-preview — форма-макет без створення акаунта; GET /design-preview — відкритий перегляд dashboard; глобальні стилі в `src/public/css/variables.css`, спільний layout — `src/views/base/base.njk`.
-- `src/modules/hierarchy-ssr/` — GET /hierarchy формує реальне дерево з Employee/Hierarchy, обирає Daniel Kim за наявності, дозволяє пошук/фільтри/дії зі зв'язками; вкладка Leave читає записи через /api/events. Project та інші відсутні домени показують порожній стан, бо окремих моделей даних ще немає.
-- `src/routes/api/index.ts` — /auth, /docs, /events, /hierarchy, /employees, /profile; `src/routes/ssr/index.ts` — SSR registry під /.
+- `src/modules/auth-ssr/` — GET /login; після входу захищений GET /dashboard, GET /profile редагує власні ім'я й контакти через PATCH /api/profile; фото профілю зберігається у localStorage. GET /design-preview відкритий.
+- `src/modules/employees-ssr/` — захищені GET /employees, /employees/:id/profile і /employees/create; `src/modules/employee-profile-ssr/` рендерить профіль поточного акаунта.
+- `src/modules/hierarchy-ssr/` — GET /hierarchy формує реальне дерево; пошук, фільтри й керування зв'язками; вкладка Leave використовує /api/events.
+- `src/modules/projects/` та `src/modules/projects-ssr/` — CRUD проєктів і сторінка списку з БД.
+- `src/routes/api/index.ts` — /auth, /about-us, /docs, /employees, /events, /hierarchy, /profile, /projects; `src/routes/ssr/index.ts` реєструє сторінки під /.
+
 - `docs/openapi.yaml` — єдиний контракт API, Swagger UI /api/docs; `docs/auth-integration.md` — конфігурація, seed та dev-перевірка. JSON login/logout: success і message, без JWT/строку дії.
 - `src/middlewares/validate.middleware.ts` — єдина strict Zod-валідація тіла; parsed data замінюють req.body; {} вирішує schema. Невідомі поля відхиляються.
-- `src/middlewares/error.middleware.ts`, `src/utils/error.util.ts`, `src/constants/api-messages.constants.ts` — один ApiError/errorHandler та `{ success: false, message, details: [] }`. Валідація 422, malformed JSON 400, oversized 413, charset/encoding 415. Сирі exceptions/SQL/секрети не логувати.
+- `src/middlewares/error.middleware.ts`, `src/utils/error.util.ts`, `src/constants/api-messages.constants.ts` — один ApiError/errorHandler та `{ success: false, message, details: [] }`. Валідація 422, malformed JSON 400, oversized 413, charset/encoding 415. Невідомі маршрути зберігають стандартну 404-відповідь Express. Сирі exceptions/SQL/секрети не логувати.
 - `src/config/prisma.config.ts` — один lazy PrismaClient, log: []; під час імпорту немає підключення чи логів.
 - `prisma/schema.prisma` — Employee profile fields (усі optional), UserAccount з унікальними employeeId/email, Prisma Role; SQL-міграції не переписувати.
 - Auth unit-тести: `tests/auth/auth.service.test.ts`, `tests/auth/auth-rate-limit.service.test.ts`. Попередні тести CRM-102.2/UserAccount/SSR збережені.
