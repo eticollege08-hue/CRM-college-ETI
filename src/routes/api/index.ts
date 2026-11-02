@@ -3,17 +3,21 @@ import express from "express";
 import { isAuth } from "#middlewares/auth.middleware.js";
 
 import authRoutes from "#modules/auth/auth.routes.js";
+import aboutUsRouter from "#modules/about-us/about-us.router.js";
 import docsRouter from "#modules/docs/docs.router.js";
 import employeeRouter from "#modules/employees/employee.router.js";
 import hierarchyRouter from "#modules/hierarchy/hierarchy.router.js";
 import eventRouter from "#modules/events/event.router.js";
+import projectsRouter from "#modules/projects/projects.router.js";
 
 const router = express.Router();
 
 router.use("/docs", docsRouter);
 router.use("/auth", authRoutes);
+router.use("/about-us", isAuth, aboutUsRouter);
 router.use("/employees", isAuth, employeeRouter);
 router.use("/hierarchy", isAuth, hierarchyRouter);
 router.use("/events", isAuth, eventRouter);
+router.use("/projects", isAuth, projectsRouter);
 
 export default router;

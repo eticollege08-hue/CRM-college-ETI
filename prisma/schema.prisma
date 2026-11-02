@@ -56,6 +56,14 @@ model Hierarchy {
   @@map("hierarchy")
 }
 
+model AboutUs {
+  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  title       String
+  description String
+
+  @@map("about_us")
+}
+
 enum EventType {
   LEAVE
   SICK_LEAVE
@@ -92,4 +100,12 @@ model EventParticipant {
   @@id([eventId, employeeId])
   @@index([employeeId, eventId])
   @@map("event_participants")
+}
+
+model Project {
+  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  title       String
+  description String
+
+  @@map("projects")
 }
