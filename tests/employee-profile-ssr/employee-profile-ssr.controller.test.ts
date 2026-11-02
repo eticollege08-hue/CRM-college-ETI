@@ -16,6 +16,12 @@ const employee = {
     imageId: null,
     level: null,
     position: "HR",
+    phoneNumber: null,
+    slack: null,
+    telegram: null,
+    viber: null,
+    whatsapp: null,
+    discord: null,
 };
 
 describe("employeeProfilePageController", () => {

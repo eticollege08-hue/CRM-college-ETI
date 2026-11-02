@@ -3,7 +3,10 @@ import { Prisma } from "@prisma/client";
 import prisma from "#config/prisma.config.js";
 
 import type { PrismaClient } from "@prisma/client";
-import type { UserAccountCreateInput, UserAccountProfileUpdateInput } from "./user-account.types.js";
+import type {
+    UserAccountCreateInput,
+    UserAccountProfileUpdateInput,
+} from "./user-account.types.js";
 
 export class UserAccountRepository {
     constructor(private readonly db: PrismaClient = prisma) {}
