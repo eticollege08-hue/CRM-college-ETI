@@ -19,5 +19,25 @@ export default tseslint.config(
             ],
         },
     },
+    {
+        files: ["src/public/js/**/*.js"],
+        languageOptions: {
+            globals: {
+                CustomEvent: "readonly",
+                Element: "readonly",
+                document: "readonly",
+                fetch: "readonly",
+                FormData: "readonly",
+                HTMLButtonElement: "readonly",
+                HTMLFormElement: "readonly",
+                HTMLInputElement: "readonly",
+                Image: "readonly",
+                Request: "readonly",
+                URL: "readonly",
+                URLSearchParams: "readonly",
+                window: "readonly",
+            },
+        },
+    },
     prettier,
 );

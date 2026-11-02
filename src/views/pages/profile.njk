@@ -1,0 +1,58 @@
+{% extends "base/base.njk" %}
+{% block title %}Profile · CRM{% endblock %}
+{% block content %}
+{% include "partials/header.njk" %}
+<div class="app-shell profile-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace profile-workspace">
+    <header class="page-heading"><div><h1><svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</h1><p>View and manage your personal information</p></div></header>
+    <form id="profile-edit-form" class="profile-page-grid" novalidate>
+      <section class="profile-card card profile-information-card">
+        <header class="section-heading"><div><h2>Profile information</h2><p>Update your personal details. Position and salary are managed by administrator.</p></div></header>
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" aria-label="Profile photo" role="img">{{ profile.initials }}</div>
+          <label class="avatar-upload-button" for="profile-avatar-file" title="Change profile photo" aria-label="Change profile photo">📷</label>
+          <input id="profile-avatar-file" type="file" accept="image/png,image/jpeg" hidden>
+        </div>
+        <p class="avatar-hint">JPG, PNG up to 5 MB</p>
+        <label class="profile-input-label" for="full-name">Full name <span>*</span>
+          <input id="full-name" name="fullName" value="{{ profile.employee.fullName or '' }}" maxlength="150" required autocomplete="name">
+          <small class="field-error" data-error-for="fullName" aria-live="polite"></small>
+        </label>
+        <label class="profile-input-label" for="profile-position">Position
+          <span class="locked-field"><input id="profile-position" value="{{ profile.employee.position or 'HR Manager' }}" disabled><span aria-label="Locked">▣</span></span>
+        </label>
+        <label class="profile-input-label" for="profile-salary">Salary
+          <span class="locked-field"><input id="profile-salary" value="$4,500 / month" disabled><span aria-label="Locked">▣</span></span>
+        </label>
+        <div class="profile-form-actions"><button id="cancel-profile-edit" class="secondary-button" type="button">Cancel</button><button id="save-profile" class="primary-button" type="submit" disabled>Save</button></div>
+      </section>
+      <div class="profile-side-column">
+        <section class="profile-card card contact-card">
+          <header class="section-heading"><div><h2>Contact information</h2><p>Manage your contact details</p></div></header>
+          <div class="contact-input-grid">
+            <label class="profile-input-label" for="profile-phone"><span>☎</span>Phone number <b>*</b><input id="profile-phone" name="phoneNumber" type="tel" value="{{ profile.employee.phoneNumber or '+380 00 000 00 00' }}" maxlength="30" autocomplete="tel" required><small class="field-error" data-error-for="phoneNumber" aria-live="polite"></small></label>
+            <label class="profile-input-label" for="profile-email"><span>✉</span>Email <b>*</b><input id="profile-email" name="email" type="email" value="{{ profile.email }}" maxlength="254" required autocomplete="email"><small class="field-error" data-error-for="email" aria-live="polite"></small></label>
+            <label class="profile-input-label" for="profile-slack"><span class="brand-icon slack-icon">✣</span>Slack<input id="profile-slack" name="slack" value="{{ profile.employee.slack or 'anderson_liam' }}" placeholder="Enter your Slack username" maxlength="100"></label>
+            <label class="profile-input-label" for="profile-telegram"><span>➤</span>Telegram<input id="profile-telegram" name="telegram" value="{{ profile.employee.telegram or '@ander_son' }}" placeholder="@username" maxlength="100"></label>
+            <label class="profile-input-label" for="profile-viber"><span>◉</span>Viber<input id="profile-viber" name="viber" type="tel" value="{{ profile.employee.viber or '+380 00 000 00 00' }}" placeholder="+380 00 000 00 00" maxlength="30"></label>
+            <label class="profile-input-label" for="profile-whatsapp"><span class="whatsapp-icon">●</span>WhatsApp<input id="profile-whatsapp" name="whatsapp" type="tel" value="{{ profile.employee.whatsapp or '+380 00 000 00 00' }}" placeholder="+380 00 000 00 00" maxlength="30"></label>
+            <label class="profile-input-label" for="profile-discord"><span class="discord-icon">◉</span>Discord<input id="profile-discord" name="discord" value="{{ profile.employee.discord or 'liam_anderson' }}" placeholder="Enter your Discord username" maxlength="100"></label>
+          </div>
+        </section>
+        <section id="account-information" class="profile-card card account-card">
+          <header class="section-heading"><div><h2>Account information</h2><p>Additional information (view only)</p></div></header>
+          <dl>
+            <dt>♛ Position</dt><dd>{{ profile.employee.position or 'Sales Specialist' }} <span class="role-badge">CRM {{ profile.roleKey | title }}</span></dd>
+            <dt>▥ Level</dt><dd>{{ profile.employee.level or 'Level 3' }}</dd>
+            <dt>♧ Team</dt><dd>Team name</dd>
+            <dt>☆ Experience</dt><dd>5 years</dd>
+            <dt>♙ Certifications</dt><dd><a href="/hierarchy">{{ profile.employee.position or 'Sales Specialist' }}</a></dd>
+          </dl>
+        </section>
+      </div>
+      <p id="profile-save-message" class="profile-toast" role="status" aria-live="polite" hidden></p>
+    </form>
+  </main>
+</div>
+{% endblock %}

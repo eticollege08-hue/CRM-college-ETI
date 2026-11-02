@@ -4,7 +4,8 @@ info:
     version: 0.3.0
     description:
         "Login/logout use UserAccount and JWT cookies. Handled API errors use { success: false,
-        message, details }. Unmatched routes retain the default Express 404 response. Public self-registration is unavailable."
+        message, details }. Unmatched routes retain the default Express 404 response. Public
+        self-registration is unavailable."
     license:
         name: Proprietary
 servers:
@@ -25,6 +26,8 @@ tags:
       description: Employee manager and subordinate relationships
     - name: Projects
       description: CRM projects
+    - name: Profile
+      description: The authenticated user's own profile
 paths:
     /about-us:
         get:
@@ -275,12 +278,13 @@ paths:
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
             description:
                 Owner is the JWT UserAccount ID and cannot be supplied by clients. The creator is NOT
-                automatically a participant. Include their Employee ID explicitly to occupy their time.
-                At least one participant is required; employees need not have accounts. Starts/ends are
-                absolute instants and are checked within a single local day in timeZone; an exclusive
-                midnight end is allowed, an entire local day is not. Conflicts are strict overlaps for
-                any participant across every event type; adjoining intervals are allowed. Serializable
-                transactions prevent concurrent double-booking. Room Booking is out of scope.
+                automatically a participant. Include their Employee ID explicitly to occupy their
+                time. At least one participant is required; employees need not have accounts.
+                Starts/ends are absolute instants and are checked within a single local day in
+                timeZone; an exclusive midnight end is allowed, an entire local day is not.
+                Conflicts are strict overlaps for any participant across every event type; adjoining
+                intervals are allowed. Serializable transactions prevent concurrent double-booking.
+                Room Booking is out of scope.
             requestBody:
                 required: true
                 content:
@@ -408,8 +412,8 @@ paths:
                   description: Exact application origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically.
             description:
                 Only the author can update, including participants. Requires at least one field.
-                participantIds replaces the full membership list. Checks the merged values against the
-                current schedule, excluding the event itself; ownerAccountId is immutable.
+                participantIds replaces the full membership list. Checks the merged values against
+                the current schedule, excluding the event itself; ownerAccountId is immutable.
             requestBody:
                 required: true
                 content:
@@ -694,8 +698,8 @@ paths:
             summary: Render the calendar SSR template without frontend markup
             description:
                 Renders the zero-byte pages/calendar.njk template. Locals contain currentDate, month,
-                timeZone, UTC range, events, eventTypes, employee picker data and css/js/activePage. The
-                response is HTML, NOT JSON. Month defaults to the current month in timeZone. Use
+                timeZone, UTC range, events, eventTypes, employee picker data and css/js/activePage.
+                The response is HTML, NOT JSON. Month defaults to the current month in timeZone. Use
                 /api/events to fetch data from the client; GET /api/employees supplies the employee
                 picker. No-store; no frontend implementation.
             parameters:
@@ -774,7 +778,9 @@ paths:
                             description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
                                 type: string
-                            example: crm_access_token=example-token-not-a-real-credential; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax
+                            example:
+                                crm_access_token=example-token-not-a-real-credential; Path=/; Max-Age=3600; HttpOnly;
+                                Secure; SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -823,7 +829,9 @@ paths:
                             description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
                                 type: string
-                            example: crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax
+                            example:
+                                crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure;
+                                SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -843,7 +851,9 @@ paths:
                             description: One Path=/ cookie; Secure is omitted only for local HTTP development.
                             schema:
                                 type: string
-                            example: crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax
+                            example:
+                                crm_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure;
+                                SameSite=Lax
                         Cache-Control:
                             $ref: "#/components/headers/NoStore"
                     content:
@@ -906,7 +916,9 @@ paths:
                 - Employees
             operationId: createEmployee
             summary: Create an employee
-            description: Only OWNER and RECRUITER can create profiles. Every field is optional; an empty object is valid. Strings are trimmed before validation.
+            description:
+                Only OWNER and RECRUITER can create profiles. Every field is optional; an empty object
+                is valid. Strings are trimmed before validation.
             security:
                 - cookieAuth: []
             requestBody:
@@ -995,47 +1007,36 @@ paths:
         patch:
             tags:
                 - Employees
-            operationId: updateEmployee
-            summary: Update an employee
-            description: OWNER and HR can update employees. MANAGER can update only direct subordinates; the acting account ID is resolved to its employee ID.
             security:
                 - cookieAuth: []
+            operationId: updateEmployeeProfile
+            summary: Update an employee name, position, or level
+            description:
+                Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
+                AUTH_ALLOWED_ORIGINS. Empty position or level values clear those fields.
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
                             $ref: "#/components/schemas/EmployeeUpdateInput"
+                        example:
+                            fullName: Alex Johnson
+                            position: HR Manager
+                            level: "3"
             responses:
                 "200":
-                    description: Employee updated.
+                    description: Employee profile updated.
                     content:
                         application/json:
                             schema:
-                                type: object
-                                required:
-                                    - success
-                                    - message
-                                    - employee
-                                properties:
-                                    success:
-                                        type: boolean
-                                        enum:
-                                            - true
-                                    message:
-                                        type: string
-                                    employee:
-                                        $ref: "#/components/schemas/Employee"
+                                $ref: "#/components/schemas/EmployeeUpdateSuccess"
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
                     $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
-                    description: The role is not allowed, or the manager does not directly manage this employee.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: "#/components/schemas/ErrorResponse"
+                    $ref: "#/components/responses/Forbidden"
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "413":
@@ -1051,7 +1052,9 @@ paths:
                 - Employees
             operationId: deleteEmployee
             summary: Delete an employee
-            description: Only OWNER and HR can delete profiles. Related accounts or event participation can prevent deletion with 422.
+            description:
+                Only OWNER and HR can delete profiles. Related accounts or event participation can
+                prevent deletion with 422.
             security:
                 - cookieAuth: []
             responses:
@@ -1293,10 +1296,10 @@ paths:
             operationId: createHierarchyRelationship
             summary: Create a hierarchy relationship
             description:
-                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. employeeId is the manager; subordinateId is the
-                subordinate. Multiple managers are allowed. Rejects self-assignment, duplicates and
-                cycles. Checks and write share a Serializable transaction with up to three P2034
-                attempts."
+                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. employeeId is the manager; subordinateId
+                is the subordinate. Multiple managers are allowed. Rejects self-assignment,
+                duplicates and cycles. Checks and write share a Serializable transaction with up to
+                three P2034 attempts."
             security:
                 - cookieAuth: []
             requestBody:
@@ -1367,10 +1370,10 @@ paths:
             operationId: updateHierarchyRelationship
             summary: Update a hierarchy relationship
             description:
-                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Both fields are optional; an empty object is valid.
-                Omitted values are preserved. The replaced relationship is excluded during cycle
-                detection. Checks and write share a Serializable transaction with up to three P2034
-                attempts."
+                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Both fields are optional; an empty
+                object is valid. Omitted values are preserved. The replaced relationship is excluded
+                during cycle detection. Checks and write share a Serializable transaction with up to
+                three P2034 attempts."
             security:
                 - cookieAuth: []
             requestBody:
@@ -1409,7 +1412,9 @@ paths:
                 - Hierarchy
             operationId: deleteHierarchyRelationship
             summary: Delete a hierarchy relationship
-            description: "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Deletes the relationship without deleting employees."
+            description:
+                "Allowed roles: OWNER, RECRUITER, HR, MANAGER. Deletes the relationship without
+                deleting employees."
             security:
                 - cookieAuth: []
             responses:
@@ -1441,13 +1446,60 @@ paths:
                     $ref: "#/components/responses/ValidationError"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+    /profile:
+        patch:
+            tags:
+                - Profile
+            security:
+                - cookieAuth: []
+            operationId: updateOwnProfile
+            summary: Update the authenticated user's profile and contact details
+            description:
+                Only the profile belonging to the authenticated account is updated. Email changes
+                update the login email. Empty contact fields clear the saved value. Mutation Origin
+                must match AUTH_ALLOWED_ORIGINS.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProfileUpdateInput"
+                        example:
+                            fullName: Alex Johnson
+                            email: alex.johnson@example.com
+                            phoneNumber: +380 00 000 00 00
+                            slack: alex_johnson
+                            telegram: "@alex_johnson"
+            responses:
+                "200":
+                    description: Profile updated successfully.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AuthSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
 components:
     parameters:
         AuthOrigin:
             in: header
             name: Origin
             required: true
-            description: Exact origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically. Missing or disallowed values return 403.
+            description:
+                Exact origin from AUTH_ALLOWED_ORIGINS; browsers set this automatically. Missing or
+                disallowed values return 403.
             schema:
                 type: string
                 format: uri
@@ -1951,20 +2003,20 @@ components:
         EmployeeUpdateInput:
             type: object
             additionalProperties: false
+            minProperties: 1
             properties:
                 fullName:
                     type: string
                     minLength: 1
-                imageId:
-                    type: string
-                    minLength: 1
-                    nullable: true
-                level:
-                    type: string
-                    minLength: 1
+                    maxLength: 150
                 position:
                     type: string
-                    minLength: 1
+                    maxLength: 100
+                    description: Send an empty string to clear the position.
+                level:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the level.
         AuthSuccess:
             type: object
             additionalProperties: false
@@ -1996,7 +2048,10 @@ components:
                     writeOnly: true
                     minLength: 1
                     x-maxUtf8Bytes: 72
-                    description: At most 72 UTF-8 bytes, not 72 characters. Clients must check the encoded byte length; OpenAPI 3.0 maxLength cannot express this constraint. Do not trim or truncate.
+                    description:
+                        At most 72 UTF-8 bytes, not 72 characters. Clients must check the encoded byte length;
+                        OpenAPI 3.0 maxLength cannot express this constraint. Do not trim or
+                        truncate.
         ErrorDetail:
             type: object
             additionalProperties: false
@@ -2030,6 +2085,57 @@ components:
                     items:
                         $ref: "#/components/schemas/ErrorDetail"
                     description: Field errors; [] if absent. No credentials or technical details.
+        ProfileUpdateInput:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                fullName:
+                    type: string
+                    minLength: 1
+                    maxLength: 150
+                email:
+                    type: string
+                    format: email
+                    maxLength: 254
+                    description: Trimmed and lowercased; this becomes the new login email.
+                phoneNumber:
+                    type: string
+                    maxLength: 30
+                    description: Send an empty string to clear the value.
+                slack:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the value.
+                telegram:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the value.
+                viber:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the value.
+                whatsapp:
+                    type: string
+                    maxLength: 30
+                    description: Send an empty string to clear the value.
+                discord:
+                    type: string
+                    maxLength: 100
+                    description: Send an empty string to clear the value.
+        EmployeeUpdateSuccess:
+            type: object
+            additionalProperties: false
+            required:
+                - success
+                - message
+            properties:
+                success:
+                    type: boolean
+                    enum:
+                        - true
+                message:
+                    type: string
     responses:
         ProjectsUnauthorized:
             description: Missing, invalid or expired authentication cookie.
@@ -2203,7 +2309,9 @@ components:
                     schema:
                         $ref: "#/components/schemas/ErrorResponse"
         HierarchyConflict:
-            description: Duplicate relationship, self-assignment, hierarchy cycle or exhausted serialization retries.
+            description:
+                Duplicate relationship, self-assignment, hierarchy cycle or exhausted serialization
+                retries.
             content:
                 application/json:
                     schema:

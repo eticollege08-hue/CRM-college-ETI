@@ -1,0 +1,61 @@
+{% extends "base/base.njk" %}
+{% block title %}Employees hierarchy · CRM{% endblock %}
+{% block content %}
+{% include "partials/header.njk" %}
+{% macro employeeRows(nodes, depth) %}
+  {% for employee in nodes %}
+    <li class="tree-item" data-tree-item data-employee-id="{{ employee.id }}" data-name="{{ employee.fullName or 'Unnamed employee' }}" data-position="{{ employee.position or '' }}" data-level="{{ employee.level or '' }}" data-email="{{ employee.userAccount.email if employee.userAccount else '' }}" data-phone="{{ employee.phoneNumber or '+380 00 000 00 00' }}" data-role="{{ employee.userAccount.roleKey if employee.userAccount else '' }}" data-manager-names="{{ employee.managerNames | join(', ') }}" data-manager-ids="{{ employee.managerIds | join(',') }}" data-manager-relationship-ids="{{ employee.managerRelationshipIds | join(',') }}" data-projects="" data-location="Kropyvnytskyi, Ukraine" data-depth="{{ depth }}">
+      <div class="tree-row" style="--depth: {{ depth }}">
+        {% if employee.subordinates.length %}<button class="tree-toggle" type="button" aria-label="Collapse team" aria-expanded="true">⌄</button>{% else %}<span class="tree-spacer"></span>{% endif %}
+        <button class="employee-select" type="button" aria-pressed="false">
+          <span class="avatar" aria-hidden="true">{{ employee.initials }}</span>
+          <span class="member-copy"><strong>{{ employee.fullName or "Unnamed employee" }}</strong><small>{{ employee.position or "Position not set" }}{% if employee.levelLabel %} · {{ employee.levelLabel }}{% endif %}</small></span>
+          {% if employee.userAccount %}<span class="role-badge role-{{ employee.userAccount.roleKey | lower }}">{{ roleBadgeName(employee.userAccount.roleKey) | trim }}</span>{% endif %}
+        </button>
+      </div>
+      {% if employee.subordinates.length %}<ul class="tree-children">{{ employeeRows(employee.subordinates, depth + 1) }}</ul>{% endif %}
+    </li>
+  {% endfor %}
+{% endmacro %}
+{% macro roleBadgeName(role) %}
+  {% if role == "OWNER" %}CRM Owner{% elif role == "MANAGER" %}CRM Manager{% elif role == "HR" %}CRM HR{% elif role == "RECRUITER" %}CRM Recruiter{% elif role == "WORKER" %}CRM Worker{% else %}Employee{% endif %}
+{% endmacro %}
+<div class="app-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace">
+    <header class="page-heading">
+      <div><h1><svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v5M5 16v-3h14v3"/></svg>Employees Hierarchy</h1><p>Manage and view your team structure</p></div>
+      <a class="primary-button" href="/employees/create">＋ Add employee</a>
+    </header>
+    <div class="hierarchy-layout">
+      <section class="team-panel card" aria-label="Employee list">
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="employee-search" type="search" placeholder="Search by employee name…" autocomplete="off"></label>
+        <div class="filter-row">
+          <label>Team<select id="team-filter"><option value="">All teams</option>{% for employee in hierarchyTree %}<option value="{{ employee.id }}">{{ employee.fullName or "Unnamed employee" }}</option>{% endfor %}</select></label>
+          <label>Level<select id="level-filter"><option value="">All levels</option>{% for employee in employees %}{% if employee.level %}<option value="{{ employee.level }}">{{ employee.levelLabel }}</option>{% endif %}{% endfor %}</select></label>
+          <label>Position<select id="position-filter"><option value="">All positions</option>{% for employee in employees %}{% if employee.position %}<option value="{{ employee.position }}">{{ employee.position }}</option>{% endif %}{% endfor %}</select></label>
+          <label>Project<select id="project-filter"><option value="">All projects</option><option value="none">No project assigned</option></select></label>
+          <button id="clear-filters" class="text-button" type="button">Clear</button>
+        </div>
+        <p id="tree-status" class="tree-status" aria-live="polite">{{ employees.length }} employees</p>
+        {% if hierarchyTree.length %}<ul class="tree-root">{{ employeeRows(hierarchyTree, 0) }}</ul>{% else %}<div class="empty-state"><strong>No employees yet</strong><p>Add employees to start building the hierarchy.</p><a class="secondary-button" href="/employees/create">Create employee</a></div>{% endif %}
+      </section>
+
+      <section class="profile-panel card" aria-label="Selected employee details">
+        <div id="employee-details" class="profile-content" aria-live="polite">
+          <div class="empty-state detail-empty"><strong>Select an employee</strong><p>Choose a person in the hierarchy to see their details.</p></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<dialog id="relationship-dialog" class="relationship-dialog">
+  <form id="relationship-form" method="dialog">
+    <div class="dialog-heading"><div><h2 id="dialog-title">Add direct report</h2><p>Assign an employee to a manager.</p></div><button type="button" class="icon-button" data-close-dialog aria-label="Close">×</button></div>
+    <label>Manager<select id="manager-select" required><option value="">Select manager</option>{% for employee in employees %}<option value="{{ employee.id }}">{{ employee.fullName or "Unnamed employee" }}</option>{% endfor %}</select></label>
+    <label>Employee<select id="subordinate-select" required><option value="">Select employee</option>{% for employee in employees %}<option value="{{ employee.id }}">{{ employee.fullName or "Unnamed employee" }}</option>{% endfor %}</select></label>
+    <p id="dialog-message" class="dialog-message" role="status" aria-live="polite"></p>
+    <div class="dialog-actions"><button type="button" class="secondary-button" data-close-dialog>Cancel</button><button id="relationship-submit" type="submit" class="primary-button">Save relationship</button></div>
+  </form>
+</dialog>
+{% endblock %}
