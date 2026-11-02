@@ -9,14 +9,14 @@
   <section class="form-card">
     <h2>Employee information</h2><p class="muted">Basic information about the employee</p>
     <form id="employee-form" novalidate>
-      <label>Full name <span>*</span><input name="fullName" autocomplete="name" placeholder="Enter full name" required><small></small></label>
-      <label>Phone number <span>*</span><input name="phone" type="tel" autocomplete="tel" placeholder="+380 00 000 00 00" required><small></small></label>
-      <label>Email <span>*</span><input name="email" type="email" autocomplete="email" placeholder="name@company.com" required><small></small></label>
-      <label>Manager <span>*</span><select name="manager" required><option value="">Select manager</option>{% for employee in employees %}<option value="{{ employee.id }}">{{ employee.fullName }}</option>{% endfor %}</select><small></small></label>
-      <label>Position <span>*</span><input name="position" placeholder="Select position" required><small></small></label>
-      <label>Level <span>*</span><select name="level" required><option value="">Select level</option>{% for level in [1, 2, 3, 4, 5] %}<option value="{{ level }}">Level {{ level }}</option>{% endfor %}</select><small></small></label>
-      <label>Experience <span>*</span><input name="experience" type="number" min="0" placeholder="Years of experience" required><small></small></label>
-      <label>Salary <span>*</span><input name="salary" type="number" min="1" placeholder="Per month" required><small></small></label>
+      <label><span class="field-title">Full name <span>*</span></span><input name="fullName" autocomplete="name" placeholder="Enter full name" required><small></small></label>
+      <label><span class="field-title">Phone number <span>*</span></span><input name="phone" type="tel" autocomplete="tel" placeholder="+380 00 000 00 00" required><small></small></label>
+      <label><span class="field-title">Email <span>*</span></span><input name="email" type="email" autocomplete="email" placeholder="name@company.com" required><small></small></label>
+      <label><span class="field-title">Manager <span>*</span></span><select name="manager" required><option value="">Select manager</option>{% for employee in employees %}<option value="{{ employee.id }}">{{ employee.fullName }}</option>{% endfor %}</select><small></small></label>
+      <label><span class="field-title">Position <span>*</span></span><input name="position" placeholder="Select position" required><small></small></label>
+      <label><span class="field-title">Level <span>*</span></span><select name="level" required><option value="">Select level</option>{% for level in [1, 2, 3, 4, 5] %}<option value="{{ level }}">Level {{ level }}</option>{% endfor %}</select><small></small></label>
+      <label><span class="field-title">Experience <span>*</span></span><input name="experience" type="number" min="0" placeholder="Years of experience" required><small></small></label>
+      <label><span class="field-title">Salary <span>*</span></span><input name="salary" type="number" min="1" placeholder="Per month" required><small></small></label>
       <label class="full-width">Projects<input name="projects" placeholder="Select projects (optional)"></label>
       <div class="form-actions"><button id="cancel-button" class="button button-secondary" type="button">Cancel</button><button class="button button-primary" type="submit">Save</button></div>
       <p id="form-message" class="form-message" role="status" aria-live="polite"></p>

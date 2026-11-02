@@ -72,6 +72,24 @@
     font-size: var(--font-size-xs);
 }
 
+.user-popover {
+    min-width: 0;
+    max-width: 160px;
+}
+
+.user-popover .user-menu {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.user-popover .user-menu strong[data-current-user-name] {
+    display: block;
+    max-width: 20ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .header-popover {
     position: relative;
 }
