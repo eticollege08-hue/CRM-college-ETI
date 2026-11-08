@@ -1,4 +1,4 @@
-openapi: 3.0.3
+﻿openapi: 3.0.3
 info:
     title: CRM API
     version: 0.3.0
@@ -28,7 +28,251 @@ tags:
       description: CRM projects
     - name: Profile
       description: The authenticated user's own profile
+    - name: Estimates
+      description: Estimate management and calculations
 paths:
+    /estimates:
+        get:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: listEstimates
+            summary: List paginated estimates
+            description: Returns a paginated list of estimates. Supports search by name, sorting by name or createdAt. Deleted estimates are excluded.
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number
+                - in: query
+                  name: pageSize
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 20
+                  description: Page size
+                - in: query
+                  name: search
+                  schema:
+                      type: string
+                  description: Partial match search on name (case-insensitive)
+                - in: query
+                  name: sortBy
+                  schema:
+                      type: string
+                      enum: [name, createdAt]
+                      default: createdAt
+                  description: Sort field
+                - in: query
+                  name: sortOrder
+                  schema:
+                      type: string
+                      enum: [asc, desc]
+                      default: desc
+                  description: Sort direction
+            responses:
+                "200":
+                    description: List of estimates with pagination metadata
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - estimates
+                                    - meta
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    estimates:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Estimate"
+                                    meta:
+                                        $ref: "#/components/schemas/EstimatePaginationMeta"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+        post:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: createEstimate
+            summary: Create estimate
+            description: Creates an estimate. Only OWNER and MANAGER can create estimates.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/EstimateCreateRequest"
+            responses:
+                "201":
+                    description: Estimate created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                    - estimate
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    message:
+                                        type: string
+                                        example: Estimate created successfully.
+                                    estimate:
+                                        $ref: "#/components/schemas/Estimate"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+    /estimates/{id}:
+        get:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: getEstimateById
+            summary: Get estimate by ID
+            description: Retrieve an existing estimate by UUID. OWNER, MANAGER, HR, and EMPLOYEE (WORKER) have access.
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            responses:
+                "200":
+                    description: Estimate details
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - estimate
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    estimate:
+                                        $ref: "#/components/schemas/Estimate"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/EstimateNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+        patch:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: updateEstimate
+            summary: Update estimate
+            description: Update editable fields of an estimate. Only OWNER and MANAGER can update.
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/EstimateUpdateRequest"
+            responses:
+                "200":
+                    description: Estimate updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                    - estimate
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    message:
+                                        type: string
+                                        example: Estimate updated successfully.
+                                    estimate:
+                                        $ref: "#/components/schemas/Estimate"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/EstimateNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+        delete:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: deleteEstimate
+            summary: Soft delete estimate
+            description: Soft deletes an estimate. Only OWNER and MANAGER can delete.
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            responses:
+                "200":
+                    description: Estimate deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    message:
+                                        type: string
+                                        example: Estimate deleted successfully.
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/EstimateNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
     /about-us:
         get:
             tags:
@@ -2136,6 +2380,103 @@ components:
                         - true
                 message:
                     type: string
+        Estimate:
+            type: object
+            required:
+                - id
+                - name
+                - description
+                - createdBy
+                - createdAt
+                - updatedAt
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                name:
+                    type: string
+                    maxLength: 100
+                description:
+                    type: string
+                    maxLength: 1000
+                time:
+                    type: number
+                    nullable: true
+                    description: In hours, must be greater than 0
+                payment:
+                    type: number
+                    nullable: true
+                    description: Must be greater than 0, up to 2 decimal places
+                createdBy:
+                    type: string
+                    format: uuid
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                deletedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+        EstimateCreateRequest:
+            type: object
+            additionalProperties: false
+            required:
+                - name
+                - description
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                description:
+                    type: string
+                    minLength: 1
+                    maxLength: 1000
+                time:
+                    type: number
+                    minimum: 0.0001
+                    nullable: true
+                payment:
+                    type: number
+                    minimum: 0.01
+                    nullable: true
+        EstimateUpdateRequest:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                description:
+                    type: string
+                    minLength: 1
+                    maxLength: 1000
+                time:
+                    type: number
+                    minimum: 0.0001
+                    nullable: true
+                payment:
+                    type: number
+                    minimum: 0.01
+                    nullable: true
+        EstimatePaginationMeta:
+            type: object
+            required:
+                - totalCount
+                - page
+                - pageSize
+            properties:
+                totalCount:
+                    type: integer
+                page:
+                    type: integer
+                pageSize:
+                    type: integer
     responses:
         ProjectsUnauthorized:
             description: Missing, invalid or expired authentication cookie.
@@ -2430,4 +2771,14 @@ components:
                     example:
                         success: false
                         message: You do not have permission to perform this action.
+                        details: []
+        EstimateNotFound:
+            description: Estimate does not exist or has been deleted.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Estimate not found.
                         details: []
