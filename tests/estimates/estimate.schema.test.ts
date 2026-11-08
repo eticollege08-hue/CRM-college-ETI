@@ -56,8 +56,12 @@ describe("estimateCreateSchema", () => {
     });
 
     it("rejects empty name or description", () => {
-        expect(estimateCreateSchema.safeParse({ name: "   ", description: "Desc" }).success).toBe(false);
-        expect(estimateCreateSchema.safeParse({ name: "Name", description: "   " }).success).toBe(false);
+        expect(estimateCreateSchema.safeParse({ name: "   ", description: "Desc" }).success).toBe(
+            false,
+        );
+        expect(estimateCreateSchema.safeParse({ name: "Name", description: "   " }).success).toBe(
+            false,
+        );
     });
 
     it("rejects name exceeding 100 characters", () => {

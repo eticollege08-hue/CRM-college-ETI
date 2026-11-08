@@ -5,7 +5,11 @@ import { ESTIMATE_MESSAGES } from "./estimate.constants.js";
 import { estimateRepository } from "./estimate.repository.js";
 
 import type { EstimateRepository } from "./estimate.repository.js";
-import type { EstimateCreateInput, EstimateUpdateInput, EstimateListQuery } from "./estimate.types.js";
+import type {
+    EstimateCreateInput,
+    EstimateUpdateInput,
+    EstimateListQuery,
+} from "./estimate.types.js";
 
 export class EstimateService {
     constructor(private readonly repository: EstimateRepository = estimateRepository) {}

@@ -73,7 +73,12 @@ describe("EstimateController", () => {
         await controller.getList(req, res as unknown as Response);
 
         expect(getList).toHaveBeenCalledWith(
-            expect.objectContaining({ page: 1, pageSize: 20, sortBy: "createdAt", sortOrder: "desc" }),
+            expect.objectContaining({
+                page: 1,
+                pageSize: 20,
+                sortBy: "createdAt",
+                sortOrder: "desc",
+            }),
         );
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith({

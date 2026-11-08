@@ -1,7 +1,11 @@
 import prisma from "#config/prisma.config.js";
 
 import type { Prisma, PrismaClient } from "@prisma/client";
-import type { EstimateCreateInput, EstimateUpdateInput, EstimateListQuery } from "./estimate.types.js";
+import type {
+    EstimateCreateInput,
+    EstimateUpdateInput,
+    EstimateListQuery,
+} from "./estimate.types.js";
 
 export class EstimateRepository {
     constructor(private readonly db: PrismaClient = prisma) {}

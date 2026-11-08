@@ -14,7 +14,11 @@ const positivePaymentSchema = z
     .transform((val) => (typeof val === "number" ? val : Number(val)));
 
 export const estimateCreateSchema = z.strictObject({
-    name: z.string().trim().min(1, "Name is required.").max(100, "Name must not exceed 100 characters."),
+    name: z
+        .string()
+        .trim()
+        .min(1, "Name is required.")
+        .max(100, "Name must not exceed 100 characters."),
     description: z
         .string()
         .trim()
@@ -48,17 +52,22 @@ export const estimateListQuerySchema = z.strictObject({
         .union([z.string(), z.number()])
         .optional()
         .transform((val) => {
-            if (val === undefined || val === null || val === "") return ESTIMATE_PAGINATION.DEFAULT_PAGE;
+            if (val === undefined || val === null || val === "")
+                return ESTIMATE_PAGINATION.DEFAULT_PAGE;
             const parsed = typeof val === "number" ? val : parseInt(val, 10);
-            return Number.isInteger(parsed) && parsed > 0 ? parsed : ESTIMATE_PAGINATION.DEFAULT_PAGE;
+            return Number.isInteger(parsed) && parsed > 0
+                ? parsed
+                : ESTIMATE_PAGINATION.DEFAULT_PAGE;
         }),
     pageSize: z
         .union([z.string(), z.number()])
         .optional()
         .transform((val) => {
-            if (val === undefined || val === null || val === "") return ESTIMATE_PAGINATION.DEFAULT_PAGE_SIZE;
+            if (val === undefined || val === null || val === "")
+                return ESTIMATE_PAGINATION.DEFAULT_PAGE_SIZE;
             const parsed = typeof val === "number" ? val : parseInt(val, 10);
-            if (!Number.isInteger(parsed) || parsed < 1) return ESTIMATE_PAGINATION.DEFAULT_PAGE_SIZE;
+            if (!Number.isInteger(parsed) || parsed < 1)
+                return ESTIMATE_PAGINATION.DEFAULT_PAGE_SIZE;
             return Math.min(parsed, ESTIMATE_PAGINATION.MAX_PAGE_SIZE);
         }),
     search: z.string().trim().optional(),
