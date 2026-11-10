@@ -7,7 +7,7 @@ import { authPageController } from "./auth-ssr.controller.js";
 
 const router = Router();
 router.get("/login", asyncCatch(authPageController.login));
-router.get("/dashboard", isAuth, asyncCatch(authPageController.home));
+router.get("/home", isAuth, asyncCatch(authPageController.home));
 router.get("/profile", isAuth, asyncCatch(authPageController.profile));
 router.get(
     "/documents",

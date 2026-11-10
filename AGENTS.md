@@ -22,7 +22,7 @@
 - `src/middlewares/access.middleware.ts` — `accessFor(roles)` перевіряє лише `req.user.role`; без користувача або дозволеної ролі передає ApiError 403 у errorHandler. Порядок у захищеному маршруті: `isAuth, accessFor(["OWNER", "WORKER"])`.
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
 - `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
-- `src/modules/auth-ssr/` — GET /login; після входу захищений GET /dashboard, GET /profile редагує власні ім'я й контакти через PATCH /api/profile; фото профілю зберігається у localStorage. GET /design-preview відкритий.
+- `src/modules/auth-ssr/` — GET /login; після входу захищений GET /home (поки coming-soon сторінка), GET /profile редагує власні ім'я й контакти через PATCH /api/profile; фото профілю зберігається у localStorage. GET /design-preview відкритий.
 - `src/modules/employees-ssr/` — захищені GET /employees, /employees/:id/profile і /employees/create; `src/modules/employee-profile-ssr/` рендерить профіль поточного акаунта.
 - `src/modules/hierarchy-ssr/` — GET /hierarchy формує реальне дерево; пошук, фільтри й керування зв'язками; вкладка Leave використовує /api/events.
 - `src/modules/projects/` та `src/modules/projects-ssr/` — CRUD проєктів і сторінка списку з БД.
