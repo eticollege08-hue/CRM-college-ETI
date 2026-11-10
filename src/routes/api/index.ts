@@ -9,6 +9,7 @@ import hierarchyRouter from "#modules/hierarchy/hierarchy.router.js";
 import employeeRouter from "#modules/employees/employee.routes.js";
 import profileRouter from "#modules/profile/profile.routes.js";
 import projectsRouter from "#modules/projects/projects.router.js";
+import estimateRouter from "#modules/estimates/estimate.router.js";
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use("/employees", isAuth, employeeRouter);
 router.use("/hierarchy", isAuth, hierarchyRouter);
 router.use("/profile", isAuth, profileRouter);
 router.use("/projects", isAuth, projectsRouter);
+router.use("/estimates", isAuth, estimateRouter);
 
 export default router;
