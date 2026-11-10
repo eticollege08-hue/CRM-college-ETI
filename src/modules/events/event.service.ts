@@ -38,6 +38,15 @@ export class EventService {
         return await this.repository.getRange(new Date(query.from), new Date(query.to));
     }
 
+    async getParticipantEventsToday(employeeId: string, now = new Date()) {
+        const from = new Date(now);
+        from.setHours(0, 0, 0, 0);
+        const to = new Date(from);
+        to.setDate(to.getDate() + 1);
+
+        return await this.repository.getParticipantRange(employeeId, from, to);
+    }
+
     async getById(id: string, tx?: Prisma.TransactionClient) {
         const event = await this.repository.getById(id, tx);
         if (!event) throw new ApiError(HttpStatus.NOT_FOUND, EVENT_MESSAGES.NOT_FOUND);

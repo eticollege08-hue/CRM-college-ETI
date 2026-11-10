@@ -10,7 +10,7 @@ router.get("/login", asyncCatch(authPageController.login));
 router.get(
     "/home",
     isAuth,
-    asyncCatch((req, res) => authPageController.comingSoon(req, res, "Home", "home")),
+    asyncCatch(authPageController.home),
 );
 router.get("/profile", isAuth, asyncCatch(authPageController.profile));
 router.get(

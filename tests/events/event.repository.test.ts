@@ -8,6 +8,24 @@ import type { PrismaClient } from "@prisma/client";
 vi.mock("#config/prisma.config.js", () => ({ default: {} }));
 
 describe("EventRepository", () => {
+    it("returns only events overlapping the day for the requested participant without sorting", async () => {
+        const findMany = vi.fn().mockResolvedValue([]);
+        const repo = new EventRepository({ event: { findMany } } as unknown as PrismaClient);
+        const from = new Date("2026-11-10T00:00:00.000Z");
+        const to = new Date("2026-11-11T00:00:00.000Z");
+
+        await repo.getParticipantRange("employee-id", from, to);
+
+        expect(findMany).toHaveBeenCalledWith({
+            where: {
+                startsAt: { lt: to },
+                endsAt: { gt: from },
+                participants: { some: { employeeId: "employee-id" } },
+            },
+            select: { title: true, startsAt: true, endsAt: true },
+        });
+    });
+
     it("uses strict overlap boundaries and excludes the edited event", async () => {
         const findFirst = vi.fn().mockResolvedValue(null);
         const tx = { event: { findFirst } } as unknown as Prisma.TransactionClient;
