@@ -8,11 +8,13 @@ vi.mock("#modules/about-us/about-us.service.js", () => ({
     aboutUsService: { getAll },
 }));
 
+const companyId = "550e8400-e29b-41d4-a716-4466554400c1";
 const records = [
     {
         id: "550e8400-e29b-41d4-a716-446655440000",
         title: "About",
         description: "Our story",
+        companyId,
     },
 ];
 
@@ -21,19 +23,19 @@ describe("aboutUsPageService", () => {
         getAll.mockReset();
     });
 
-    it("returns all records for the About Us page", async () => {
+    it("returns the company's records for the About Us page", async () => {
         getAll.mockResolvedValue(records);
 
-        await expect(aboutUsPageService.getPageData()).resolves.toEqual({
+        await expect(aboutUsPageService.getPageData(companyId)).resolves.toEqual({
             aboutUsRecords: records,
         });
-        expect(getAll).toHaveBeenCalledOnce();
+        expect(getAll).toHaveBeenCalledExactlyOnceWith(companyId);
     });
 
     it("forwards errors from the About Us service", async () => {
         const error = new Error("About Us lookup failed");
         getAll.mockRejectedValue(error);
 
-        await expect(aboutUsPageService.getPageData()).rejects.toBe(error);
+        await expect(aboutUsPageService.getPageData(companyId)).rejects.toBe(error);
     });
 });

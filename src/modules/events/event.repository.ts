@@ -38,32 +38,37 @@ export class EventRepository {
         throw new ApiError(HttpStatus.CONFLICT, EVENT_MESSAGES.TRANSACTION_CONFLICT);
     }
 
-    async getById(id: string, tx: Prisma.TransactionClient = this.db) {
-        return await tx.event.findUnique({ where: { id }, include: eventInclude });
+    async getById(id: string, companyId: string, tx: Prisma.TransactionClient = this.db) {
+        return await tx.event.findUnique({ where: { id, companyId }, include: eventInclude });
     }
 
-    async getRange(from: Date, to: Date) {
+    async getRange(from: Date, to: Date, companyId: string) {
         return await this.db.event.findMany({
-            where: { startsAt: { lt: to }, endsAt: { gt: from } },
+            where: { companyId, startsAt: { lt: to }, endsAt: { gt: from } },
             orderBy: [{ startsAt: "asc" }, { id: "asc" }],
             include: eventInclude,
         });
     }
 
-    async getEmployees(ids: string[], tx: Prisma.TransactionClient) {
-        return await tx.employee.findMany({ where: { id: { in: ids } }, select: { id: true } });
+    async getEmployees(ids: string[], companyId: string, tx: Prisma.TransactionClient) {
+        return await tx.employee.findMany({
+            where: { id: { in: ids }, companyId },
+            select: { id: true },
+        });
     }
 
     async hasConflict(
         ids: string[],
         startsAt: Date,
         endsAt: Date,
+        companyId: string,
         tx: Prisma.TransactionClient,
         excludeId?: string,
     ) {
         const conflict = await tx.event.findFirst({
             where: {
                 ...(excludeId ? { id: { not: excludeId } } : {}),
+                companyId,
                 startsAt: { lt: endsAt },
                 endsAt: { gt: startsAt },
                 participants: { some: { employeeId: { in: ids } } },
@@ -75,6 +80,7 @@ export class EventRepository {
 
     async create(
         ownerAccountId: string,
+        companyId: string,
         data: EventWrite,
         ids: string[],
         tx: Prisma.TransactionClient,
@@ -83,15 +89,22 @@ export class EventRepository {
             data: {
                 ...data,
                 ownerAccountId,
+                companyId,
                 participants: { create: ids.map((employeeId) => ({ employeeId })) },
             },
             include: eventInclude,
         });
     }
 
-    async update(id: string, data: EventWrite, ids: string[], tx: Prisma.TransactionClient) {
+    async update(
+        id: string,
+        companyId: string,
+        data: EventWrite,
+        ids: string[],
+        tx: Prisma.TransactionClient,
+    ) {
         return await tx.event.update({
-            where: { id },
+            where: { id, companyId },
             data: {
                 ...data,
                 participants: { deleteMany: {}, create: ids.map((employeeId) => ({ employeeId })) },
@@ -100,8 +113,8 @@ export class EventRepository {
         });
     }
 
-    async delete(id: string, tx: Prisma.TransactionClient) {
-        await tx.event.delete({ where: { id } });
+    async delete(id: string, companyId: string, tx: Prisma.TransactionClient) {
+        await tx.event.delete({ where: { id, companyId } });
     }
 }
 

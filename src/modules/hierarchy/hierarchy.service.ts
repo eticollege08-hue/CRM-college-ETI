@@ -20,19 +20,19 @@ export class HierarchyService {
         private readonly db: PrismaClient = prisma,
     ) {}
 
-    async create(data: HierarchyCreateInput) {
+    async create(data: HierarchyCreateInput, companyId: string) {
         return await this.runInTransaction(async (tx) => {
-            await this.checkRelationship(data, tx);
-            return await this.repository.create(data, tx);
+            await this.checkRelationship(data, companyId, tx);
+            return await this.repository.create(data, companyId, tx);
         });
     }
 
-    async getAll() {
-        return await this.repository.getAll();
+    async getAll(companyId: string) {
+        return await this.repository.getAll(companyId);
     }
 
-    async getById(id: string, tx: Prisma.TransactionClient = this.db) {
-        const hierarchy = await this.repository.getById(id, tx);
+    async getById(id: string, companyId: string, tx: Prisma.TransactionClient = this.db) {
+        const hierarchy = await this.repository.getById(id, companyId, tx);
 
         if (!hierarchy) {
             throw new ApiError(HttpStatus.NOT_FOUND, HIERARCHY_MESSAGES.NOT_FOUND);
@@ -41,34 +41,35 @@ export class HierarchyService {
         return hierarchy;
     }
 
-    async update(id: string, data: HierarchyUpdateInput) {
+    async update(id: string, companyId: string, data: HierarchyUpdateInput) {
         return await this.runInTransaction(async (tx) => {
-            const hierarchy = await this.getById(id, tx);
+            const hierarchy = await this.getById(id, companyId, tx);
 
             await this.checkRelationship(
                 {
                     employeeId: data.employeeId ?? hierarchy.employeeId,
                     subordinateId: data.subordinateId ?? hierarchy.subordinateId,
                 },
+                companyId,
                 tx,
                 id,
             );
 
-            return await this.repository.update(id, data, tx);
+            return await this.repository.update(id, companyId, data, tx);
         });
     }
 
-    async delete(id: string) {
+    async delete(id: string, companyId: string) {
         return await this.runInTransaction(async (tx) => {
-            await this.getById(id, tx);
-            return await this.repository.delete(id, tx);
+            await this.getById(id, companyId, tx);
+            return await this.repository.delete(id, companyId, tx);
         });
     }
 
-    async isManager(employeeId: string, managerId: string): Promise<boolean> {
+    async isManager(employeeId: string, managerId: string, companyId: string): Promise<boolean> {
         if (employeeId === managerId) return false;
 
-        const relationship = await this.repository.getByPair(managerId, employeeId);
+        const relationship = await this.repository.getByPair(managerId, employeeId, companyId);
         return relationship !== null;
     }
 
@@ -76,6 +77,7 @@ export class HierarchyService {
 
     private async checkRelationship(
         data: HierarchyCreateInput,
+        companyId: string,
         tx: Prisma.TransactionClient,
         currentId?: string,
     ) {
@@ -84,29 +86,35 @@ export class HierarchyService {
         }
 
         const [manager, subordinate] = await Promise.all([
-            this.employees.getById(data.employeeId, tx),
-            this.employees.getById(data.subordinateId, tx),
+            this.employees.getById(data.employeeId, companyId, tx),
+            this.employees.getById(data.subordinateId, companyId, tx),
         ]);
 
         if (!manager || !subordinate) {
             throw new ApiError(HttpStatus.NOT_FOUND, HIERARCHY_MESSAGES.EMPLOYEE_NOT_FOUND);
         }
 
-        const existing = await this.repository.getByPair(data.employeeId, data.subordinateId, tx);
+        const existing = await this.repository.getByPair(
+            data.employeeId,
+            data.subordinateId,
+            companyId,
+            tx,
+        );
         if (existing && existing.id !== currentId) {
             throw new ApiError(HttpStatus.CONFLICT, HIERARCHY_MESSAGES.ALREADY_EXISTS);
         }
 
-        await this.checkCycle(data.employeeId, data.subordinateId, tx, currentId);
+        await this.checkCycle(data.employeeId, data.subordinateId, companyId, tx, currentId);
     }
 
     private async checkCycle(
         employeeId: string,
         subordinateId: string,
+        companyId: string,
         tx: Prisma.TransactionClient,
         currentId?: string,
     ) {
-        const relationships = await this.repository.getAllRelationships(tx);
+        const relationships = await this.repository.getAllRelationships(companyId, tx);
         const subordinatesByManager = new Map<string, string[]>();
 
         for (const relationship of relationships) {

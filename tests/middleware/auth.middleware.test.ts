@@ -77,6 +77,7 @@ describe("isAuth (CRM-102.2)", () => {
         const payload: JWT = {
             userId: "550e8400-e29b-41d4-a716-446655440000",
             role: "OWNER",
+            companyId: "550e8400-e29b-41d4-a716-4466554400c1",
             exp: 2000000000,
         };
         vi.mocked(verifyToken).mockReturnValueOnce(payload);

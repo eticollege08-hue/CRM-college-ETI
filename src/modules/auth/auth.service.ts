@@ -33,7 +33,11 @@ export class AuthService {
             );
             if (!account || !account.isActive || !matches) return null;
 
-            const token = generateToken({ userId: account.id, role: account.roleKey });
+            const token = generateToken({
+                userId: account.id,
+                role: account.roleKey,
+                companyId: account.companyId,
+            });
             await this.accounts.updateLastLoginAt(account.id);
             return token;
         });

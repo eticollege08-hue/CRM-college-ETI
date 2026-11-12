@@ -10,7 +10,7 @@ import type {
 export class EstimateRepository {
     constructor(private readonly db: PrismaClient = prisma) {}
 
-    async create(data: EstimateCreateInput & { createdBy: string }) {
+    async create(data: EstimateCreateInput & { createdBy: string; companyId: string }) {
         return await this.db.estimate.create({
             data: {
                 name: data.name,
@@ -18,21 +18,24 @@ export class EstimateRepository {
                 time: data.time ?? null,
                 payment: data.payment !== undefined && data.payment !== null ? data.payment : null,
                 createdBy: data.createdBy,
+                companyId: data.companyId,
             },
         });
     }
 
-    async getById(id: string, tx: Prisma.TransactionClient = this.db) {
+    async getById(id: string, companyId: string, tx: Prisma.TransactionClient = this.db) {
         return await tx.estimate.findFirst({
             where: {
                 id,
+                companyId,
                 deletedAt: null,
             },
         });
     }
 
-    async getList(query: EstimateListQuery) {
+    async getList(query: EstimateListQuery, companyId: string) {
         const where: Prisma.EstimateWhereInput = {
+            companyId,
             deletedAt: null,
             ...(query.search
                 ? {
@@ -69,8 +72,8 @@ export class EstimateRepository {
         };
     }
 
-    async update(id: string, data: EstimateUpdateInput) {
-        const updateData: Prisma.EstimateUpdateInput = {};
+    async update(id: string, companyId: string, data: EstimateUpdateInput) {
+        const updateData: Prisma.EstimateUncheckedUpdateInput = {};
 
         if (data.name !== undefined) {
             updateData.name = data.name;
@@ -86,14 +89,14 @@ export class EstimateRepository {
         }
 
         return await this.db.estimate.update({
-            where: { id },
+            where: { id, companyId },
             data: updateData,
         });
     }
 
-    async softDelete(id: string) {
+    async softDelete(id: string, companyId: string) {
         return await this.db.estimate.update({
-            where: { id },
+            where: { id, companyId },
             data: { deletedAt: new Date() },
         });
     }

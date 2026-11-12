@@ -9,19 +9,21 @@ vi.mock("#config/prisma.config.js", () => ({ default: {} }));
 
 const id = "550e8400-e29b-41d4-a716-446655440000";
 const actorId = "550e8400-e29b-41d4-a716-446655440001";
+const companyId = "550e8400-e29b-41d4-a716-4466554400c1";
+const user = { userId: actorId, role: "WORKER", companyId, exp: 2000000000 };
 
 describe("EventController", () => {
-    it("responds with 201 and the event, passing the JWT account ID rather than client ownership", async () => {
+    it("responds with 201 and the event, passing the JWT account and company rather than client ownership", async () => {
         const event = { id };
         const create = vi.fn().mockResolvedValue(event);
         const controller = new EventController({ create } as unknown as EventService);
         const req = {
             body: { title: "Planning" },
-            user: { userId: actorId },
+            user,
         } as unknown as Request;
         const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
         await controller.create(req, res as unknown as Response);
-        expect(create).toHaveBeenCalledWith(req.body, actorId);
+        expect(create).toHaveBeenCalledWith(req.body, { accountId: actorId, companyId });
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith({
             success: true,
@@ -35,11 +37,11 @@ describe("EventController", () => {
         const req = {
             params: { id },
             body: { confirmationTitle: "Planning" },
-            user: { userId: actorId },
+            user,
         } as unknown as Request;
         const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
         await controller.delete(req, res as unknown as Response);
-        expect(remove).toHaveBeenCalledWith(id, "Planning", actorId);
+        expect(remove).toHaveBeenCalledWith(id, "Planning", { accountId: actorId, companyId });
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith({
             success: true,
@@ -50,8 +52,16 @@ describe("EventController", () => {
         const getRange = vi.fn();
         const controller = new EventController({ getRange } as unknown as EventService);
         await expect(
-            controller.getAll({ query: {} } as Request, {} as Response),
+            controller.getAll({ query: {}, user } as unknown as Request, {} as Response),
         ).rejects.toBeDefined();
         expect(getRange).not.toHaveBeenCalled();
+    });
+    it("rejects with 401 when the request has no authenticated account", async () => {
+        const create = vi.fn();
+        const controller = new EventController({ create } as unknown as EventService);
+        await expect(
+            controller.create({ body: {} } as Request, {} as Response),
+        ).rejects.toMatchObject({ status: 401 });
+        expect(create).not.toHaveBeenCalled();
     });
 });

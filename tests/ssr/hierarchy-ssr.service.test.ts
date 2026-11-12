@@ -19,6 +19,7 @@ vi.mock("#modules/user-accounts/user-account.service.js", () => ({
 }));
 
 const accountId = "account";
+const companyId = "company";
 const employee = (id: string) => ({
     id,
     fullName: "Employee",
@@ -45,7 +46,9 @@ describe("hierarchyPageService", () => {
     });
 
     it("returns an empty tree when there are no employees", async () => {
-        await expect(hierarchyPageService.hierarchyTree(accountId)).resolves.toMatchObject({
+        await expect(
+            hierarchyPageService.hierarchyTree(accountId, companyId),
+        ).resolves.toMatchObject({
             hierarchyTree: [],
         });
     });
@@ -53,7 +56,9 @@ describe("hierarchyPageService", () => {
     it("includes all employees without managers as roots", async () => {
         getEmployees.mockResolvedValue([employee("a"), employee("b")]);
 
-        await expect(hierarchyPageService.hierarchyTree(accountId)).resolves.toMatchObject({
+        await expect(
+            hierarchyPageService.hierarchyTree(accountId, companyId),
+        ).resolves.toMatchObject({
             hierarchyTree: [
                 { id: "a", subordinates: [] },
                 { id: "b", subordinates: [] },
@@ -69,7 +74,9 @@ describe("hierarchyPageService", () => {
             relationship("b", "d"),
         ]);
 
-        await expect(hierarchyPageService.hierarchyTree(accountId)).resolves.toMatchObject({
+        await expect(
+            hierarchyPageService.hierarchyTree(accountId, companyId),
+        ).resolves.toMatchObject({
             hierarchyTree: [
                 {
                     id: "a",
@@ -92,7 +99,9 @@ describe("hierarchyPageService", () => {
         ]);
         const shared = { id: "shared", subordinates: [{ id: "child", subordinates: [] }] };
 
-        await expect(hierarchyPageService.hierarchyTree(accountId)).resolves.toMatchObject({
+        await expect(
+            hierarchyPageService.hierarchyTree(accountId, companyId),
+        ).resolves.toMatchObject({
             hierarchyTree: [
                 { id: "a", subordinates: [shared] },
                 { id: "b", subordinates: [shared] },
@@ -111,7 +120,7 @@ describe("hierarchyPageService", () => {
             ),
         );
 
-        const { hierarchyTree } = await hierarchyPageService.hierarchyTree(accountId);
+        const { hierarchyTree } = await hierarchyPageService.hierarchyTree(accountId, companyId);
 
         expect(hierarchyTree).toHaveLength(1);
         let node = hierarchyTree[0];
@@ -120,8 +129,8 @@ describe("hierarchyPageService", () => {
             node = node.subordinates[0];
         }
         expect(node).toMatchObject({ id: String(depth - 1), subordinates: [] });
-        expect(getEmployees).toHaveBeenCalledOnce();
-        expect(getRelationships).toHaveBeenCalledOnce();
+        expect(getEmployees).toHaveBeenCalledExactlyOnceWith(companyId);
+        expect(getRelationships).toHaveBeenCalledExactlyOnceWith(companyId);
     });
 
     it("loads the authenticated profile and includes employee and manager metadata", async () => {
@@ -130,7 +139,7 @@ describe("hierarchyPageService", () => {
         getEmployees.mockResolvedValue(employees);
         getRelationships.mockResolvedValue(relationships);
 
-        const result = await hierarchyPageService.hierarchyTree(accountId);
+        const result = await hierarchyPageService.hierarchyTree(accountId, companyId);
 
         expect(getProfile).toHaveBeenCalledExactlyOnceWith(accountId);
         expect(result).toMatchObject({
@@ -167,7 +176,9 @@ describe("hierarchyPageService", () => {
                       : getProfile;
             lookup.mockRejectedValue(error);
 
-            await expect(hierarchyPageService.hierarchyTree(accountId)).rejects.toBe(error);
+            await expect(hierarchyPageService.hierarchyTree(accountId, companyId)).rejects.toBe(
+                error,
+            );
         },
     );
 });

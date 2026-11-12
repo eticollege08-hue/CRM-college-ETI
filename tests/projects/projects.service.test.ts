@@ -5,10 +5,12 @@ import { ProjectsService } from "../../src/modules/projects/projects.service.js"
 
 import type { ProjectsRepository } from "../../src/modules/projects/projects.repository.js";
 
+const companyId = "550e8400-e29b-41d4-a716-4466554400c1";
 const project = {
     id: "550e8400-e29b-41d4-a716-446655440000",
     title: "CRM",
     description: "Internal CRM project",
+    companyId,
 };
 const input = { title: project.title, description: project.description };
 
@@ -27,50 +29,53 @@ describe("ProjectsService", () => {
         repository.getById.mockResolvedValue(project);
     });
 
-    it("delegates create and list operations to the repository", async () => {
+    it("delegates create and list operations to the repository with the company", async () => {
         repository.create.mockResolvedValue(project);
         repository.getAll.mockResolvedValue([project]);
 
-        await expect(service.create(input)).resolves.toEqual(project);
-        await expect(service.getAll()).resolves.toEqual([project]);
+        await expect(service.create(input, companyId)).resolves.toEqual(project);
+        await expect(service.getAll(companyId)).resolves.toEqual([project]);
 
-        expect(repository.create).toHaveBeenCalledWith(input);
-        expect(repository.getAll).toHaveBeenCalledOnce();
+        expect(repository.create).toHaveBeenCalledWith(input, companyId);
+        expect(repository.getAll).toHaveBeenCalledExactlyOnceWith(companyId);
     });
 
-    it("returns a project by ID", async () => {
-        await expect(service.getById(project.id)).resolves.toEqual(project);
-        expect(repository.getById).toHaveBeenCalledWith(project.id);
+    it("returns a project by ID within the company", async () => {
+        await expect(service.getById(project.id, companyId)).resolves.toEqual(project);
+        expect(repository.getById).toHaveBeenCalledWith(project.id, companyId);
     });
 
     it("updates an existing project", async () => {
         const data = { title: "Updated CRM" };
         repository.update.mockResolvedValue({ ...project, ...data });
 
-        await expect(service.update(project.id, data)).resolves.toEqual({ ...project, ...data });
+        await expect(service.update(project.id, companyId, data)).resolves.toEqual({
+            ...project,
+            ...data,
+        });
 
-        expect(repository.getById).toHaveBeenCalledWith(project.id);
-        expect(repository.update).toHaveBeenCalledWith(project.id, data);
+        expect(repository.getById).toHaveBeenCalledWith(project.id, companyId);
+        expect(repository.update).toHaveBeenCalledWith(project.id, companyId, data);
     });
 
     it("deletes an existing project", async () => {
         repository.delete.mockResolvedValue(project);
 
-        await expect(service.delete(project.id)).resolves.toEqual(project);
+        await expect(service.delete(project.id, companyId)).resolves.toEqual(project);
 
-        expect(repository.getById).toHaveBeenCalledWith(project.id);
-        expect(repository.delete).toHaveBeenCalledWith(project.id);
+        expect(repository.getById).toHaveBeenCalledWith(project.id, companyId);
+        expect(repository.delete).toHaveBeenCalledWith(project.id, companyId);
     });
 
     it.each(["getById", "update", "delete"] as const)(
-        "returns 404 when a project is missing during %s",
+        "returns 404 when a project is missing in the company during %s",
         async (operation) => {
             repository.getById.mockResolvedValue(null);
 
             const result =
                 operation === "update"
-                    ? service.update(project.id, { title: "Updated CRM" })
-                    : service[operation](project.id);
+                    ? service.update(project.id, companyId, { title: "Updated CRM" })
+                    : service[operation](project.id, companyId);
 
             await expect(result).rejects.toMatchObject({
                 status: 404,

@@ -4,6 +4,7 @@ import { z } from "zod";
 export const jwtPayloadSchema = z.strictObject({
     userId: z.uuid(),
     role: z.enum(Role),
+    companyId: z.uuid(),
 });
 
 export const jwtSchema = jwtPayloadSchema.extend({

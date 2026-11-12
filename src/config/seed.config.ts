@@ -1,5 +1,8 @@
 import { Role } from "@prisma/client";
 
+// Same name as the company the multi-tenancy migration creates for pre-existing rows.
+export const MOCK_SEED_COMPANY_NAME = "Default company";
+
 // Public mock credentials for local role testing, never for production.
 export const MOCK_SEED_ACCOUNTS = [
     {
