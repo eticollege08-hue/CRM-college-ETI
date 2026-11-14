@@ -13,8 +13,7 @@ export class EmployeeController {
     }
 
     async update(req: Request, res: Response) {
-        const { companyId } = getAuthUser(req);
-        await this.service.update(req.params.id as string, companyId, req.body);
+        await this.service.update(req.params.id as string, getAuthUser(req), req.body);
         res.status(HttpStatus.OK).json({ success: true, message: EMPLOYEE_MESSAGES.UPDATED });
     }
 }

@@ -31,7 +31,9 @@ export class AuthService {
                 input.password,
                 account?.passwordHash ?? dummyHash,
             );
-            if (!account || !account.isActive || !matches) return null;
+
+            if (!account || !account.isActive || account.company.deletedAt !== null || !matches)
+                return null;
 
             const token = generateToken({
                 userId: account.id,

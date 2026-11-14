@@ -15,6 +15,22 @@ const employee = {
     position: "HR",
 };
 
+describe("UserAccountRepository.getByEmail", () => {
+    it("loads the account together with its company's soft-delete flag", async () => {
+        const findUnique = vi.fn().mockResolvedValue(null);
+        const repository = new UserAccountRepository({
+            userAccount: { findUnique },
+        } as unknown as PrismaClient);
+
+        await repository.getByEmail("olena@example.com");
+
+        expect(findUnique).toHaveBeenCalledWith({
+            where: { email: "olena@example.com" },
+            include: { company: { select: { deletedAt: true } } },
+        });
+    });
+});
+
 describe("UserAccountRepository.getEmployeeByAccountId", () => {
     it("queries the account by ID and returns only its employee relation", async () => {
         const findUnique = vi.fn().mockResolvedValue({ employee });

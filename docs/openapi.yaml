@@ -1001,8 +1001,8 @@ paths:
             security: []
             description:
                 Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
-                accounts, wrong passwords and inactive accounts produce identical 401 responses. No
-                public registration. Sets the authentication cookie at Path=/ only.
+                accounts, wrong passwords, inactive accounts and accounts of a soft-deleted company
+                produce identical 401 responses. No public registration. Sets the authentication cookie at Path=/ only.
             requestBody:
                 required: true
                 content:
@@ -1257,8 +1257,9 @@ paths:
             operationId: updateEmployeeProfile
             summary: Update an employee name, position, or level
             description:
-                Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
-                AUTH_ALLOWED_ORIGINS. Empty position or level values clear those fields.
+                Available to OWNER, RECRUITER, HR, and MANAGER accounts. A MANAGER may update only
+                their direct subordinates. Mutation Origin must match AUTH_ALLOWED_ORIGINS. Empty
+                position or level values clear those fields.
             requestBody:
                 required: true
                 content:
@@ -1281,7 +1282,7 @@ paths:
                 "401":
                     $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
-                    $ref: "#/components/responses/Forbidden"
+                    $ref: "#/components/responses/EmployeeUpdateForbidden"
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "413":
@@ -2709,7 +2710,9 @@ components:
                         message: Invalid request.
                         details: []
         LoginUnauthorized:
-            description: Wrong credentials, missing account or inactive account; identical response.
+            description:
+                Wrong credentials, missing account, inactive account or soft-deleted company;
+                identical response.
             content:
                 application/json:
                     schema:
@@ -2790,6 +2793,25 @@ components:
                         success: false
                         message: You do not have permission to perform this action.
                         details: []
+        EmployeeUpdateForbidden:
+            description:
+                Origin is missing or not allowed, the role cannot update employees, or a MANAGER
+                targets an employee who is not their direct subordinate.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        forbidden:
+                            value:
+                                success: false
+                                message: You do not have permission to perform this action.
+                                details: []
+                        notDirectManager:
+                            value:
+                                success: false
+                                message: You can only update your direct subordinates' data
+                                details: []
         EstimateNotFound:
             description: Estimate does not exist or has been deleted.
             content:

@@ -16,7 +16,10 @@ export class UserAccountRepository {
     }
 
     async getByEmail(email: string) {
-        return await this.db.userAccount.findUnique({ where: { email } });
+        return await this.db.userAccount.findUnique({
+            where: { email },
+            include: { company: { select: { deletedAt: true } } },
+        });
     }
 
     async getEmployeeByAccountId(accountId: string) {

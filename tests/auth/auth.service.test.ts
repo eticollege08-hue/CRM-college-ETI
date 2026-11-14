@@ -21,6 +21,7 @@ const account = {
     roleKey: "OWNER" as const,
     isActive: true,
     lastLoginAt: null,
+    company: { deletedAt: null },
 };
 
 describe("AuthService", () => {
@@ -57,13 +58,18 @@ describe("AuthService", () => {
         expect(accounts.updateLastLoginAt).toHaveBeenCalledExactlyOnceWith(account.id);
     });
 
-    it.each(["missing account", "wrong password", "inactive account"])(
+    it.each(["missing account", "wrong password", "inactive account", "soft-deleted company"])(
         "returns the same generic 401 for %s",
         async (scenario) => {
             if (scenario === "missing account") accounts.getByEmail.mockResolvedValue(null);
             if (scenario === "wrong password") vi.mocked(verifyPassword).mockResolvedValue(false);
             if (scenario === "inactive account")
                 accounts.getByEmail.mockResolvedValue({ ...account, isActive: false });
+            if (scenario === "soft-deleted company")
+                accounts.getByEmail.mockResolvedValue({
+                    ...account,
+                    company: { deletedAt: new Date("2026-11-01T00:00:00Z") },
+                });
             await expect(service.login(input, "192.0.2.1")).rejects.toMatchObject({
                 status: 401,
                 message: "Invalid email or password.",

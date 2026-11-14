@@ -2,7 +2,7 @@ import "dotenv/config";
 import { pathToFileURL } from "node:url";
 
 import prisma from "#config/prisma.config.js";
-import { MOCK_SEED_ACCOUNTS, MOCK_SEED_COMPANY_NAME } from "#config/seed.config.js";
+import { MOCK_SEED_ACCOUNTS } from "#config/seed.config.js";
 import { userAccountService } from "#modules/user-accounts/user-account.service.js";
 import { hashPassword } from "#utils/password.util.js";
 
@@ -19,7 +19,7 @@ export async function seedMockAccounts() {
         await userAccountService.createSeedAccount(
             { email: config.email, passwordHash, roleKey: config.roleKey },
             config.name,
-            MOCK_SEED_COMPANY_NAME,
+            config.companyName,
         );
     }
 }
