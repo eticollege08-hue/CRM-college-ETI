@@ -18,3 +18,9 @@ export type EventWrite = Omit<EventCreateInput, "startsAt" | "endsAt" | "partici
     startsAt: Date;
     endsAt: Date;
 };
+
+// The authenticated account acting on events, scoped to its own company.
+export interface EventActor {
+    accountId: string;
+    companyId: string;
+}

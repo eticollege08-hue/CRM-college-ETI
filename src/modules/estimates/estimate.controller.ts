@@ -1,5 +1,6 @@
 import { HttpStatus } from "#constants/http-status.constants.js";
 import { uuidSchema } from "#schemas/id.schema.js";
+import { getAuthUser } from "#utils/auth-user.util.js";
 
 import { ESTIMATE_MESSAGES } from "./estimate.constants.js";
 import { estimateListQuerySchema } from "./estimate.schema.js";
@@ -18,8 +19,8 @@ export class EstimateController {
     }
 
     async create(req: Request, res: Response) {
-        const createdBy = req.user!.userId;
-        const estimate = await this.service.create(req.body, createdBy);
+        const { userId, companyId } = getAuthUser(req);
+        const estimate = await this.service.create(req.body, userId, companyId);
         res.status(HttpStatus.CREATED).json({
             success: true,
             message: ESTIMATE_MESSAGES.CREATED,
@@ -28,8 +29,9 @@ export class EstimateController {
     }
 
     async getById(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
-        const estimate = await this.service.getById(id);
+        const estimate = await this.service.getById(id, companyId);
         res.status(HttpStatus.OK).json({
             success: true,
             estimate,
@@ -37,8 +39,9 @@ export class EstimateController {
     }
 
     async getList(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
         const query = estimateListQuerySchema.parse(req.query);
-        const { estimates, meta } = await this.service.getList(query);
+        const { estimates, meta } = await this.service.getList(query, companyId);
         res.status(HttpStatus.OK).json({
             success: true,
             estimates,
@@ -47,8 +50,9 @@ export class EstimateController {
     }
 
     async update(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
-        const estimate = await this.service.update(id, req.body);
+        const estimate = await this.service.update(id, companyId, req.body);
         res.status(HttpStatus.OK).json({
             success: true,
             message: ESTIMATE_MESSAGES.UPDATED,
@@ -57,8 +61,9 @@ export class EstimateController {
     }
 
     async delete(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
-        await this.service.delete(id);
+        await this.service.delete(id, companyId);
         res.status(HttpStatus.OK).json({
             success: true,
             message: ESTIMATE_MESSAGES.DELETED,

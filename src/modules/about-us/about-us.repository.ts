@@ -6,24 +6,24 @@ import type { AboutUsCreateInput, AboutUsUpdateInput } from "./about-us.types.js
 export class AboutUsRepository {
     constructor(private readonly db: PrismaClient = prisma) {}
 
-    async create(data: AboutUsCreateInput) {
-        return await this.db.aboutUs.create({ data });
+    async create(data: AboutUsCreateInput, companyId: string) {
+        return await this.db.aboutUs.create({ data: { ...data, companyId } });
     }
 
-    async getAll() {
-        return await this.db.aboutUs.findMany();
+    async getAll(companyId: string) {
+        return await this.db.aboutUs.findMany({ where: { companyId } });
     }
 
-    async getById(id: string) {
-        return await this.db.aboutUs.findUnique({ where: { id } });
+    async getById(id: string, companyId: string) {
+        return await this.db.aboutUs.findUnique({ where: { id, companyId } });
     }
 
-    async update(id: string, data: AboutUsUpdateInput) {
-        return await this.db.aboutUs.update({ where: { id }, data });
+    async update(id: string, companyId: string, data: AboutUsUpdateInput) {
+        return await this.db.aboutUs.update({ where: { id, companyId }, data });
     }
 
-    async delete(id: string) {
-        return await this.db.aboutUs.delete({ where: { id } });
+    async delete(id: string, companyId: string) {
+        return await this.db.aboutUs.delete({ where: { id, companyId } });
     }
 }
 

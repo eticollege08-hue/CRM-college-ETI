@@ -7,10 +7,10 @@ import type { Request, Response } from "express";
 
 export const hierarchyPageController = {
     async hierarchyTree(req: Request, res: Response) {
-        const accountId = req.user?.userId;
-        if (!accountId) return res.redirect("/login");
+        if (!req.user) return res.redirect("/login");
+        const { userId: accountId, companyId } = req.user;
         const [payload, profileData] = await Promise.all([
-            hierarchyPageService.hierarchyTree(accountId),
+            hierarchyPageService.hierarchyTree(accountId, companyId),
             authPageService.getProfilePageData(accountId),
         ]);
         res.render(PAGE_PATH.HIERARCHY, { ...profileData, ...payload, ...PAGE_DATA.HIERARCHY });

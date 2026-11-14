@@ -10,16 +10,16 @@ import type { ProjectCreateInput, ProjectUpdateInput } from "./projects.types.js
 export class ProjectsService {
     constructor(private readonly repository: ProjectsRepository = projectsRepository) {}
 
-    async create(data: ProjectCreateInput) {
-        return await this.repository.create(data);
+    async create(data: ProjectCreateInput, companyId: string) {
+        return await this.repository.create(data, companyId);
     }
 
-    async getAll() {
-        return await this.repository.getAll();
+    async getAll(companyId: string) {
+        return await this.repository.getAll(companyId);
     }
 
-    async getById(id: string) {
-        const project = await this.repository.getById(id);
+    async getById(id: string, companyId: string) {
+        const project = await this.repository.getById(id, companyId);
         if (!project) {
             throw new ApiError(HttpStatus.NOT_FOUND, PROJECT_MESSAGES.NOT_FOUND);
         }
@@ -27,14 +27,14 @@ export class ProjectsService {
         return project;
     }
 
-    async update(id: string, data: ProjectUpdateInput) {
-        await this.getById(id);
-        return await this.repository.update(id, data);
+    async update(id: string, companyId: string, data: ProjectUpdateInput) {
+        await this.getById(id, companyId);
+        return await this.repository.update(id, companyId, data);
     }
 
-    async delete(id: string) {
-        await this.getById(id);
-        return await this.repository.delete(id);
+    async delete(id: string, companyId: string) {
+        await this.getById(id, companyId);
+        return await this.repository.delete(id, companyId);
     }
 }
 

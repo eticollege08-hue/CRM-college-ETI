@@ -1,4 +1,5 @@
 import { HttpStatus } from "#constants/http-status.constants.js";
+import { getAuthUser } from "#utils/auth-user.util.js";
 
 import { HIERARCHY_MESSAGES } from "./hierarchy.constants.js";
 import { hierarchyService } from "./hierarchy.service.js";
@@ -16,7 +17,8 @@ export class HierarchyController {
     }
 
     async create(req: Request, res: Response) {
-        const hierarchy = await this.service.create(req.body);
+        const { companyId } = getAuthUser(req);
+        const hierarchy = await this.service.create(req.body, companyId);
         res.status(HttpStatus.CREATED).json({
             success: true,
             message: HIERARCHY_MESSAGES.CREATED,
@@ -24,18 +26,21 @@ export class HierarchyController {
         });
     }
 
-    async getAll(_req: Request, res: Response) {
-        const hierarchies = await this.service.getAll();
+    async getAll(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
+        const hierarchies = await this.service.getAll(companyId);
         res.status(HttpStatus.OK).json({ success: true, hierarchies });
     }
 
     async getById(req: Request, res: Response) {
-        const hierarchy = await this.service.getById(req.params.id as string);
+        const { companyId } = getAuthUser(req);
+        const hierarchy = await this.service.getById(req.params.id as string, companyId);
         res.status(HttpStatus.OK).json({ success: true, hierarchy });
     }
 
     async update(req: Request, res: Response) {
-        const hierarchy = await this.service.update(req.params.id as string, req.body);
+        const { companyId } = getAuthUser(req);
+        const hierarchy = await this.service.update(req.params.id as string, companyId, req.body);
         res.status(HttpStatus.OK).json({
             success: true,
             message: HIERARCHY_MESSAGES.UPDATED,
@@ -44,7 +49,8 @@ export class HierarchyController {
     }
 
     async delete(req: Request, res: Response) {
-        await this.service.delete(req.params.id as string);
+        const { companyId } = getAuthUser(req);
+        await this.service.delete(req.params.id as string, companyId);
         res.status(HttpStatus.OK).json({ success: true, message: HIERARCHY_MESSAGES.DELETED });
     }
 }

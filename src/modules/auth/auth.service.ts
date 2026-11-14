@@ -31,9 +31,15 @@ export class AuthService {
                 input.password,
                 account?.passwordHash ?? dummyHash,
             );
-            if (!account || !account.isActive || !matches) return null;
 
-            const token = generateToken({ userId: account.id, role: account.roleKey });
+            if (!account || !account.isActive || account.company.deletedAt !== null || !matches)
+                return null;
+
+            const token = generateToken({
+                userId: account.id,
+                role: account.roleKey,
+                companyId: account.companyId,
+            });
             await this.accounts.updateLastLoginAt(account.id);
             return token;
         });

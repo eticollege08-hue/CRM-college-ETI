@@ -10,6 +10,7 @@ import type { Prisma } from "@prisma/client";
 import type { UserAccountRepository } from "#modules/user-accounts/user-account.repository.js";
 import type { EventRepository } from "./event.repository.js";
 import type {
+    EventActor,
     EventCreateInput,
     EventUpdateInput,
     EventListInput,
@@ -24,10 +25,10 @@ export class EventService {
         private readonly accounts: UserAccountRepository = userAccountRepository,
     ) {}
 
-    async getRange(query: EventListInput) {
+    async getRange(query: EventListInput, companyId: string) {
         if (query.date) {
             const { from, to } = dayBounds(query.date, query.timeZone);
-            return await this.repository.getRange(from, to);
+            return await this.repository.getRange(from, to, companyId);
         }
         // HTTP and SSR validate the query before reaching this service.
         if (!query.from || !query.to)
@@ -35,40 +36,46 @@ export class EventService {
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "Provide date or both from and to.",
             );
-        return await this.repository.getRange(new Date(query.from), new Date(query.to));
+        return await this.repository.getRange(new Date(query.from), new Date(query.to), companyId);
     }
 
-    async getById(id: string, tx?: Prisma.TransactionClient) {
-        const event = await this.repository.getById(id, tx);
+    async getById(id: string, companyId: string, tx?: Prisma.TransactionClient) {
+        const event = await this.repository.getById(id, companyId, tx);
         if (!event) throw new ApiError(HttpStatus.NOT_FOUND, EVENT_MESSAGES.NOT_FOUND);
         return event;
     }
 
-    async create(input: EventCreateInput, actorId: string) {
-        const account = await this.accounts.getById(actorId);
-        if (!account?.isActive)
+    async create(input: EventCreateInput, actor: EventActor) {
+        const account = await this.accounts.getById(actor.accountId);
+        if (!account?.isActive || account.companyId !== actor.companyId)
             throw new ApiError(HttpStatus.UNAUTHORIZED, EVENT_MESSAGES.ACCOUNT_UNAVAILABLE);
         const { participantIds, startsAt, endsAt, ...fields } = input;
         const data = { ...fields, startsAt: new Date(startsAt), endsAt: new Date(endsAt) };
         return await this.repository.transaction(async (tx) => {
-            await this.checkSchedule(data, participantIds, tx);
-            return await this.repository.create(actorId, data, participantIds, tx);
+            await this.checkSchedule(data, participantIds, actor.companyId, tx);
+            return await this.repository.create(
+                actor.accountId,
+                actor.companyId,
+                data,
+                participantIds,
+                tx,
+            );
         });
     }
 
-    async update(id: string, input: EventUpdateInput, actorId: string) {
+    async update(id: string, input: EventUpdateInput, actor: EventActor) {
         return await this.repository.transaction(async (tx) => {
-            const event = await this.ownedEvent(id, actorId, tx);
+            const event = await this.ownedEvent(id, actor, tx);
             const data = this.updatedFields(event, input);
             const ids = input.participantIds ?? this.participantIds(event);
-            await this.checkSchedule(data, ids, tx, id);
-            return await this.repository.update(id, data, ids, tx);
+            await this.checkSchedule(data, ids, actor.companyId, tx, id);
+            return await this.repository.update(id, actor.companyId, data, ids, tx);
         });
     }
 
-    async delete(id: string, confirmationTitle: string, actorId: string) {
+    async delete(id: string, confirmationTitle: string, actor: EventActor) {
         await this.repository.transaction(async (tx) => {
-            const event = await this.ownedEvent(id, actorId, tx);
+            const event = await this.ownedEvent(id, actor, tx);
             if (confirmationTitle !== event.title) {
                 throw new ApiError(
                     HttpStatus.UNPROCESSABLE_ENTITY,
@@ -76,36 +83,36 @@ export class EventService {
                     [{ field: "confirmationTitle", message: EVENT_MESSAGES.CONFIRMATION_MISMATCH }],
                 );
             }
-            await this.repository.delete(id, tx);
+            await this.repository.delete(id, actor.companyId, tx);
         });
     }
 
-    async addParticipants(id: string, participantIds: string[], actorId: string) {
+    async addParticipants(id: string, participantIds: string[], actor: EventActor) {
         return await this.repository.transaction(async (tx) => {
-            const event = await this.ownedEvent(id, actorId, tx);
+            const event = await this.ownedEvent(id, actor, tx);
             const ids = [...new Set([...this.participantIds(event), ...participantIds])];
             const data = this.updatedFields(event, {});
-            await this.checkSchedule(data, ids, tx, id);
-            return await this.repository.update(id, data, ids, tx);
+            await this.checkSchedule(data, ids, actor.companyId, tx, id);
+            return await this.repository.update(id, actor.companyId, data, ids, tx);
         });
     }
 
-    async removeParticipant(id: string, employeeId: string, actorId: string) {
+    async removeParticipant(id: string, employeeId: string, actor: EventActor) {
         return await this.repository.transaction(async (tx) => {
-            const event = await this.ownedEvent(id, actorId, tx);
+            const event = await this.ownedEvent(id, actor, tx);
             const before = this.participantIds(event);
             if (!before.includes(employeeId))
                 throw new ApiError(HttpStatus.NOT_FOUND, EVENT_MESSAGES.NOT_PARTICIPANT);
             const ids = before.filter((value) => value !== employeeId);
             const data = this.updatedFields(event, {});
-            await this.checkSchedule(data, ids, tx, id);
-            return await this.repository.update(id, data, ids, tx);
+            await this.checkSchedule(data, ids, actor.companyId, tx, id);
+            return await this.repository.update(id, actor.companyId, data, ids, tx);
         });
     }
 
-    private async ownedEvent(id: string, actorId: string, tx: Prisma.TransactionClient) {
-        const event = await this.getById(id, tx);
-        if (event.ownerAccountId !== actorId)
+    private async ownedEvent(id: string, actor: EventActor, tx: Prisma.TransactionClient) {
+        const event = await this.getById(id, actor.companyId, tx);
+        if (event.ownerAccountId !== actor.accountId)
             throw new ApiError(HttpStatus.FORBIDDEN, EVENT_MESSAGES.NOT_OWNER);
         return event;
     }
@@ -128,6 +135,7 @@ export class EventService {
     private async checkSchedule(
         data: EventWrite,
         ids: string[],
+        companyId: string,
         tx: Prisma.TransactionClient,
         excludeId?: string,
     ) {
@@ -143,11 +151,20 @@ export class EventService {
                 [{ field: "participantIds", message: "Choose between 1 and 200 employees." }],
             );
         }
-        const employees = await this.repository.getEmployees(ids, tx);
+        const employees = await this.repository.getEmployees(ids, companyId, tx);
         if (employees.length !== ids.length) {
             throw new ApiError(HttpStatus.NOT_FOUND, EVENT_MESSAGES.EMPLOYEE_NOT_FOUND);
         }
-        if (await this.repository.hasConflict(ids, data.startsAt, data.endsAt, tx, excludeId)) {
+        if (
+            await this.repository.hasConflict(
+                ids,
+                data.startsAt,
+                data.endsAt,
+                companyId,
+                tx,
+                excludeId,
+            )
+        ) {
             throw new ApiError(HttpStatus.CONFLICT, EVENT_MESSAGES.CONFLICT);
         }
     }

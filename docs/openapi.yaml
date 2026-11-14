@@ -5,7 +5,8 @@ info:
     description:
         "Login/logout use UserAccount and JWT cookies. Handled API errors use { success: false,
         message, details }. Unmatched routes retain the default Express 404 response. Public
-        self-registration is unavailable."
+        self-registration is unavailable. Data is multi-tenant: every authenticated request is
+        limited to the company in the JWT, and records of other companies respond as not found."
     license:
         name: Proprietary
 servers:
@@ -1000,8 +1001,8 @@ paths:
             security: []
             description:
                 Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
-                accounts, wrong passwords and inactive accounts produce identical 401 responses. No
-                public registration. Sets the authentication cookie at Path=/ only.
+                accounts, wrong passwords, inactive accounts and accounts of a soft-deleted company
+                produce identical 401 responses. No public registration. Sets the authentication cookie at Path=/ only.
             requestBody:
                 required: true
                 content:
@@ -1256,8 +1257,9 @@ paths:
             operationId: updateEmployeeProfile
             summary: Update an employee name, position, or level
             description:
-                Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
-                AUTH_ALLOWED_ORIGINS. Empty position or level values clear those fields.
+                Available to OWNER, RECRUITER, HR, and MANAGER accounts. A MANAGER may update only
+                their direct subordinates. Mutation Origin must match AUTH_ALLOWED_ORIGINS. Empty
+                position or level values clear those fields.
             requestBody:
                 required: true
                 content:
@@ -1280,7 +1282,7 @@ paths:
                 "401":
                     $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
-                    $ref: "#/components/responses/Forbidden"
+                    $ref: "#/components/responses/EmployeeUpdateForbidden"
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "413":
@@ -1764,8 +1766,8 @@ components:
             description:
                 "JWT in HttpOnly cookie only; never in JSON or Authorization. Path=/; SameSite=Lax;
                 host-only. Secure defaults to true and can be disabled only for local development.
-                Max-Age equals JWT_EXPIRES_IN (default 3600 seconds). JWT claims use UserAccount ID
-                and Prisma Role. Auth POST requests require an exact allowed Origin; Referer is not
+                Max-Age equals JWT_EXPIRES_IN (default 3600 seconds). JWT claims use UserAccount ID,
+                Prisma Role and the account's company ID. Auth POST requests require an exact allowed Origin; Referer is not
                 used. Use credentials: include / withCredentials: true. Deploy same-origin, or
                 explicitly configure credentialed CORS for separate origins."
     schemas:
@@ -1896,6 +1898,8 @@ components:
                 ownerAccountId:
                     type: string
                     format: uuid
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
                 type:
                     type: string
                     enum:
@@ -2018,6 +2022,8 @@ components:
                     type: string
                     format: uuid
                     readOnly: true
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
                 title:
                     type: string
                     minLength: 1
@@ -2102,6 +2108,8 @@ components:
                     type: string
                     format: uuid
                     description: Subordinate employee ID.
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
         HierarchyCreateInput:
             type: object
             additionalProperties: false
@@ -2150,6 +2158,13 @@ components:
                   properties:
                       message:
                           type: string
+        TenantCompanyId:
+            type: string
+            format: uuid
+            readOnly: true
+            description:
+                Company that owns the record. Always taken from the authenticated account's JWT;
+                clients cannot send it, and records of other companies respond as not found.
         Project:
             type: object
             required: [id, title, description]
@@ -2158,6 +2173,8 @@ components:
                     type: string
                     format: uuid
                     readOnly: true
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
                 title:
                     type: string
                     minLength: 1
@@ -2410,6 +2427,8 @@ components:
                 createdBy:
                     type: string
                     format: uuid
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
                 createdAt:
                     type: string
                     format: date-time
@@ -2691,7 +2710,9 @@ components:
                         message: Invalid request.
                         details: []
         LoginUnauthorized:
-            description: Wrong credentials, missing account or inactive account; identical response.
+            description:
+                Wrong credentials, missing account, inactive account or soft-deleted company;
+                identical response.
             content:
                 application/json:
                     schema:
@@ -2772,6 +2793,25 @@ components:
                         success: false
                         message: You do not have permission to perform this action.
                         details: []
+        EmployeeUpdateForbidden:
+            description:
+                Origin is missing or not allowed, the role cannot update employees, or a MANAGER
+                targets an employee who is not their direct subordinate.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        forbidden:
+                            value:
+                                success: false
+                                message: You do not have permission to perform this action.
+                                details: []
+                        notDirectManager:
+                            value:
+                                success: false
+                                message: You can only update your direct subordinates' data
+                                details: []
         EstimateNotFound:
             description: Estimate does not exist or has been deleted.
             content:
