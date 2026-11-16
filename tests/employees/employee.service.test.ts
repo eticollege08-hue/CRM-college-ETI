@@ -45,6 +45,7 @@ function setup({
 } = {}) {
     const repository = {
         getById: vi.fn().mockResolvedValue(target),
+        getWithCompensation: vi.fn().mockResolvedValue(target),
         update: vi.fn().mockResolvedValue(target),
     };
     const hierarchy = { isManager: vi.fn().mockResolvedValue(isManager) };
@@ -73,8 +74,8 @@ describe("EmployeeService.update", () => {
         const { service, repository } = setup({ isManager: false });
 
         await expect(service.update(targetId, actor("MANAGER"), data)).rejects.toMatchObject({
-            status: 403,
-            message: EMPLOYEE_MESSAGES.NOT_DIRECT_MANAGER,
+            status: 404,
+            message: EMPLOYEE_MESSAGES.NOT_FOUND,
         });
         expect(repository.update).not.toHaveBeenCalled();
     });
@@ -85,7 +86,7 @@ describe("EmployeeService.update", () => {
         });
 
         await expect(service.update(targetId, actor("MANAGER"), data)).rejects.toMatchObject({
-            status: 403,
+            status: 404,
         });
         expect(hierarchy.isManager).not.toHaveBeenCalled();
         expect(repository.update).not.toHaveBeenCalled();
@@ -95,7 +96,7 @@ describe("EmployeeService.update", () => {
         const { service, repository } = setup({ actorEmployee: null });
 
         await expect(service.update(targetId, actor("MANAGER"), data)).rejects.toMatchObject({
-            status: 403,
+            status: 404,
         });
         expect(repository.update).not.toHaveBeenCalled();
     });

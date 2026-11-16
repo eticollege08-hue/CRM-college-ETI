@@ -74,8 +74,10 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
         return next(new ApiError(error.status, error.message, error.details));
     }
 
-    const isApiRequest =
-        req.path.startsWith("/api") || req.headers.accept?.includes("application/json") || req.xhr;
+    const isApiRequest = req.originalUrl.startsWith("/api/");
+    if (error.status === HttpStatus.FORBIDDEN) {
+        error = new ApiError(HttpStatus.NOT_FOUND, API_MESSAGES.NOT_FOUND);
+    }
     if (isApiRequest) {
         res.setHeader("Cache-Control", "no-store");
         return res.status(error.status).json({
@@ -85,5 +87,9 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
         });
     }
 
-    return res.status(error.status).type("text/plain").send(error.message);
+    const isNotFound = error.status === HttpStatus.NOT_FOUND;
+    return res.status(error.status).render("error", {
+        status: error.status,
+        message: isNotFound ? "Page not found." : "Something went wrong. Please try again later.",
+    });
 }

@@ -11,9 +11,18 @@ import { hierarchyCreateSchema, hierarchyUpdateSchema } from "./hierarchy.schema
 
 const router = Router();
 
-router.get("/", asyncCatch(hierarchyController.getAll));
+router.get(
+    "/",
+    accessFor(["OWNER", "MANAGER", "RECRUITER", "HR", "WORKER"]),
+    asyncCatch(hierarchyController.getAll),
+);
 
-router.get("/:id", validateParams(uuidSchema), asyncCatch(hierarchyController.getById));
+router.get(
+    "/:id",
+    accessFor(["OWNER", "MANAGER", "RECRUITER", "HR", "WORKER"]),
+    validateParams(uuidSchema),
+    asyncCatch(hierarchyController.getById),
+);
 
 router.post(
     "/",

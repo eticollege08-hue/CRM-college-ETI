@@ -13,3 +13,13 @@ export const employeeUpdateSchema = z
         level: optionalTextSchema.optional(),
     })
     .refine((data) => Object.keys(data).length > 0);
+
+export const employeeSalaryUpdateSchema = z.strictObject({
+    salary: z.number().finite().nonnegative(),
+    currency: z
+        .string()
+        .trim()
+        .toUpperCase()
+        .regex(/^[A-Z]{3}$/)
+        .optional(),
+});

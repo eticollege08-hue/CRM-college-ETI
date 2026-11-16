@@ -4,6 +4,7 @@ import { userAccountService } from "#modules/user-accounts/user-account.service.
 import { ApiError } from "#utils/error.util.js";
 
 import { EMPLOYEE_MESSAGES } from "./employee.constants.js";
+import { employeePersonalDataService } from "./employee-personal-data.service.js";
 import { employeeRepository } from "./employee.repository.js";
 
 import type { Prisma } from "@prisma/client";
@@ -11,7 +12,8 @@ import type { HierarchyService } from "#modules/hierarchy/hierarchy.service.js";
 import type { JWT } from "#types/common.types.js";
 import type { UserAccountService } from "#modules/user-accounts/user-account.service.js";
 import type { EmployeeRepository } from "./employee.repository.js";
-import type { EmployeeUpdateInput } from "./employee.types.js";
+import type { EmployeePersonalDataService } from "./employee-personal-data.service.js";
+import type { EmployeeSalaryUpdateInput, EmployeeUpdateInput } from "./employee.types.js";
 
 type EmployeeActor = Pick<JWT, "userId" | "role" | "companyId">;
 
@@ -20,23 +22,51 @@ export class EmployeeService {
         private readonly repository: EmployeeRepository = employeeRepository,
         private readonly hierarchy: HierarchyService = hierarchyService,
         private readonly userAccounts: UserAccountService = userAccountService,
+        private readonly personalData: EmployeePersonalDataService = employeePersonalDataService,
     ) {}
 
-    async getAll(companyId: string) {
-        return await this.repository.getAll(companyId);
+    async getAll(actor: EmployeeActor | string) {
+        const companyId = typeof actor === "string" ? actor : actor.companyId;
+        const employees = await this.repository.getAll(companyId);
+        if (typeof actor === "string") {
+            return employees.map(({ compensation, ...employee }) => {
+                void compensation;
+                return employee;
+            });
+        }
+        return await this.personalData.serializeMany(employees, actor);
     }
 
-    async getById(id: string, companyId: string, tx?: Prisma.TransactionClient) {
-        const employee = await this.repository.getById(id, companyId, tx);
+    async getById(id: string, actor: EmployeeActor | string) {
+        const companyId = typeof actor === "string" ? actor : actor.companyId;
+        const employee = await this.repository.getWithCompensation(id, companyId);
         if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
-        return employee;
+        if (typeof actor === "string") {
+            const { compensation, ...publicEmployee } = employee;
+            void compensation;
+            return publicEmployee;
+        }
+        return await this.personalData.serialize(employee, actor);
     }
 
     async update(id: string, actor: EmployeeActor, data: EmployeeUpdateInput) {
         const { companyId } = actor;
-        await this.getById(id, companyId);
+        await this.getRawById(id, companyId);
         if (actor.role === "MANAGER") await this.checkDirectManager(id, actor);
         return await this.repository.update(id, companyId, data);
+    }
+
+    async updateSalary(id: string, actor: EmployeeActor, data: EmployeeSalaryUpdateInput) {
+        const employee = await this.getRawById(id, actor.companyId);
+        if (!(await this.personalData.mayAccess(actor, employee, "salary", "edit"))) {
+            throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
+        }
+        return await this.repository.upsertCompensation(
+            id,
+            actor.companyId,
+            data.salary,
+            data.currency,
+        );
     }
 
     /* HELPERS */
@@ -49,8 +79,14 @@ export class EmployeeService {
             (await this.hierarchy.isManager(id, actorEmployee.id, actor.companyId));
 
         if (!isManager) {
-            throw new ApiError(HttpStatus.FORBIDDEN, EMPLOYEE_MESSAGES.NOT_DIRECT_MANAGER);
+            throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
         }
+    }
+
+    private async getRawById(id: string, companyId: string, tx?: Prisma.TransactionClient) {
+        const employee = await this.repository.getById(id, companyId, tx);
+        if (!employee) throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
+        return employee;
     }
 }
 

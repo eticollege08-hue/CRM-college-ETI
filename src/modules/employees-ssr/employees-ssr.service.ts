@@ -1,13 +1,15 @@
 import { employeeService } from "#modules/employees/employee.service.js";
 
+import type { JWT } from "#types/common.types.js";
+
 export const employeesPageService = {
-    async getPageData(companyId: string) {
-        const employees = await employeeService.getAll(companyId);
+    async getPageData(actor: JWT | string) {
+        const employees = await employeeService.getAll(actor);
         return { employees };
     },
 
-    async getProfilePageData(employeeId: string, companyId: string) {
-        const employee = await employeeService.getById(employeeId, companyId);
+    async getProfilePageData(employeeId: string, actor: JWT | string) {
+        const employee = await employeeService.getById(employeeId, actor);
         return { employee };
     },
 };

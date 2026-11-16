@@ -1206,6 +1206,65 @@ paths:
                     $ref: "#/components/responses/ValidationError"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+    /employees/{id}/salary:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        patch:
+            tags:
+                - Employees
+            operationId: updateEmployeeSalary
+            summary: Update an employee salary
+            description: |
+                Available only to OWNER, HR, and the employee's direct MANAGER. The employee
+                themselves cannot update salary. A user without access receives the same 404
+                response as for a missing employee.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: false
+                            required:
+                                - salary
+                            properties:
+                                salary:
+                                    type: number
+                                    minimum: 0
+                                currency:
+                                    type: string
+                                    pattern: "^[A-Z]{3}$"
+                        example:
+                            salary: 4200.5
+                            currency: USD
+            responses:
+                "200":
+                    description: Salary updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/EmployeeUpdateSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
     /employees/{id}:
         parameters:
             - name: id
