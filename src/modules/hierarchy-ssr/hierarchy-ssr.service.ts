@@ -14,10 +14,10 @@ interface HierarchyNode extends Employee {
 }
 
 export const hierarchyPageService = {
-    async hierarchyTree(accountId: string) {
+    async hierarchyTree(accountId: string, companyId: string) {
         const [employees, relationships, account] = await Promise.all([
-            employeeService.getAll(),
-            hierarchyService.getAll(),
+            employeeService.getAll(companyId),
+            hierarchyService.getAll(companyId),
             userAccountService.getProfileById(accountId),
         ]);
 

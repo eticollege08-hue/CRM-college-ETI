@@ -22,10 +22,10 @@ router.get(
     "/employees/create",
     isAuth,
     asyncCatch(async (req, res) => {
-        const accountId = req.user?.userId;
-        if (!accountId) return res.redirect("/login");
+        if (!req.user) return res.redirect("/login");
+        const { userId: accountId, companyId } = req.user;
         const [employees, profileData] = await Promise.all([
-            employeeService.getAll(),
+            employeeService.getAll(companyId),
             authPageService.getProfilePageData(accountId),
         ]);
         res.render("pages/employee-create", {

@@ -6,24 +6,24 @@ import type { ProjectCreateInput, ProjectUpdateInput } from "./projects.types.js
 export class ProjectsRepository {
     constructor(private readonly db: PrismaClient = prisma) {}
 
-    async create(data: ProjectCreateInput) {
-        return await this.db.project.create({ data });
+    async create(data: ProjectCreateInput, companyId: string) {
+        return await this.db.project.create({ data: { ...data, companyId } });
     }
 
-    async getAll() {
-        return await this.db.project.findMany();
+    async getAll(companyId: string) {
+        return await this.db.project.findMany({ where: { companyId } });
     }
 
-    async getById(id: string) {
-        return await this.db.project.findUnique({ where: { id } });
+    async getById(id: string, companyId: string) {
+        return await this.db.project.findUnique({ where: { id, companyId } });
     }
 
-    async update(id: string, data: ProjectUpdateInput) {
-        return await this.db.project.update({ where: { id }, data });
+    async update(id: string, companyId: string, data: ProjectUpdateInput) {
+        return await this.db.project.update({ where: { id, companyId }, data });
     }
 
-    async delete(id: string) {
-        return await this.db.project.delete({ where: { id } });
+    async delete(id: string, companyId: string) {
+        return await this.db.project.delete({ where: { id, companyId } });
     }
 }
 

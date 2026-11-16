@@ -19,6 +19,7 @@ export async function seedMockAccounts() {
         await userAccountService.createSeedAccount(
             { email: config.email, passwordHash, roleKey: config.roleKey },
             config.name,
+            config.companyName,
         );
     }
 }

@@ -62,26 +62,33 @@ async function run() {
     phase = "HTTP setup";
     const password = randomBytes(20).toString("hex");
     const passwordHash = await hash(password, 4);
+    const { id: companyId } = await db.company.create({ data: { name: "Integration company" } });
+    const workerEmployee = await db.employee.create({ data: { fullName: "Worker", companyId } });
     const worker = await db.userAccount.create({
         data: {
             email: "worker@example.invalid",
             passwordHash,
             roleKey: "WORKER",
-            employee: { create: { fullName: "Worker" } },
+            employeeId: workerEmployee.id,
+            companyId,
         },
     });
+    const ownerEmployee = await db.employee.create({ data: { fullName: "Owner", companyId } });
     const owner = await db.userAccount.create({
         data: {
             email: "owner@example.invalid",
             passwordHash,
             roleKey: "OWNER",
-            employee: { create: { fullName: "Owner" } },
+            employeeId: ownerEmployee.id,
+            companyId,
         },
     });
     const participant = await db.employee.create({
-        data: { fullName: "Employee without account" },
+        data: { fullName: "Employee without account", companyId },
     });
-    const freeEmployee = await db.employee.create({ data: { fullName: "Another participant" } });
+    const freeEmployee = await db.employee.create({
+        data: { fullName: "Another participant", companyId },
+    });
     const listener = net.createServer();
     await new Promise<void>((resolve) => listener.listen(0, "127.0.0.1", resolve));
     const address = listener.address();
@@ -386,10 +393,67 @@ async function run() {
         headers: { Cookie: cookie },
     });
     assert.equal(calendar.status, 200);
-    assert.equal(await calendar.text(), "");
+    assert.match(await calendar.text(), /Coming soon/);
     assert.equal(calendar.headers.get("Cache-Control"), "no-store");
     assert.equal((await fetch(origin + "/calendar")).status, 401);
-    console.log("PASS: local-day retrieval, shared JSON errors and authenticated zero-byte SSR.");
+    console.log(
+        "PASS: local-day retrieval, shared JSON errors and authenticated calendar placeholder.",
+    );
+
+    phase = "tenant isolation";
+    const { id: otherCompanyId } = await db.company.create({ data: { name: "Other company" } });
+    const outsider = await db.employee.create({
+        data: { fullName: "Outsider", companyId: otherCompanyId },
+    });
+    const outsiderAccount = await db.userAccount.create({
+        data: {
+            email: "outsider@example.invalid",
+            passwordHash,
+            roleKey: "OWNER",
+            employeeId: outsider.id,
+            companyId: otherCompanyId,
+        },
+    });
+    const outsiderCookie = await login(outsiderAccount.email);
+    assert.equal((await request("GET", "/api/events/" + zoned.id, outsiderCookie)).status, 404);
+    const outsiderDay = await request(
+        "GET",
+        "/api/events?date=2026-10-29&timeZone=Europe%2FKyiv",
+        outsiderCookie,
+    );
+    assert.equal(outsiderDay.status, 200);
+    const outsiderEvents: { events: { id: string }[] } = await outsiderDay.json();
+    assert.deepEqual(outsiderEvents.events, [], "Another company must not see these events.");
+    assert.equal(
+        (await create({ ...input, title: "Foreign participant" }, outsiderCookie)).status,
+        404,
+        "Employees of another company cannot be invited.",
+    );
+    assert.equal(
+        (await create({ ...input, title: "Outsider invited", participantIds: [outsider.id] }))
+            .status,
+        404,
+    );
+    assert.equal(
+        (
+            await request("PATCH", "/api/employees/" + participant.id, outsiderCookie, {
+                position: "Changed by another company",
+            })
+        ).status,
+        404,
+    );
+    // Composite foreign keys reject cross-company links even when application checks are bypassed.
+    await assert.rejects(
+        db.eventParticipant.create({
+            data: { eventId: zoned.id, employeeId: outsider.id, companyId },
+        }),
+    );
+    await assert.rejects(
+        db.hierarchy.create({
+            data: { employeeId: ownerEmployee.id, subordinateId: outsider.id, companyId },
+        }),
+    );
+    console.log("PASS: companies cannot read, invite or modify each other's records.");
 }
 
 try {

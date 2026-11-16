@@ -14,30 +14,30 @@ import type {
 export class EstimateService {
     constructor(private readonly repository: EstimateRepository = estimateRepository) {}
 
-    async create(data: EstimateCreateInput, createdBy: string) {
-        return await this.repository.create({ ...data, createdBy });
+    async create(data: EstimateCreateInput, createdBy: string, companyId: string) {
+        return await this.repository.create({ ...data, createdBy, companyId });
     }
 
-    async getById(id: string) {
-        const estimate = await this.repository.getById(id);
+    async getById(id: string, companyId: string) {
+        const estimate = await this.repository.getById(id, companyId);
         if (!estimate) {
             throw new ApiError(HttpStatus.NOT_FOUND, ESTIMATE_MESSAGES.NOT_FOUND);
         }
         return estimate;
     }
 
-    async getList(query: EstimateListQuery) {
-        return await this.repository.getList(query);
+    async getList(query: EstimateListQuery, companyId: string) {
+        return await this.repository.getList(query, companyId);
     }
 
-    async update(id: string, data: EstimateUpdateInput) {
-        await this.getById(id);
-        return await this.repository.update(id, data);
+    async update(id: string, companyId: string, data: EstimateUpdateInput) {
+        await this.getById(id, companyId);
+        return await this.repository.update(id, companyId, data);
     }
 
-    async delete(id: string) {
-        await this.getById(id);
-        await this.repository.softDelete(id);
+    async delete(id: string, companyId: string) {
+        await this.getById(id, companyId);
+        await this.repository.softDelete(id, companyId);
     }
 }
 

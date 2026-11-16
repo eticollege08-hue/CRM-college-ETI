@@ -19,8 +19,8 @@ export class UserAccountService {
         private readonly employees: EmployeeRepository = employeeRepository,
     ) {}
 
-    async create(data: UserAccountCreateInput) {
-        const employee = await this.employees.getById(data.employeeId);
+    async create(data: UserAccountCreateInput, companyId: string) {
+        const employee = await this.employees.getById(data.employeeId, companyId);
         if (!employee) {
             throw new ApiError(
                 HttpStatus.UNPROCESSABLE_ENTITY,
@@ -28,10 +28,13 @@ export class UserAccountService {
             );
         }
 
-        const account = await this.repository.create({
-            ...data,
-            email: data.email.trim().toLowerCase(),
-        });
+        const account = await this.repository.create(
+            {
+                ...data,
+                email: data.email.trim().toLowerCase(),
+            },
+            companyId,
+        );
         return account;
     }
 
@@ -62,10 +65,12 @@ export class UserAccountService {
     async createSeedAccount(
         data: Pick<UserAccountCreateInput, "email" | "passwordHash" | "roleKey">,
         fullName: string,
+        companyName: string,
     ) {
         return await this.repository.createSeedAccount(
             { ...data, email: data.email.trim().toLowerCase() },
             fullName,
+            companyName,
         );
     }
 }

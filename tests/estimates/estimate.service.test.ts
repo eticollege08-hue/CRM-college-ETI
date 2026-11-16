@@ -4,6 +4,7 @@ import { EstimateService } from "../../src/modules/estimates/estimate.service.js
 
 import type { EstimateRepository } from "../../src/modules/estimates/estimate.repository.js";
 
+const companyId = "550e8400-e29b-41d4-a716-4466554400c1";
 const mockEstimate = {
     id: "550e8400-e29b-41d4-a716-446655440000",
     name: "Initial Proposal",
@@ -11,6 +12,7 @@ const mockEstimate = {
     time: 10,
     payment: 1200 as unknown,
     createdBy: "550e8400-e29b-41d4-a716-446655440001",
+    companyId,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
@@ -38,7 +40,7 @@ describe("EstimateService", () => {
     });
 
     describe("create", () => {
-        it("creates an estimate assigning createdBy from authenticated actor", async () => {
+        it("creates an estimate assigning createdBy and company from the authenticated actor", async () => {
             const input = {
                 name: "New Estimate",
                 description: "Description",
@@ -48,30 +50,31 @@ describe("EstimateService", () => {
             const actorId = "user-123";
             repository.create.mockResolvedValue({ ...mockEstimate, ...input, createdBy: actorId });
 
-            const result = await service.create(input, actorId);
+            const result = await service.create(input, actorId, companyId);
 
             expect(repository.create).toHaveBeenCalledWith({
                 ...input,
                 createdBy: actorId,
+                companyId,
             });
             expect(result.createdBy).toBe(actorId);
         });
     });
 
     describe("getById", () => {
-        it("returns an estimate when found", async () => {
+        it("returns an estimate when found in the company", async () => {
             repository.getById.mockResolvedValue(mockEstimate);
 
-            const result = await service.getById(mockEstimate.id);
+            const result = await service.getById(mockEstimate.id, companyId);
 
-            expect(repository.getById).toHaveBeenCalledWith(mockEstimate.id);
+            expect(repository.getById).toHaveBeenCalledWith(mockEstimate.id, companyId);
             expect(result).toEqual(mockEstimate);
         });
 
-        it("throws 404 when estimate not found or deleted", async () => {
+        it("throws 404 when estimate not found, deleted or owned by another company", async () => {
             repository.getById.mockResolvedValue(null);
 
-            await expect(service.getById("non-existent")).rejects.toMatchObject({
+            await expect(service.getById("non-existent", companyId)).rejects.toMatchObject({
                 status: 404,
                 message: "Estimate not found.",
             });
@@ -79,7 +82,7 @@ describe("EstimateService", () => {
     });
 
     describe("getList", () => {
-        it("delegates query parameters to repository getList", async () => {
+        it("delegates query parameters and company to repository getList", async () => {
             const query = {
                 page: 1,
                 pageSize: 20,
@@ -92,9 +95,9 @@ describe("EstimateService", () => {
             };
             repository.getList.mockResolvedValue(mockListResult);
 
-            const result = await service.getList(query);
+            const result = await service.getList(query, companyId);
 
-            expect(repository.getList).toHaveBeenCalledWith(query);
+            expect(repository.getList).toHaveBeenCalledWith(query, companyId);
             expect(result).toEqual(mockListResult);
         });
     });
@@ -106,10 +109,10 @@ describe("EstimateService", () => {
             const updatedEstimate = { ...mockEstimate, ...updateInput };
             repository.update.mockResolvedValue(updatedEstimate);
 
-            const result = await service.update(mockEstimate.id, updateInput);
+            const result = await service.update(mockEstimate.id, companyId, updateInput);
 
-            expect(repository.getById).toHaveBeenCalledWith(mockEstimate.id);
-            expect(repository.update).toHaveBeenCalledWith(mockEstimate.id, updateInput);
+            expect(repository.getById).toHaveBeenCalledWith(mockEstimate.id, companyId);
+            expect(repository.update).toHaveBeenCalledWith(mockEstimate.id, companyId, updateInput);
             expect(result.name).toBe("Updated Name");
         });
 
@@ -117,7 +120,7 @@ describe("EstimateService", () => {
             repository.getById.mockResolvedValue(null);
 
             await expect(
-                service.update("non-existent", { name: "New Name" }),
+                service.update("non-existent", companyId, { name: "New Name" }),
             ).rejects.toMatchObject({
                 status: 404,
             });
@@ -133,16 +136,16 @@ describe("EstimateService", () => {
                 deletedAt: new Date(),
             });
 
-            await service.delete(mockEstimate.id);
+            await service.delete(mockEstimate.id, companyId);
 
-            expect(repository.getById).toHaveBeenCalledWith(mockEstimate.id);
-            expect(repository.softDelete).toHaveBeenCalledWith(mockEstimate.id);
+            expect(repository.getById).toHaveBeenCalledWith(mockEstimate.id, companyId);
+            expect(repository.softDelete).toHaveBeenCalledWith(mockEstimate.id, companyId);
         });
 
         it("throws 404 when deleting non-existent estimate", async () => {
             repository.getById.mockResolvedValue(null);
 
-            await expect(service.delete("non-existent")).rejects.toMatchObject({
+            await expect(service.delete("non-existent", companyId)).rejects.toMatchObject({
                 status: 404,
             });
             expect(repository.softDelete).not.toHaveBeenCalled();

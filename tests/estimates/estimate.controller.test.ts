@@ -7,6 +7,8 @@ import type { EstimateService } from "../../src/modules/estimates/estimate.servi
 
 const id = "550e8400-e29b-41d4-a716-446655440000";
 const userId = "550e8400-e29b-41d4-a716-446655440001";
+const companyId = "550e8400-e29b-41d4-a716-4466554400c1";
+const user = { userId, role: "OWNER", companyId, exp: 2000000000 };
 
 const mockEstimate = {
     id,
@@ -15,6 +17,7 @@ const mockEstimate = {
     time: 20,
     payment: 1000,
     createdBy: userId,
+    companyId,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
@@ -27,13 +30,13 @@ describe("EstimateController", () => {
 
         const req = {
             body: { name: "Design Estimate", description: "UI/UX design specs" },
-            user: { userId, role: "OWNER" },
+            user,
         } as unknown as Request;
         const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
 
         await controller.create(req, res as unknown as Response);
 
-        expect(create).toHaveBeenCalledWith(req.body, userId);
+        expect(create).toHaveBeenCalledWith(req.body, userId, companyId);
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith({
             success: true,
@@ -42,16 +45,26 @@ describe("EstimateController", () => {
         });
     });
 
+    it("rejects with 401 instead of crashing when no account is authenticated", async () => {
+        const create = vi.fn();
+        const controller = new EstimateController({ create } as unknown as EstimateService);
+
+        await expect(
+            controller.create({ body: {} } as Request, {} as Response),
+        ).rejects.toMatchObject({ status: 401 });
+        expect(create).not.toHaveBeenCalled();
+    });
+
     it("gets estimate by id and returns 200", async () => {
         const getById = vi.fn().mockResolvedValue(mockEstimate);
         const controller = new EstimateController({ getById } as unknown as EstimateService);
 
-        const req = { params: { id } } as unknown as Request;
+        const req = { params: { id }, user } as unknown as Request;
         const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
 
         await controller.getById(req, res as unknown as Response);
 
-        expect(getById).toHaveBeenCalledWith(id);
+        expect(getById).toHaveBeenCalledWith(id, companyId);
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith({
             success: true,
@@ -67,7 +80,7 @@ describe("EstimateController", () => {
         const getList = vi.fn().mockResolvedValue(listData);
         const controller = new EstimateController({ getList } as unknown as EstimateService);
 
-        const req = { query: { page: "1", pageSize: "20" } } as unknown as Request;
+        const req = { query: { page: "1", pageSize: "20" }, user } as unknown as Request;
         const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
 
         await controller.getList(req, res as unknown as Response);
@@ -79,6 +92,7 @@ describe("EstimateController", () => {
                 sortBy: "createdAt",
                 sortOrder: "desc",
             }),
+            companyId,
         );
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith({
@@ -96,12 +110,13 @@ describe("EstimateController", () => {
         const req = {
             params: { id },
             body: { name: "Renamed Estimate" },
+            user,
         } as unknown as Request;
         const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
 
         await controller.update(req, res as unknown as Response);
 
-        expect(update).toHaveBeenCalledWith(id, req.body);
+        expect(update).toHaveBeenCalledWith(id, companyId, req.body);
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith({
             success: true,
@@ -114,12 +129,12 @@ describe("EstimateController", () => {
         const remove = vi.fn().mockResolvedValue(undefined);
         const controller = new EstimateController({ delete: remove } as unknown as EstimateService);
 
-        const req = { params: { id } } as unknown as Request;
+        const req = { params: { id }, user } as unknown as Request;
         const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
 
         await controller.delete(req, res as unknown as Response);
 
-        expect(remove).toHaveBeenCalledWith(id);
+        expect(remove).toHaveBeenCalledWith(id, companyId);
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith({
             success: true,

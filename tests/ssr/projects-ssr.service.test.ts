@@ -8,11 +8,13 @@ vi.mock("#modules/projects/projects.service.js", () => ({
     projectsService: { getAll },
 }));
 
+const companyId = "550e8400-e29b-41d4-a716-4466554400c1";
 const projects = [
     {
         id: "550e8400-e29b-41d4-a716-446655440000",
         title: "CRM",
         description: "Internal CRM project",
+        companyId,
     },
 ];
 
@@ -21,12 +23,12 @@ describe("projectsPageService", () => {
         getAll.mockReset();
     });
 
-    it("returns projects for the SSR page", async () => {
+    it("returns the company's projects for the SSR page", async () => {
         getAll.mockResolvedValue(projects);
 
-        const result = await projectsPageService.getPageData();
+        const result = await projectsPageService.getPageData(companyId);
 
-        expect(getAll).toHaveBeenCalledOnce();
+        expect(getAll).toHaveBeenCalledExactlyOnceWith(companyId);
         expect(result).toEqual({ projects });
     });
 
@@ -34,6 +36,6 @@ describe("projectsPageService", () => {
         const error = new Error("Project lookup failed");
         getAll.mockRejectedValue(error);
 
-        await expect(projectsPageService.getPageData()).rejects.toBe(error);
+        await expect(projectsPageService.getPageData(companyId)).rejects.toBe(error);
     });
 });

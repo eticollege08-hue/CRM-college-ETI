@@ -1,7 +1,6 @@
 import { HttpStatus } from "#constants/http-status.constants.js";
-import { API_MESSAGES } from "#constants/api-messages.constants.js";
 import { uuidSchema } from "#schemas/id.schema.js";
-import { ApiError } from "#utils/error.util.js";
+import { getAuthUser } from "#utils/auth-user.util.js";
 
 import { EVENT_MESSAGES } from "./event.constants.js";
 import { eventListSchema, eventParticipantParamsSchema } from "./event.schema.js";
@@ -11,6 +10,7 @@ import type { Request, Response } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
 import type { EventService } from "./event.service.js";
 import type {
+    EventActor,
     EventCreateInput,
     EventUpdateInput,
     EventDeleteInput,
@@ -28,20 +28,20 @@ export class EventController {
         this.removeParticipant = this.removeParticipant.bind(this);
     }
 
-    private actor(req: Request): string {
-        if (!req.user) throw new ApiError(HttpStatus.UNAUTHORIZED, API_MESSAGES.UNAUTHORIZED);
-        return req.user.userId;
+    private actor(req: Request): EventActor {
+        const { userId, companyId } = getAuthUser(req);
+        return { accountId: userId, companyId };
     }
 
     async getAll(req: Request, res: Response) {
         const query = eventListSchema.parse(req.query);
-        const events = await this.service.getRange(query);
+        const events = await this.service.getRange(query, this.actor(req).companyId);
         res.status(HttpStatus.OK).json({ success: true, events });
     }
 
     async getById(req: Request, res: Response) {
         const { id } = uuidSchema.parse(req.params);
-        const event = await this.service.getById(id);
+        const event = await this.service.getById(id, this.actor(req).companyId);
         res.status(HttpStatus.OK).json({ success: true, event });
     }
 

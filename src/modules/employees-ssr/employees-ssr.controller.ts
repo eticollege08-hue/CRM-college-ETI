@@ -1,4 +1,5 @@
 import { uuidSchema } from "#schemas/id.schema.js";
+import { getAuthUser } from "#utils/auth-user.util.js";
 
 import {
     ADD_EMPLOYEE_PAGE,
@@ -10,14 +11,16 @@ import { employeesPageService } from "./employees-ssr.service.js";
 import type { Request, Response } from "express";
 
 export const employeesPageController = {
-    async index(_req: Request, res: Response) {
-        const payload = await employeesPageService.getPageData();
+    async index(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
+        const payload = await employeesPageService.getPageData(companyId);
         res.render(EMPLOYEES_PAGE.path, { ...EMPLOYEES_PAGE.data, ...payload });
     },
 
     async profile(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
-        const payload = await employeesPageService.getProfilePageData(id);
+        const payload = await employeesPageService.getProfilePageData(id, companyId);
         res.render(EMPLOYEE_DETAILS_PAGE.path, { ...EMPLOYEE_DETAILS_PAGE.data, ...payload });
     },
 

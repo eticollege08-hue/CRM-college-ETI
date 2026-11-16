@@ -1,5 +1,6 @@
 import { HttpStatus } from "#constants/http-status.constants.js";
 import { uuidSchema } from "#schemas/id.schema.js";
+import { getAuthUser } from "#utils/auth-user.util.js";
 
 import { ABOUT_US_MESSAGES } from "./about-us.constants.js";
 import { aboutUsService } from "./about-us.service.js";
@@ -17,7 +18,8 @@ export class AboutUsController {
     }
 
     async create(req: Request, res: Response) {
-        const aboutUs = await this.service.create(req.body);
+        const { companyId } = getAuthUser(req);
+        const aboutUs = await this.service.create(req.body, companyId);
         res.status(HttpStatus.CREATED).json({
             success: true,
             message: ABOUT_US_MESSAGES.CREATED,
@@ -25,20 +27,23 @@ export class AboutUsController {
         });
     }
 
-    async getAll(_req: Request, res: Response) {
-        const aboutUsRecords = await this.service.getAll();
+    async getAll(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
+        const aboutUsRecords = await this.service.getAll(companyId);
         res.status(HttpStatus.OK).json({ success: true, aboutUsRecords });
     }
 
     async getById(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
-        const aboutUs = await this.service.getById(id);
+        const aboutUs = await this.service.getById(id, companyId);
         res.status(HttpStatus.OK).json({ success: true, aboutUs });
     }
 
     async update(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
-        const aboutUs = await this.service.update(id, req.body);
+        const aboutUs = await this.service.update(id, companyId, req.body);
         res.status(HttpStatus.OK).json({
             success: true,
             message: ABOUT_US_MESSAGES.UPDATED,
@@ -47,8 +52,9 @@ export class AboutUsController {
     }
 
     async delete(req: Request, res: Response) {
+        const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
-        await this.service.delete(id);
+        await this.service.delete(id, companyId);
         res.status(HttpStatus.OK).json({ success: true, message: ABOUT_US_MESSAGES.DELETED });
     }
 }
