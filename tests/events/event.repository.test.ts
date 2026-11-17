@@ -8,7 +8,6 @@ import type { PrismaClient } from "@prisma/client";
 vi.mock("#config/prisma.config.js", () => ({ default: {} }));
 
 describe("EventRepository", () => {
-
     it("returns only events overlapping the day for the requested participant without sorting", async () => {
         const findMany = vi.fn().mockResolvedValue([]);
         const repo = new EventRepository({ event: { findMany } } as unknown as PrismaClient);
