@@ -66,6 +66,7 @@ model AboutUs {
   id          String @id @default(dbgenerated("gen_random_uuid()"))
   title       String
   description String
+  sortOrder   Int    @default(0) @map("sort_order")
 
   @@map("about_us")
 }

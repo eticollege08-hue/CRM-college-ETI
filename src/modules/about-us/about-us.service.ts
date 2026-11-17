@@ -35,6 +35,21 @@ export class AboutUsService {
         await this.getById(id);
         return await this.repository.delete(id);
     }
+
+    async reorder(ids: string[]) {
+        const records = await this.repository.getAll();
+        if (
+            records.length !== ids.length ||
+            new Set(ids).size !== ids.length ||
+            records.some((record) => !ids.includes(record.id))
+        ) {
+            throw new ApiError(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "Order must include every About Us record once",
+            );
+        }
+        return await this.repository.reorder(ids);
+    }
 }
 
 export const aboutUsService = new AboutUsService();

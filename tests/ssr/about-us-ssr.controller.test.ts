@@ -14,6 +14,7 @@ const records = [
         id: "550e8400-e29b-41d4-a716-446655440000",
         title: "About",
         description: "Our story",
+        sortOrder: 0,
     },
 ];
 
@@ -32,6 +33,7 @@ describe("aboutUsPageController", () => {
             js: "about-us",
             activePage: "about-us",
             aboutUsRecords: records,
+            isOwner: false,
         });
     });
 });

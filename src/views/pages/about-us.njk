@@ -1,0 +1,83 @@
+{% extends "base/base.njk" %}
+{% block title %}About us · CRM{% endblock %}
+{% block content %}
+{% include "partials/header.njk" %}
+<div class="app-shell about-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace about-workspace">
+    <div class="about-content">
+      <header class="page-heading about-heading">
+        <div>
+          <h1><svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5"/></svg>About us</h1>
+          <p>Learn more about our company, mission and values</p>
+        </div>
+        {% if isOwner and aboutUsRecords.length %}<button class="about-add-button" type="button" data-about-add>+ Add section</button>{% endif %}
+      </header>
+
+      {% if aboutUsRecords.length %}
+        <section class="about-cards" aria-label="About our company">
+          {% for record in aboutUsRecords %}
+            <article class="about-card" data-record-id="{{ record.id }}">
+              <div class="about-art about-art-{{ loop.index0 % 4 }}" aria-hidden="true">
+                {% if loop.index0 == 3 %}
+                  <svg viewBox="0 0 140 90"><path class="art-trend" d="M18 68 48 48l20 11 38-36"/><path class="art-arrow" d="m92 23 14 0 0 14"/><rect class="art-podium podium-one" x="20" y="66" width="30" height="12" rx="3"/><rect class="art-podium podium-two" x="51" y="56" width="30" height="22" rx="3"/><rect class="art-podium podium-three" x="82" y="45" width="30" height="33" rx="3"/><path class="art-cup" d="M64 35h12v9a6 6 0 0 1-12 0zM64 38h-5a5 5 0 0 0 5 6m12-6h5a5 5 0 0 1-5 6m-6 6v5m-6 2h12"/></svg>
+                {% else %}
+                  <svg viewBox="0 0 140 90"><rect class="art-window" x="10" y="9" width="120" height="72" rx="7"/><path class="art-window-line" d="M10 29h120M31 9v20M109 9v20"/><ellipse class="art-table" cx="73" cy="67" rx="43" ry="7"/><path class="art-person person-one" d="M31 58a9 9 0 1 1 18 0v12H31zM35 54l-7 7m17-7 7 7"/><path class="art-person person-two" d="M57 48a9 9 0 1 1 18 0v19H57zM61 43l-7 7m17-7 7 7"/><path class="art-person person-three" d="M84 55a9 9 0 1 1 18 0v14H84zM88 50l-7 7m17-7 7 7"/><path class="art-laptop" d="M64 57h15v9H64zM60 67h23"/></svg>
+                {% endif %}
+              </div>
+              <div class="about-card-copy"><h2>{{ record.title }}</h2><p>{{ record.description }}</p></div>
+              {% if isOwner %}
+                <div class="about-actions">
+                  <button class="about-edit" type="button" data-about-edit aria-label="Edit {{ record.title }}">✎ <span>Edit</span></button>
+                  <button class="about-delete" type="button" data-about-delete aria-label="Delete {{ record.title }}">▤</button>
+                  <div class="about-order">
+                    <button type="button" data-move="up" aria-label="Move {{ record.title }} up"{% if loop.first %} disabled{% endif %}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
+                    <button type="button" data-move="down" aria-label="Move {{ record.title }} down"{% if loop.last %} disabled{% endif %}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg></button>
+                  </div>
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </section>
+        <aside class="about-cta"><div><h2>Join our journey</h2><p>Together, we build innovative solutions and create a better tomorrow.</p></div><a href="/projects">Our Projects <span aria-hidden="true">→</span></a></aside>
+      {% else %}
+        <section class="about-empty-state" aria-labelledby="about-empty-title">
+          <div class="about-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 96 96"><rect x="13" y="9" width="59" height="73" rx="12"/><path d="M29 31h28M29 43h28M29 55h19"/><circle cx="72" cy="72" r="18"/><path class="about-empty-plus" d="M72 63v18M63 72h18"/></svg>
+          </div>
+          <h2 id="about-empty-title">No sections yet</h2>
+          <p>{% if isOwner %}Add the first section to tell more about our company.{% else %}There are no company sections to show yet.{% endif %}</p>
+          {% if isOwner %}<button class="about-empty-add" type="button" data-about-add><span aria-hidden="true">＋</span> Add section</button>{% endif %}
+        </section>
+      {% endif %}
+    </div>
+  </main>
+</div>
+{% if isOwner %}
+  <dialog class="about-dialog" data-about-dialog aria-labelledby="about-dialog-title">
+    <form data-about-form novalidate>
+      <h2 id="about-dialog-title" data-dialog-title>Add section</h2>
+      <label for="about-title">Title <span>*</span></label>
+      <input id="about-title" name="title" maxlength="120" placeholder="Enter section title..." required>
+      <small class="about-field-error" data-field-error="title" aria-live="polite"></small>
+      <label for="about-description">Description <span>*</span></label>
+      <div class="about-description-wrap">
+        <textarea id="about-description" name="description" maxlength="1000" rows="4" placeholder="Enter section description..." required></textarea>
+        <small class="about-character-count" data-description-count>0/1000</small>
+      </div>
+      <small class="about-field-error" data-field-error="description" aria-live="polite"></small>
+      <small class="about-request-error" data-request-error role="alert"></small>
+      <div class="about-dialog-actions"><button type="button" data-dialog-cancel>Cancel</button><button type="submit" data-dialog-save disabled>Save</button></div>
+    </form>
+  </dialog>
+  <dialog class="about-delete-dialog" data-delete-dialog aria-labelledby="delete-dialog-title">
+    <section>
+      <button class="about-dialog-close" type="button" data-delete-cancel aria-label="Close">×</button>
+      <h2 id="delete-dialog-title">Delete section</h2>
+      <p data-delete-message>Are you sure you want to delete this section?<br>This action cannot be undone.</p>
+      <div class="about-dialog-actions"><button type="button" data-delete-cancel>Cancel</button><button class="about-delete-confirm" type="button" data-delete-confirm>Delete</button></div>
+    </section>
+  </dialog>
+{% endif %}
+<div class="about-toast" data-about-toast role="status" aria-live="polite" hidden><span class="about-toast-icon" data-toast-icon aria-hidden="true"></span><p data-toast-message></p><button type="button" data-toast-dismiss aria-label="Dismiss notification">×</button></div>
+{% endblock %}

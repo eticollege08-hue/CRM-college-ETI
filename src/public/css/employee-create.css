@@ -2,8 +2,10 @@ body {
     background: var(--color-canvas);
 }
 .employee-create-page {
-    width: min(1120px, 100%);
-    margin: 16px auto;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 28px clamp(28px, 4vw, 64px);
 }
 .page-heading {
     margin-bottom: 20px;
@@ -20,8 +22,9 @@ body {
     font-size: 11px;
 }
 .form-card {
-    max-width: 900px;
-    padding: 24px;
+    width: min(100%, 960px);
+    max-width: 100%;
+    padding: 28px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     background: white;
@@ -43,7 +46,10 @@ body {
     color: var(--color-primary-700);
     font-size: 11px;
 }
-#employee-form label span {
+#employee-form .field-title {
+    display: block;
+}
+#employee-form .field-title > span {
     color: var(--color-danger);
 }
 #employee-form input,
@@ -98,7 +104,7 @@ body {
     color: var(--color-muted);
     font-size: 11px;
 }
-@media (max-width: 640px) {
+@media (max-width: 900px) {
     #employee-form {
         grid-template-columns: 1fr;
     }
@@ -109,9 +115,19 @@ body {
     }
     .employee-create-page {
         width: 100%;
-        margin: 10px auto;
+        padding: 20px 24px;
     }
     .form-card {
         padding: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .employee-create-page {
+        padding: 16px 12px;
+    }
+
+    .form-card {
+        padding: 16px 14px;
     }
 }

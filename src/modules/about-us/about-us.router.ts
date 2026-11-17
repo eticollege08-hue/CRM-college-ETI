@@ -6,11 +6,17 @@ import { validateBody, validateParams } from "#middlewares/validate.middleware.j
 import { uuidSchema } from "#schemas/id.schema.js";
 
 import { aboutUsController } from "./about-us.controller.js";
-import { aboutUsCreateSchema, aboutUsUpdateSchema } from "./about-us.schema.js";
+import { aboutUsCreateSchema, aboutUsOrderSchema, aboutUsUpdateSchema } from "./about-us.schema.js";
 
 const router = Router();
 
 router.get("/", asyncCatch(aboutUsController.getAll));
+router.patch(
+    "/order",
+    accessFor(["OWNER"]),
+    validateBody(aboutUsOrderSchema),
+    asyncCatch(aboutUsController.reorder),
+);
 router.get("/:id", validateParams(uuidSchema), asyncCatch(aboutUsController.getById));
 
 router.post(
