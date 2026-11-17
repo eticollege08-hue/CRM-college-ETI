@@ -14,6 +14,7 @@ export class AboutUsController {
         this.getById = this.getById.bind(this);
         this.update = this.update.bind(this);
         this.delete = this.delete.bind(this);
+        this.reorder = this.reorder.bind(this);
     }
 
     async create(req: Request, res: Response) {
@@ -50,6 +51,15 @@ export class AboutUsController {
         const { id } = uuidSchema.parse(req.params);
         await this.service.delete(id);
         res.status(HttpStatus.OK).json({ success: true, message: ABOUT_US_MESSAGES.DELETED });
+    }
+
+    async reorder(req: Request, res: Response) {
+        const aboutUsRecords = await this.service.reorder(req.body.ids);
+        res.status(HttpStatus.OK).json({
+            success: true,
+            message: "About Us order updated",
+            aboutUsRecords,
+        });
     }
 }
 

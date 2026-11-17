@@ -7,11 +7,14 @@ export class AboutUsRepository {
     constructor(private readonly db: PrismaClient = prisma) {}
 
     async create(data: AboutUsCreateInput) {
-        return await this.db.aboutUs.create({ data });
+        const lastRecord = await this.db.aboutUs.findFirst({ orderBy: { sortOrder: "desc" } });
+        return await this.db.aboutUs.create({
+            data: { ...data, sortOrder: (lastRecord?.sortOrder ?? -1) + 1 },
+        });
     }
 
     async getAll() {
-        return await this.db.aboutUs.findMany();
+        return await this.db.aboutUs.findMany({ orderBy: [{ sortOrder: "asc" }, { id: "asc" }] });
     }
 
     async getById(id: string) {
@@ -24,6 +27,15 @@ export class AboutUsRepository {
 
     async delete(id: string) {
         return await this.db.aboutUs.delete({ where: { id } });
+    }
+
+    async reorder(ids: string[]) {
+        await this.db.$transaction(
+            ids.map((id, sortOrder) =>
+                this.db.aboutUs.update({ where: { id }, data: { sortOrder } }),
+            ),
+        );
+        return await this.getAll();
     }
 }
 
