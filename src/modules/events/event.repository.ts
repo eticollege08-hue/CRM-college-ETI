@@ -50,6 +50,18 @@ export class EventRepository {
         });
     }
 
+    async getParticipantRange(employeeId: string, from: Date, to: Date) {
+        return await this.db.event.findMany({
+            where: {
+                startsAt: { lt: to },
+                endsAt: { gt: from },
+                participants: { some: { employeeId } },
+            },
+            select: { title: true, startsAt: true, endsAt: true },
+        });
+    }
+
+    // Resolved merge conflict: include companyId for employee filtering
     async getEmployees(ids: string[], companyId: string, tx: Prisma.TransactionClient) {
         return await tx.employee.findMany({
             where: { id: { in: ids }, companyId },

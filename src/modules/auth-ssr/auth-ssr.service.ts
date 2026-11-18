@@ -1,4 +1,5 @@
 import { userAccountService } from "#modules/user-accounts/user-account.service.js";
+import { eventService } from "#modules/events/event.service.js";
 
 import { PAGE_DATA } from "./auth-ssr.constants.js";
 
@@ -7,62 +8,26 @@ export const authPageService = {
         return { ...PAGE_DATA.LOGIN };
     },
     async getHomePageData(accountId?: string) {
-        const pageData = {
-            ...PAGE_DATA.HOME,
-            team: [
-                {
-                    name: "User Name",
-                    position: "CEO · Level 1",
-                    role: "CRM Owner",
-                    roleClass: "role-hr",
-                    initials: "UN",
-                    depth: 0,
-                },
-                {
-                    name: "User Name",
-                    position: "CTO · Level 2",
-                    role: "CRM Manager",
-                    roleClass: "role-team",
-                    initials: "UN",
-                    depth: 1,
-                },
-                {
-                    name: "User Name",
-                    position: "HR Manager · Level 3",
-                    role: "CRM HR",
-                    roleClass: "role-hr",
-                    initials: "UN",
-                    depth: 2,
-                },
-                {
-                    name: "User Name",
-                    position: "Developer · Level 3",
-                    role: "CRM Developer",
-                    roleClass: "role-lead",
-                    initials: "UN",
-                    depth: 2,
-                },
-                {
-                    name: "User Name",
-                    position: "Recruiter · Level 3",
-                    role: "CRM Recruiter",
-                    roleClass: "role-lead",
-                    initials: "UN",
-                    depth: 2,
-                },
-                {
-                    name: "User Name",
-                    position: "Sales Specialist · Level 3",
-                    role: "CRM Worker",
-                    roleClass: "role-team",
-                    initials: "UN",
-                    depth: 2,
-                },
-            ],
-        };
+        const pageData = { ...PAGE_DATA.HOME, todayEvents: [] };
         if (!accountId) return pageData;
-        const { profile } = await this.getProfilePageData(accountId);
-        return { ...pageData, profile };
+
+        const profileData = await this.getProfilePageData(accountId);
+        const events = await eventService.getParticipantEventsToday(
+            profileData.profile.employee.id,
+        );
+        const todayEvents = events.map((event) => ({
+            name: event.title,
+            startTime: event.startsAt.toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+            }),
+            endTime: event.endsAt.toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+            }),
+        }));
+
+        return { ...pageData, profile: profileData.profile, todayEvents };
     },
     async getRegisterPageData() {
         return { ...PAGE_DATA.REGISTER };
