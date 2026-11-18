@@ -54,7 +54,16 @@ export class ProjectsController {
     async delete(req: Request, res: Response) {
         const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
-        await this.service.delete(id, companyId);
+        const body: unknown = req.body;
+        const confirmName =
+            body &&
+            typeof body === "object" &&
+            "confirmName" in body &&
+            typeof (body as Record<string, unknown>).confirmName === "string"
+                ? (body as Record<string, string>).confirmName
+                : "";
+
+        await this.service.delete(id, companyId, confirmName);
         res.status(HttpStatus.OK).json({ success: true, message: PROJECT_MESSAGES.DELETED });
     }
 }
