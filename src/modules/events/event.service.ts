@@ -214,8 +214,9 @@ export class EventService {
     ): Promise<GoogleCalendarEventBody> {
         const ids = this.participantIds(event);
         const emails = await this.repository.getAttendeeEmails(ids, event.companyId, tx);
+        // Google silently drops private properties whose key exceeds 44 characters.
         const participants = Object.fromEntries(
-            ids.map((employeeId) => [`participant_${employeeId}`, "1"]),
+            ids.map((employeeId) => [`employee_${employeeId.replace(/-/g, "")}`, "1"]),
         );
         return {
             summary: event.title,

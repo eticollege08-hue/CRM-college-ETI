@@ -268,7 +268,7 @@ describe("EventService", () => {
                     companyId,
                     ownerAccountId: actorId,
                     type: "MEETING",
-                    [`participant_${employeeId}`]: "1",
+                    [`employee_${employeeId.replace(/-/g, "")}`]: "1",
                 },
             },
         });
