@@ -18,25 +18,20 @@ vi.mock("../../src/modules/auth-ssr/auth-ssr.controller.js", () => ({
 }));
 
 describe("auth SSR routes", () => {
-    it("serves the protected /home route as the coming-soon placeholder", async () => {
-        vi.mocked(authPageController.comingSoon).mockResolvedValue(undefined);
+    it("serves the protected /home route", async () => {
+        vi.mocked(authPageController.home).mockResolvedValue(undefined);
         const layer = router.stack.find((entry) => entry.route?.path === "/home");
         const handlers = (layer?.route?.stack ?? []).map((entry) => entry.handle as RequestHandler);
         const req = {} as Request;
         const res = {} as Response;
         const next = vi.fn() as NextFunction;
 
-        await handlers[1]?.(req, res, next);
+        await handlers[2]?.(req, res, next);
 
-        expect(handlers).toHaveLength(2);
+        expect(handlers).toHaveLength(3);
         expect(handlers[0]).toBe(isAuth);
-        expect(authPageController.comingSoon).toHaveBeenCalledExactlyOnceWith(
-            req,
-            res,
-            "Home",
-            "home",
-        );
-        expect(authPageController.home).not.toHaveBeenCalled();
+        expect(authPageController.home).toHaveBeenCalledExactlyOnceWith(req, res, next);
+        expect(authPageController.comingSoon).not.toHaveBeenCalled();
         expect(next).not.toHaveBeenCalled();
     });
 });

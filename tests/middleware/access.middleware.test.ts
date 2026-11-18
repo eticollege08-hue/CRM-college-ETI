@@ -44,7 +44,7 @@ describe("accessFor", () => {
         { role: undefined, roles: ["OWNER"] },
         { role: "UNKNOWN", roles: ["OWNER"] },
         { role: ["OWNER"], roles: ["OWNER"] },
-    ])("forwards 403 for a disallowed/missing role or empty list: %j", ({ role, roles }) => {
+    ])("forwards 404 for a disallowed/missing role or empty list: %j", ({ role, roles }) => {
         const { req, res, next } = createContext(role);
 
         accessFor(roles)(req, res as unknown as Response, next);
@@ -52,8 +52,8 @@ describe("accessFor", () => {
         expect(next).toHaveBeenCalledExactlyOnceWith(expect.any(ApiError));
         expect(next).toHaveBeenCalledWith(
             expect.objectContaining({
-                status: 403,
-                message: "You do not have permission to perform this action.",
+                status: 404,
+                message: "Element not found.",
                 details: [],
             }),
         );
@@ -70,7 +70,7 @@ describe("accessFor", () => {
         accessFor(["OWNER"])(req, res as unknown as Response, next);
 
         expect(next).toHaveBeenCalledExactlyOnceWith(expect.any(ApiError));
-        expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 403 }));
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 404 }));
         expect(res.clearCookie).not.toHaveBeenCalled();
     });
 });

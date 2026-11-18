@@ -7,9 +7,18 @@ import { validateBody, validateParams } from "#middlewares/validate.middleware.j
 import { uuidSchema } from "#schemas/id.schema.js";
 
 import { employeeController } from "./employee.controller.js";
-import { employeeUpdateSchema } from "./employee.schema.js";
+import { employeeSalaryUpdateSchema, employeeUpdateSchema } from "./employee.schema.js";
 
 const router = Router();
+
+router.patch(
+    "/:id/salary",
+    checkAuthOrigin,
+    accessFor(["OWNER", "HR", "MANAGER"]),
+    validateParams(uuidSchema),
+    validateBody(employeeSalaryUpdateSchema),
+    asyncCatch(employeeController.updateSalary),
+);
 
 router.patch(
     "/:id",

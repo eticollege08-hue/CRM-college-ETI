@@ -51,6 +51,7 @@ describe("EventService", () => {
         ),
         getById: vi.fn(),
         getRange: vi.fn(),
+        getParticipantRange: vi.fn(),
         getEmployees: vi.fn(),
         getAttendeeEmails: vi.fn(),
         hasConflict: vi.fn(),
@@ -90,6 +91,24 @@ describe("EventService", () => {
             employeeId: anotherId,
             companyId,
         });
+    });
+
+    it("loads a participant's events for the server's current day", async () => {
+        const now = new Date(2026, 10, 10, 14, 30);
+        const from = new Date(now);
+        from.setHours(0, 0, 0, 0);
+        const to = new Date(from);
+        to.setDate(to.getDate() + 1);
+        repository.getParticipantRange.mockResolvedValue([]);
+
+        const events = await service.getParticipantEventsToday(employeeId, now);
+
+        expect(events).toEqual([]);
+        expect(repository.getParticipantRange).toHaveBeenCalledExactlyOnceWith(
+            employeeId,
+            from,
+            to,
+        );
     });
 
     it("uses the account ID as owner and does not automatically occupy the creator", async () => {
@@ -168,7 +187,7 @@ describe("EventService", () => {
                   : operation === "add"
                     ? service.addParticipants(eventId, [anotherId], otherActor)
                     : service.removeParticipant(eventId, employeeId, otherActor);
-        await expect(action).rejects.toMatchObject({ status: 403 });
+        await expect(action).rejects.toMatchObject({ status: 404 });
         expect(repository.update).not.toHaveBeenCalled();
         expect(repository.delete).not.toHaveBeenCalled();
     });

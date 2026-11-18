@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { asyncCatch } from "#middlewares/asyncCatch.middleware.js";
 import { isAuth } from "#middlewares/auth.middleware.js";
+import { accessFor } from "#middlewares/access.middleware.js";
 import { validateParams } from "#middlewares/validate.middleware.js";
 import { authPageService } from "#modules/auth-ssr/auth-ssr.service.js";
 import { employeeService } from "#modules/employees/employee.service.js";
@@ -11,21 +12,25 @@ import { employeesPageController } from "./employees-ssr.controller.js";
 
 const router = Router();
 
-router.get("/employees", isAuth, asyncCatch(employeesPageController.index));
+const ALL_ROLES = ["OWNER", "MANAGER", "RECRUITER", "HR", "WORKER"] as const;
+
+router.get("/employees", isAuth, accessFor(ALL_ROLES), asyncCatch(employeesPageController.index));
 router.get(
     "/employees/:id/profile",
     isAuth,
+    accessFor(ALL_ROLES),
     validateParams(uuidSchema),
     asyncCatch(employeesPageController.profile),
 );
 router.get(
     "/employees/create",
     isAuth,
+    accessFor(ALL_ROLES),
     asyncCatch(async (req, res) => {
         if (!req.user) return res.redirect("/login");
-        const { userId: accountId, companyId } = req.user;
+        const { userId: accountId } = req.user;
         const [employees, profileData] = await Promise.all([
-            employeeService.getAll(companyId),
+            employeeService.getAll(req.user),
             authPageService.getProfilePageData(accountId),
         ]);
         res.render("pages/employee-create", {

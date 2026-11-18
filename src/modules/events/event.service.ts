@@ -53,6 +53,15 @@ export class EventService {
         return await this.repository.getRange(new Date(query.from), new Date(query.to), companyId);
     }
 
+    async getParticipantEventsToday(employeeId: string, now = new Date()) {
+        const from = new Date(now);
+        from.setHours(0, 0, 0, 0);
+        const to = new Date(from);
+        to.setDate(to.getDate() + 1);
+
+        return await this.repository.getParticipantRange(employeeId, from, to);
+    }
+
     async getById(id: string, companyId: string, tx?: Prisma.TransactionClient) {
         const event = await this.repository.getById(id, companyId, tx);
         if (!event) throw new ApiError(HttpStatus.NOT_FOUND, EVENT_MESSAGES.NOT_FOUND);
@@ -229,7 +238,7 @@ export class EventService {
     private async ownedEvent(id: string, actor: EventActor, tx: Prisma.TransactionClient) {
         const event = await this.getById(id, actor.companyId, tx);
         if (event.ownerAccountId !== actor.accountId)
-            throw new ApiError(HttpStatus.FORBIDDEN, EVENT_MESSAGES.NOT_OWNER);
+            throw new ApiError(HttpStatus.NOT_FOUND, EVENT_MESSAGES.NOT_FOUND);
         return event;
     }
 
