@@ -27,12 +27,14 @@ describe("projects router", () => {
         (entry) => entry.handle as RequestHandler,
     );
 
-    it("registers param validation, body validation, and controller handler on DELETE /:id", () => {
-        expect(handlers).toHaveLength(3);
+    it("registers accessFor, param validation, body validation, and controller handler on DELETE /:id", () => {
+        // accessFor + validateParams + validateDeleteProject + asyncCatch(controller)
+        expect(handlers).toHaveLength(4);
     });
 
     describe("validateDeleteProject middleware", () => {
-        const validateDelete = handlers[1]!;
+        // handlers[0] = accessFor, handlers[1] = validateParams, handlers[2] = validateDeleteProject
+        const validateDelete = handlers[2]!;
 
         it("calls next() with valid confirmName and trims leading and trailing spaces", () => {
             const req = { body: { confirmName: "  Test Project  " } } as Request;
@@ -105,7 +107,8 @@ describe("projects router", () => {
     describe("DELETE route controller delegation", () => {
         it("delegates to projectsController.delete", async () => {
             vi.mocked(projectsController.delete).mockResolvedValue(undefined as never);
-            const controllerHandler = handlers[2]!;
+            // handlers[3] = asyncCatch(controller)
+            const controllerHandler = handlers[3]!;
             const req = {
                 params: { id: "550e8400-e29b-41d4-a716-446655440000" },
                 body: { confirmName: "CRM" },
