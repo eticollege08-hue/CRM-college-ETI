@@ -10,8 +10,17 @@ import { aboutUsCreateSchema, aboutUsUpdateSchema } from "./about-us.schema.js";
 
 const router = Router();
 
-router.get("/", asyncCatch(aboutUsController.getAll));
-router.get("/:id", validateParams(uuidSchema), asyncCatch(aboutUsController.getById));
+router.get(
+    "/",
+    accessFor(["OWNER", "MANAGER", "RECRUITER", "HR", "WORKER"]),
+    asyncCatch(aboutUsController.getAll),
+);
+router.get(
+    "/:id",
+    accessFor(["OWNER", "MANAGER", "RECRUITER", "HR", "WORKER"]),
+    validateParams(uuidSchema),
+    asyncCatch(aboutUsController.getById),
+);
 
 router.post(
     "/",

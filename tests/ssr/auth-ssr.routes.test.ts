@@ -26,9 +26,9 @@ describe("auth SSR routes", () => {
         const res = {} as Response;
         const next = vi.fn() as NextFunction;
 
-        await handlers[1]?.(req, res, next);
+        await handlers[2]?.(req, res, next);
 
-        expect(handlers).toHaveLength(2);
+        expect(handlers).toHaveLength(3);
         expect(handlers[0]).toBe(isAuth);
         expect(authPageController.home).toHaveBeenCalledExactlyOnceWith(req, res, next);
         expect(authPageController.comingSoon).not.toHaveBeenCalled();

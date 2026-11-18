@@ -30,6 +30,7 @@ model Company {
   events       Event[]
   projects     Project[]
   estimates    Estimate[]
+  compensations EmployeeCompensation[]
 
   @@map("companies")
 }
@@ -54,11 +55,29 @@ model Employee {
   subordinates        Hierarchy[]        @relation("HierarchyManager")
   managers            Hierarchy[]        @relation("HierarchySubordinate")
   eventParticipations EventParticipant[]
+  compensation        EmployeeCompensation?
 
   // Composite key target so child rows can only reference employees of their own company.
   @@unique([id, companyId])
   @@index([companyId])
   @@map("employees")
+}
+
+model EmployeeCompensation {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  employeeId String   @unique @map("employee_id")
+  companyId  String   @map("company_id")
+  salary     Decimal  @db.Decimal(12, 2)
+  currency   String   @default("USD") @db.VarChar(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  employee Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, companyId])
+  @@index([companyId])
+  @@map("employee_compensations")
 }
 
 model UserAccount {

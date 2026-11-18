@@ -25,6 +25,7 @@ const employee = {
     viber: null,
     whatsapp: null,
     discord: null,
+    compensation: null,
 };
 
 describe("employeesPageController profile", () => {
@@ -35,7 +36,7 @@ describe("employeesPageController profile", () => {
 
         await employeesPageController.profile(req, res);
 
-        expect(employeesPageService.getProfilePageData).toHaveBeenCalledWith(employeeId, companyId);
+        expect(employeesPageService.getProfilePageData).toHaveBeenCalledWith(employeeId, req.user);
         expect(res.render).toHaveBeenCalledWith("pages/employee-details", {
             css: "employee-details",
             js: "employee-details",

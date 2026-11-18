@@ -122,7 +122,7 @@ export class EventService {
     private async ownedEvent(id: string, actor: EventActor, tx: Prisma.TransactionClient) {
         const event = await this.getById(id, actor.companyId, tx);
         if (event.ownerAccountId !== actor.accountId)
-            throw new ApiError(HttpStatus.FORBIDDEN, EVENT_MESSAGES.NOT_OWNER);
+            throw new ApiError(HttpStatus.NOT_FOUND, EVENT_MESSAGES.NOT_FOUND);
         return event;
     }
 

@@ -10,10 +10,16 @@ import type { EmployeeService } from "./employee.service.js";
 export class EmployeeController {
     constructor(private readonly service: EmployeeService = employeeService) {
         this.update = this.update.bind(this);
+        this.updateSalary = this.updateSalary.bind(this);
     }
 
     async update(req: Request, res: Response) {
         await this.service.update(req.params.id as string, getAuthUser(req), req.body);
+        res.status(HttpStatus.OK).json({ success: true, message: EMPLOYEE_MESSAGES.UPDATED });
+    }
+
+    async updateSalary(req: Request, res: Response) {
+        await this.service.updateSalary(req.params.id as string, getAuthUser(req), req.body);
         res.status(HttpStatus.OK).json({ success: true, message: EMPLOYEE_MESSAGES.UPDATED });
     }
 }

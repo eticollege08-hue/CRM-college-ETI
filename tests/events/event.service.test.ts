@@ -170,7 +170,7 @@ describe("EventService", () => {
                   : operation === "add"
                     ? service.addParticipants(eventId, [anotherId], otherActor)
                     : service.removeParticipant(eventId, employeeId, otherActor);
-        await expect(action).rejects.toMatchObject({ status: 403 });
+        await expect(action).rejects.toMatchObject({ status: 404 });
         expect(repository.update).not.toHaveBeenCalled();
         expect(repository.delete).not.toHaveBeenCalled();
     });
