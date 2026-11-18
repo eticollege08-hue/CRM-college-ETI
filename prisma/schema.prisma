@@ -121,13 +121,15 @@ enum EventType {
 }
 
 model Event {
-  id          String    @id @default(dbgenerated("gen_random_uuid()"))
-  type        EventType
-  title       String    @db.VarChar(200)
-  description String    @db.VarChar(4000)
-  startsAt    DateTime  @map("starts_at") @db.Timestamptz(3)
-  endsAt      DateTime  @map("ends_at") @db.Timestamptz(3)
-  timeZone    String    @map("time_zone") @db.VarChar(100)
+  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  type          EventType
+  title         String    @db.VarChar(200)
+  description   String    @db.VarChar(4000)
+  startsAt      DateTime  @map("starts_at") @db.Timestamptz(3)
+  endsAt        DateTime  @map("ends_at") @db.Timestamptz(3)
+  timeZone      String    @map("time_zone") @db.VarChar(100)
+  // Mirror of this event in the shared Google Calendar; null until it has been synchronized.
+  googleEventId String?   @unique @map("google_event_id") @db.VarChar(1024)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)

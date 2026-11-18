@@ -4,10 +4,15 @@ import prisma from "#config/prisma.config.js";
 import { HttpStatus } from "#constants/http-status.constants.js";
 import { ApiError } from "#utils/error.util.js";
 
-import { EVENT_MESSAGES, EVENT_TRANSACTION_MAX_ATTEMPTS } from "./event.constants.js";
+import {
+    EVENT_MESSAGES,
+    EVENT_TRANSACTION_MAX_ATTEMPTS,
+    EVENT_TRANSACTION_MAX_WAIT_MS,
+    EVENT_TRANSACTION_TIMEOUT_MS,
+} from "./event.constants.js";
 
 import type { PrismaClient } from "@prisma/client";
-import type { EventWrite } from "./event.types.js";
+import type { EventRecordWrite } from "./event.types.js";
 
 const eventInclude = {
     participants: {
@@ -26,6 +31,8 @@ export class EventRepository {
             try {
                 return await this.db.$transaction(operation, {
                     isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+                    timeout: EVENT_TRANSACTION_TIMEOUT_MS,
+                    maxWait: EVENT_TRANSACTION_MAX_WAIT_MS,
                 });
             } catch (error: unknown) {
                 if (
@@ -57,6 +64,16 @@ export class EventRepository {
         });
     }
 
+    // Login emails of participants with an active account; others have no one to invite.
+    async getAttendeeEmails(ids: string[], companyId: string, tx: Prisma.TransactionClient) {
+        const accounts = await tx.userAccount.findMany({
+            where: { employeeId: { in: ids }, companyId, isActive: true },
+            orderBy: { email: "asc" },
+            select: { email: true },
+        });
+        return accounts.map(({ email }) => email);
+    }
+
     async hasConflict(
         ids: string[],
         startsAt: Date,
@@ -78,16 +95,19 @@ export class EventRepository {
         return conflict !== null;
     }
 
+    // The ID is chosen by the service so a retried transaction reuses the same Google event ID.
     async create(
+        id: string,
         ownerAccountId: string,
         companyId: string,
-        data: EventWrite,
+        data: EventRecordWrite,
         ids: string[],
         tx: Prisma.TransactionClient,
     ) {
         return await tx.event.create({
             data: {
                 ...data,
+                id,
                 ownerAccountId,
                 companyId,
                 participants: { create: ids.map((employeeId) => ({ employeeId })) },
@@ -99,7 +119,7 @@ export class EventRepository {
     async update(
         id: string,
         companyId: string,
-        data: EventWrite,
+        data: EventRecordWrite,
         ids: string[],
         tx: Prisma.TransactionClient,
     ) {

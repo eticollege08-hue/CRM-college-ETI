@@ -5,6 +5,7 @@ import path from "node:path";
 import nunjucks from "nunjucks";
 
 import { getAuthAllowedOrigins, getAuthCookieSecure, getBcryptCost } from "#config/auth.config.js";
+import { getGoogleCalendarConfig } from "#config/google-calendar.config.js";
 import { getJwtConfig } from "#config/jwt.config.js";
 import { errorHandler } from "#middlewares/error.middleware.js";
 import apiRoutes from "#routes/api/index.js";
@@ -14,6 +15,7 @@ getJwtConfig();
 getAuthAllowedOrigins();
 getAuthCookieSecure();
 getBcryptCost();
+getGoogleCalendarConfig();
 
 const app = express();
 app.set("trust proxy", false);

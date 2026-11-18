@@ -28,6 +28,8 @@ const env = {
     JWT_SECRET: randomBytes(32).toString("hex"),
     JWT_EXPIRES_IN: "3600",
     BCRYPT_COST: "4",
+    // Never write test events into the real shared Google Calendar.
+    GOOGLE_CALENDAR_ENABLED: "false",
 };
 const db = new PrismaClient({ datasources: { db: { url: env.DATABASE_URL } }, log: [] });
 let created = false;
