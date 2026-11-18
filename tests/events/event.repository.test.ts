@@ -73,6 +73,20 @@ describe("EventRepository", () => {
             select: { id: true },
         });
     });
+    it("reads attendee emails only from active accounts of the company", async () => {
+        const findMany = vi.fn().mockResolvedValue([{ email: "olena@example.com" }]);
+        const tx = { userAccount: { findMany } } as unknown as Prisma.TransactionClient;
+        const repo = new EventRepository({} as PrismaClient);
+
+        expect(await repo.getAttendeeEmails(["employee"], "company", tx)).toEqual([
+            "olena@example.com",
+        ]);
+        expect(findMany).toHaveBeenCalledWith({
+            where: { employeeId: { in: ["employee"] }, companyId: "company", isActive: true },
+            orderBy: { email: "asc" },
+            select: { email: true },
+        });
+    });
     it("retries Serializable conflicts using a fresh transaction", async () => {
         const operation = vi.fn().mockResolvedValue("result");
         const conflict = new Prisma.PrismaClientKnownRequestError("conflict", {
@@ -83,7 +97,11 @@ describe("EventRepository", () => {
         const repo = new EventRepository({ $transaction: transaction } as unknown as PrismaClient);
         expect(await repo.transaction(operation)).toBe("result");
         expect(transaction).toHaveBeenCalledTimes(2);
-        expect(transaction).toHaveBeenCalledWith(operation, { isolationLevel: "Serializable" });
+        expect(transaction).toHaveBeenCalledWith(operation, {
+            isolationLevel: "Serializable",
+            timeout: 30_000,
+            maxWait: 5_000,
+        });
     });
     it("returns 409 after bounded retries", async () => {
         const conflict = new Prisma.PrismaClientKnownRequestError("conflict", {
