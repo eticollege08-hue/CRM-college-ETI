@@ -1331,8 +1331,7 @@ paths:
                 - cookieAuth: []
             operationId: updateEmployeeProfile
             summary: Update an employee name, position, or level
-            description:
-                Available to OWNER, RECRUITER, HR, and MANAGER accounts. A MANAGER may update only
+            description: Available to OWNER, HR, and MANAGER accounts. A MANAGER may update only
                 their direct subordinates. Mutation Origin must match AUTH_ALLOWED_ORIGINS. Empty
                 position or level values clear those fields.
             requestBody:
