@@ -393,12 +393,10 @@ async function run() {
         headers: { Cookie: cookie },
     });
     assert.equal(calendar.status, 200);
-    assert.match(await calendar.text(), /Coming soon/);
+    assert.match(await calendar.text(), /<h1>Calendar<\/h1>/);
     assert.equal(calendar.headers.get("Cache-Control"), "no-store");
     assert.equal((await fetch(origin + "/calendar")).status, 401);
-    console.log(
-        "PASS: local-day retrieval, shared JSON errors and authenticated calendar placeholder.",
-    );
+    console.log("PASS: local-day retrieval, shared JSON errors and authenticated calendar page.");
 
     phase = "tenant isolation";
     const { id: otherCompanyId } = await db.company.create({ data: { name: "Other company" } });

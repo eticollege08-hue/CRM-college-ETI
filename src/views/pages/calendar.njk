@@ -1,0 +1,41 @@
+{% extends "base/base.njk" %}
+{% block title %}Calendar · CRM{% endblock %}
+{% block content %}
+{% include "partials/header.njk" %}
+<div class="app-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace calendar-workspace">
+    <header class="page-heading calendar-heading">
+      <div><h1>Calendar</h1><p>Events scheduled in {{ timeZone }}</p></div>
+      <a class="secondary-button" href="/api/docs">Event API documentation</a>
+    </header>
+    <section class="calendar-card card" aria-label="{{ monthLabel }} calendar">
+      <nav class="calendar-navigation" aria-label="Calendar month">
+        <a class="icon-button" href="/calendar?month={{ previousMonth }}&amp;timeZone={{ timeZone }}" aria-label="Previous month">‹</a>
+        <h2>{{ monthLabel }}</h2>
+        <a class="icon-button" href="/calendar?month={{ nextMonth }}&amp;timeZone={{ timeZone }}" aria-label="Next month">›</a>
+      </nav>
+      <div class="calendar-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+      <div class="calendar-grid">
+        {% for week in weeks %}
+          {% for day in week %}
+            {% if day %}
+              <section class="calendar-day{% if day.date == currentDate %} is-today{% endif %}" aria-label="{{ day.date }}">
+                <strong>{{ day.day }}</strong>
+                <div class="calendar-events">
+                  {% for event in day.events %}
+                    <article class="calendar-event"><span>{{ event.startsAt }}–{{ event.endsAt }}</span><strong>{{ event.title }}</strong><small>{{ event.type }}</small></article>
+                  {% endfor %}
+                </div>
+              </section>
+            {% else %}
+              <div class="calendar-day is-empty" aria-hidden="true"></div>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+      {% if not events.length %}<p class="calendar-empty">No events scheduled for this month.</p>{% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+.calendar-workspace {
+    min-width: 0;
+}
+
+.calendar-heading {
+    align-items: center;
+}
+
+.calendar-card {
+    overflow: auto;
+    padding: 18px;
+}
+
+.calendar-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.calendar-navigation h2 {
+    min-width: 200px;
+    margin: 0;
+    text-align: center;
+}
+
+.calendar-navigation .icon-button {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-primary-700);
+    font-size: 24px;
+    text-decoration: none;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(132px, 1fr));
+}
+
+.calendar-weekdays span {
+    padding: 8px;
+    color: var(--color-muted);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.calendar-day {
+    min-height: 126px;
+    padding: 8px;
+    border-right: 1px solid var(--color-border);
+    border-top: 1px solid var(--color-border);
+    background: white;
+}
+
+.calendar-day:nth-child(7n + 1) {
+    border-left: 1px solid var(--color-border);
+}
+
+.calendar-day.is-empty {
+    background: #f8fafc;
+}
+
+.calendar-day.is-today > strong {
+    display: grid;
+    width: 25px;
+    height: 25px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--color-primary-700);
+    color: white;
+}
+
+.calendar-events {
+    display: grid;
+    gap: 5px;
+    margin-top: 7px;
+}
+
+.calendar-event {
+    display: grid;
+    gap: 1px;
+    padding: 5px;
+    border-left: 3px solid var(--color-primary-500);
+    border-radius: 3px;
+    background: #edf4fb;
+    font-size: 11px;
+}
+
+.calendar-event span,
+.calendar-event small {
+    color: var(--color-muted);
+}
+
+.calendar-event strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-empty {
+    margin: 16px 0 0;
+    color: var(--color-muted);
+    text-align: center;
+}
+
+@media (max-width: 760px) {
+    .calendar-heading {
+        align-items: flex-start;
+    }
+
+    .calendar-card {
+        padding: 12px;
+    }
+}
