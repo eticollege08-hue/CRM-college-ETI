@@ -15,10 +15,11 @@ const dialogMessage = document.querySelector("#dialog-message");
 const dialogTitle = document.querySelector("#dialog-title");
 const submitButton = document.querySelector("#relationship-submit");
 const treeItems = [...document.querySelectorAll("[data-tree-item]")];
-const canManageEmployees = ["OWNER", "RECRUITER", "HR", "MANAGER"].includes(
-    document.querySelector("[data-current-user-role]")?.getAttribute("data-current-user-role") ||
-        "",
-);
+const currentUserRole =
+    document.querySelector("[data-current-user-role]")?.getAttribute("data-current-user-role") || "";
+const canManageEmployees = ["OWNER", "RECRUITER", "HR", "MANAGER"].includes(currentUserRole);
+// Mirrors PATCH /api/employees/:id access; RECRUITER manages hierarchy but not employee data.
+const canEditEmployees = ["OWNER", "HR", "MANAGER"].includes(currentUserRole);
 let editingRelationshipId = "";
 
 for (const select of [levelFilter, positionFilter]) {
@@ -145,9 +146,11 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
     const menu = document.createElement("div");
     menu.className = "employee-actions-list";
     if (canManageEmployees && !isEditing) {
-        const editButton = addTextElement(menu, "button", "", "Edit employee");
-        editButton.type = "button";
-        editButton.addEventListener("click", () => renderEmployee(employee, activeTab, true));
+        if (canEditEmployees) {
+            const editButton = addTextElement(menu, "button", "", "Edit employee");
+            editButton.type = "button";
+            editButton.addEventListener("click", () => renderEmployee(employee, activeTab, true));
+        }
         const addReportButton = addTextElement(menu, "button", "", "Add direct report");
         addReportButton.type = "button";
         addReportButton.addEventListener("click", () => openRelationshipDialog("create", employee));

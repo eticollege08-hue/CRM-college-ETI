@@ -23,7 +23,7 @@ router.patch(
 router.patch(
     "/:id",
     checkAuthOrigin,
-    accessFor(["OWNER", "RECRUITER", "HR", "MANAGER"]),
+    accessFor(["OWNER", "HR", "MANAGER"]),
     validateParams(uuidSchema),
     validateBody(employeeUpdateSchema),
     asyncCatch(employeeController.update),
