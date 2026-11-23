@@ -16,7 +16,8 @@ const dialogTitle = document.querySelector("#dialog-title");
 const submitButton = document.querySelector("#relationship-submit");
 const treeItems = [...document.querySelectorAll("[data-tree-item]")];
 const currentUserRole =
-    document.querySelector("[data-current-user-role]")?.getAttribute("data-current-user-role") || "";
+    document.querySelector("[data-current-user-role]")?.getAttribute("data-current-user-role") ||
+    "";
 const canManageEmployees = ["OWNER", "RECRUITER", "HR", "MANAGER"].includes(currentUserRole);
 // Mirrors PATCH /api/employees/:id access; RECRUITER manages hierarchy but not employee data.
 const canEditEmployees = ["OWNER", "HR", "MANAGER"].includes(currentUserRole);
