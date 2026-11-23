@@ -8,3 +8,7 @@ export const projectCreateSchema = z.strictObject({
 export const projectUpdateSchema = projectCreateSchema
     .partial()
     .refine((data) => Object.keys(data).length > 0);
+
+export const projectDeleteSchema = z.strictObject({
+    confirmName: z.string().trim().min(1),
+});

@@ -101,7 +101,7 @@ describe("EmployeeService.update", () => {
         expect(repository.update).not.toHaveBeenCalled();
     });
 
-    it.each<Role>(["OWNER", "HR", "RECRUITER"])(
+    it.each<Role>(["OWNER", "HR"])(
         "lets %s update any employee in the company without a hierarchy check",
         async (role) => {
             const { service, repository, hierarchy, userAccounts } = setup({ isManager: false });

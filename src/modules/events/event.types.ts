@@ -18,6 +18,7 @@ export type EventWrite = Omit<EventCreateInput, "startsAt" | "endsAt" | "partici
     startsAt: Date;
     endsAt: Date;
 };
+export type EventRecordWrite = EventWrite & { googleEventId: string | null };
 
 // The authenticated account acting on events, scoped to its own company.
 export interface EventActor {

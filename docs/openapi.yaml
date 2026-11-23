@@ -491,6 +491,7 @@ paths:
                                       startsAt: 2026-10-26T08:00:00.000Z
                                       endsAt: 2026-10-26T09:00:00.000Z
                                       timeZone: Europe/Kyiv
+                                      googleEventId: 550e8400e29b41d4a716446655440010
                                       createdAt: 2026-10-26T07:00:00.000Z
                                       updatedAt: 2026-10-26T07:00:00.000Z
                                       participants:
@@ -564,6 +565,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -590,6 +592,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
     /events/{id}:
         parameters:
             - in: path
@@ -623,6 +627,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -686,6 +691,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -712,6 +718,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
         delete:
             tags:
                 - Events
@@ -778,6 +786,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
     /events/{id}/participants:
         parameters:
             - in: path
@@ -833,6 +843,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -859,6 +870,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
     /events/{id}/participants/{employeeId}:
         parameters:
             - in: path
@@ -911,6 +924,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -931,6 +945,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
     /calendar:
         get:
             tags:
@@ -1315,8 +1331,7 @@ paths:
                 - cookieAuth: []
             operationId: updateEmployeeProfile
             summary: Update an employee name, position, or level
-            description:
-                Available to OWNER, RECRUITER, HR, and MANAGER accounts. A MANAGER may update only
+            description: Available to OWNER, HR, and MANAGER accounts. A MANAGER may update only
                 their direct subordinates. Mutation Origin must match AUTH_ALLOWED_ORIGINS. Empty
                 position or level values clear those fields.
             requestBody:
@@ -1539,8 +1554,15 @@ paths:
                 - Projects
             operationId: deleteProject
             summary: Delete a project
+            description: Checks exact project name confirmation in the same transaction before deleting.
             security:
                 - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProjectDeleteInput"
             responses:
                 "200":
                     description: Project deleted.
@@ -1555,6 +1577,8 @@ paths:
                                         enum: [true]
                                     message:
                                         type: string
+                "400":
+                    $ref: "#/components/responses/BadRequest"
                 "401":
                     $ref: "#/components/responses/ProjectsUnauthorized"
                 "404":
@@ -1947,6 +1971,7 @@ components:
                 - startsAt
                 - endsAt
                 - timeZone
+                - googleEventId
                 - createdAt
                 - updatedAt
                 - participants
@@ -1989,6 +2014,18 @@ components:
                     maxLength: 100
                     example: Europe/Kyiv
                     description: IANA time zone identifier or UTC; fixed-offset zone identifiers are rejected.
+                googleEventId:
+                    type: string
+                    nullable: true
+                    maxLength: 1024
+                    example: 550e8400e29b41d4a716446655440010
+                    description:
+                        ID of the event in Google Calendar of the CRM account (the event UUID
+                        without dashes). Participants with an active account are invited by their
+                        login email and receive the event in their own Google Calendar. Null while
+                        the event has not been synchronized, e.g. it was created before the sync or
+                        while GOOGLE_CALENDAR_ENABLED=false; it is synchronized on the next change.
+                        Read-only; the database remains the source of truth.
                 createdAt:
                     type: string
                     format: date-time
@@ -2018,6 +2055,7 @@ components:
                 startsAt: 2026-10-26T08:00:00.000Z
                 endsAt: 2026-10-26T09:00:00.000Z
                 timeZone: Europe/Kyiv
+                googleEventId: 550e8400e29b41d4a716446655440010
                 createdAt: 2026-10-26T07:00:00.000Z
                 updatedAt: 2026-10-26T07:00:00.000Z
                 participants:
@@ -2260,6 +2298,14 @@ components:
                     type: string
                     minLength: 1
                 description:
+                    type: string
+                    minLength: 1
+        ProjectDeleteInput:
+            type: object
+            additionalProperties: false
+            required: [confirmName]
+            properties:
+                confirmName:
                     type: string
                     minLength: 1
         ProjectReadSuccess:
@@ -2815,6 +2861,19 @@ components:
                     example:
                         success: false
                         message: Too many attempts. Please try again later.
+                        details: []
+        GoogleCalendarUnavailable:
+            description:
+                The change could not be synchronized to Google Calendar (network failure, timeout,
+                revoked refresh token or Google error). The database change was rolled back;
+                upstream details are never exposed. Retry later.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Google Calendar is unavailable. Please try again later.
                         details: []
         InternalServerError:
             description: Unexpected failure; no internal details are exposed.
