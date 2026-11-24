@@ -12,7 +12,11 @@ vi.mock("../../src/modules/employee-profile-ssr/employee-profile-ssr.service.js"
 const accountId = "550e8400-e29b-41d4-a716-446655440000";
 const employee = {
     id: "550e8400-e29b-41d4-a716-446655440001",
+    email: null,
     fullName: "Olena Kovalenko",
+    experience: null,
+    salary: null,
+    projects: null,
     imageId: null,
     level: null,
     position: "HR",

@@ -16,7 +16,11 @@ describe("calendarPageService", () => {
         vi.mocked(employeeService.getAll).mockResolvedValue([
             {
                 id: "employee",
+                email: null,
                 fullName: "Employee",
+                experience: null,
+                salary: null,
+                projects: null,
                 imageId: null,
                 position: "HR",
                 level: null,

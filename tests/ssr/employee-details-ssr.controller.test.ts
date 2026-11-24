@@ -12,7 +12,11 @@ vi.mock("../../src/modules/employees-ssr/employees-ssr.service.js", () => ({
 const employeeId = "550e8400-e29b-41d4-a716-446655440000";
 const employee = {
     id: employeeId,
+    email: null,
     fullName: "Olena Kovalenko",
+    experience: null,
+    salary: null,
+    projects: null,
     imageId: null,
     level: null,
     position: "HR",

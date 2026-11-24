@@ -21,7 +21,11 @@ const hierarchy = {
 const input = { employeeId: hierarchy.employeeId, subordinateId: hierarchy.subordinateId };
 const employee = (id: string) => ({
     id,
+    email: null,
     fullName: null,
+    experience: null,
+    salary: null,
+    projects: null,
     imageId: null,
     level: null,
     position: null,
