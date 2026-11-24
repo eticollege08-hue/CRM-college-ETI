@@ -1,0 +1,30 @@
+{% extends "base/base.njk" %}
+{% block title %}Calendar · CRM{% endblock %}
+{% block content %}
+{% include "partials/header.njk" %}
+<div class="app-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace calendar-workspace" data-calendar data-month="{{ month }}" data-today="{{ currentDate }}" data-time-zone="{{ timeZone }}" data-account-id="{{ profile.id }}">
+    <header class="page-heading"><div><h1><img class="heading-icon" src="/icons/calendar-icon.svg" alt="">Calendar</h1><p>View and manage team events and absences</p></div><button class="primary-button" type="button" id="create-event">＋ Create event</button></header>
+    <section class="calendar-card card">
+      <div class="calendar-toolbar">
+        <button class="secondary-button" type="button" id="today-button">Today</button><div class="calendar-navigation"><button class="icon-button" id="previous-period" type="button" aria-label="Previous period">‹</button><button class="icon-button" id="next-period" type="button" aria-label="Next period">›</button><h2 id="period-title"></h2></div>
+        <div class="view-switch" role="group" aria-label="Calendar view"><button type="button" data-view="month" aria-pressed="true">Month</button><button type="button" data-view="week" aria-pressed="false">Week</button><button type="button" data-view="day" aria-pressed="false">Day</button></div>
+      </div>
+      <div class="calendar-tools"><label class="calendar-search">Search events<input id="event-search" type="search" placeholder="Title or description"></label><label>Event type<select id="event-type-filter"><option value="">All types</option>{% for type in eventTypes %}<option value="{{ type }}">{{ type | replace("_", " ") | title }}</option>{% endfor %}</select></label><p id="calendar-status" role="status" aria-live="polite"></p></div>
+      <div class="calendar-grid-wrap"><div id="calendar-grid" class="calendar-grid" aria-live="polite"></div><div id="calendar-state" class="calendar-state" hidden></div></div>
+    </section>
+  </main>
+</div>
+<dialog id="event-dialog" class="event-dialog"><form id="event-form">
+  <div class="dialog-heading"><div><h2 id="event-dialog-title">Create event</h2><p>Times are entered in the selected time zone.</p></div><button class="icon-button" type="button" data-close-event aria-label="Close">×</button></div>
+  <div class="event-form-grid"><label>Type<select name="type" required>{% for type in eventTypes %}<option value="{{ type }}">{{ type | replace("_", " ") | title }}</option>{% endfor %}</select></label><label>Time zone<select name="timeZone" required><option value="{{ timeZone }}">{{ timeZone }}</option><option value="UTC">UTC</option><option value="America/New_York">America/New_York</option><option value="Europe/London">Europe/London</option></select></label></div>
+  <label>Title<input name="title" maxlength="200" placeholder="Project meeting" required></label>
+  <div class="event-dates"><label>Starts<input name="startsAt" type="datetime-local" required></label><label>Ends<input name="endsAt" type="datetime-local" required></label></div>
+  <label>Description<textarea name="description" maxlength="4000" rows="3" placeholder="Add event details…"></textarea><small class="description-count"><span id="description-count">0</span>/4000</small></label>
+  <section class="member-picker"><div class="member-picker-heading"><strong>Members *</strong><span id="member-count">0 selected</span></div><input id="member-search" type="search" placeholder="Search by name or position" autocomplete="off"><div id="member-options" class="member-options">{% for employee in employees %}<label class="member-option" data-member-name="{{ (employee.fullName or 'Unnamed employee') | lower }} {{ (employee.position or '') | lower }}"><input type="checkbox" value="{{ employee.id }}"><span><strong>{{ employee.fullName or "Unnamed employee" }}</strong><small>{{ employee.position or "Position not set" }}</small></span></label>{% endfor %}</div></section>
+  <p id="event-form-message" class="dialog-message" role="status" aria-live="polite"></p><div class="dialog-actions"><button class="secondary-button" type="button" data-close-event>Cancel</button><button class="primary-button" type="submit" id="save-event">Save event</button></div>
+</form></dialog>
+<dialog id="event-detail-dialog" class="event-dialog event-detail-dialog"><div id="event-detail-content"></div></dialog>
+<dialog id="delete-dialog" class="event-dialog delete-dialog"><form id="delete-form"><div class="dialog-heading"><div><h2>Delete event</h2><p>This action cannot be undone.</p></div><button class="icon-button" type="button" data-close-delete aria-label="Close">×</button></div><p>Enter the event name exactly to confirm deletion.</p><label>Event name<input id="delete-confirmation" autocomplete="off" required></label><p id="delete-message" class="dialog-message" role="status" aria-live="polite"></p><div class="dialog-actions"><button class="secondary-button" type="button" data-close-delete>Cancel</button><button class="danger-button" type="submit" id="confirm-delete">Delete event</button></div></form></dialog>
+{% endblock %}

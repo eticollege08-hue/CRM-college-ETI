@@ -22,6 +22,10 @@ model Employee {
   level       String?
   position    String?
   phoneNumber String?      @map("phone_number")
+  email       String?      @unique
+  experience  Int?
+  salary      Decimal?     @db.Decimal(12, 2)
+  projects    String?
   slack       String?
   telegram    String?
   viber       String?
@@ -32,6 +36,8 @@ model Employee {
   subordinates        Hierarchy[]        @relation("HierarchyManager")
   managers            Hierarchy[]        @relation("HierarchySubordinate")
   eventParticipations EventParticipant[]
+  ownedProjects       Project[]          @relation("ProjectOwner")
+  projectMemberships  ProjectMember[]
 
   @@map("employees")
 }
@@ -110,9 +116,38 @@ model EventParticipant {
 }
 
 model Project {
-  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  id          String          @id @default(dbgenerated("gen_random_uuid()"))
   title       String
   description String
+  ownerId     String?         @map("owner_id")
+  budget      Decimal?        @db.Decimal(12, 2)
+  deadline    DateTime?       @db.Date
+  owner       Employee?       @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  links       ProjectLink[]
+  members     ProjectMember[]
 
+  @@index([ownerId])
   @@map("projects")
+}
+
+model ProjectLink {
+  id        String  @id @default(dbgenerated("gen_random_uuid()"))
+  projectId String  @map("project_id")
+  url       String  @db.VarChar(2048)
+  sortOrder Int     @default(0) @map("sort_order")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, sortOrder])
+  @@map("project_links")
+}
+
+model ProjectMember {
+  projectId  String   @map("project_id")
+  employeeId String   @map("employee_id")
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, employeeId])
+  @@index([employeeId, projectId])
+  @@map("project_members")
 }

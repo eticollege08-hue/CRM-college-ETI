@@ -9,8 +9,8 @@
 - `src/modules/auth/` містить лише auth.constants.ts, auth.controller.ts, auth.routes.ts, auth.service.ts, auth.types.ts. Стандартні authService/authController; routes default export під /api/auth. Публічної реєстрації немає.
 - AuthService використовує реальний userAccountService: нормалізований email, bcrypt/dummy hash, isActive, JWT userId+roleKey, оновлення lastLoginAt. Ніяких Employee-запитів/створення під час login.
 - `src/modules/user-accounts/` — внутрішні service/repository; timestamp і атомарне створення Employee+UserAccount із заданою роллю для seed. Ідемпотентний seed не оновлює існуючі credentials; concurrent duplicate обробляється після відкату вкладеного write.
-- `src/modules/employees/` — CRUD для автентифікованих: читання доступне всім ролям, POST — OWNER/RECRUITER, PATCH — OWNER/HR/MANAGER, DELETE — OWNER/HR; PATCH-перевірка MANAGER обмежена прямими підлеглими через hierarchyService.isManager.
-- `src/modules/about-us/` — CRUD About Us: читання для автентифікованих ролей, зміни лише OWNER; SSR-сторінка рендерить записи з БД.
+- `src/modules/employees/` — CRUD для автентифікованих: читання доступне всім ролям, POST — OWNER/RECRUITER створює профіль та зв'язок із керівником; PATCH — OWNER/HR/MANAGER, DELETE — OWNER/HR; PATCH-перевірка MANAGER обмежена прямими підлеглими через hierarchyService.isManager. Employee має контактні email, досвід, зарплату й текстове поле проєктів.
+- `src/modules/about-us/` — CRUD API About Us лишається доступним для автентифікованих ролей (зміни та сортування лише OWNER); користувацьку сторінку About Us та її SSR-модуль видалено. Міграції відновлюють чотири початкові розділи за відсутністю їхніх назв.
 - `src/modules/hierarchy/` — CRUD зв'язків керівник–підлеглий; захист циклів, самопризначення й дублікатів. Транзакції Serializable з максимум трьома спробами P2034.
 - PATCH /api/profile змінює лише власний Employee: ім'я, login email і контактні поля. GET /hierarchy показує реальне дерево.
 - `src/schemas/auth.schema.ts`, `src/schemas/jwt.schema.ts` — strict login та claims; JWT role береться з Prisma Role, типи виведені зі schema.
@@ -22,10 +22,10 @@
 - `src/middlewares/access.middleware.ts` — `accessFor(roles)` перевіряє лише `req.user.role`; без користувача або дозволеної ролі передає ApiError 403 у errorHandler. Порядок у захищеному маршруті: `isAuth, accessFor(["OWNER", "WORKER"])`.
 - `src/config/auth.config.ts` — BCRYPT_COST (12), LOGIN_MAX_FAILED_ATTEMPTS (5), LOGIN_ATTEMPT_WINDOW_SECONDS (300), AUTH_COOKIE_SECURE та список origins. Secure=false тільки для development.
 - `src/scripts/auth-seed.script.ts`, `src/config/seed.config.ts` — npm run db:seed створює п'ять фіксованих mock-акаунтів, по одному на кожну Prisma Role, без credentials з env. Запуск лише за NODE_ENV=development. Пароль не логувати; у БД лише bcrypt hash.
-- `src/modules/auth-ssr/` — GET /login; після входу захищений GET /dashboard, GET /profile редагує власні ім'я й контакти через PATCH /api/profile; фото профілю зберігається у localStorage. GET /design-preview відкритий.
+- `src/modules/auth-ssr/` — GET /login; після входу захищений GET /home, GET /profile редагує власні ім'я й контакти через PATCH /api/profile; фото профілю зберігається у localStorage. GET /design-preview відкритий.
 - `src/modules/employees-ssr/` — захищені GET /employees, /employees/:id/profile і /employees/create; `src/modules/employee-profile-ssr/` рендерить профіль поточного акаунта.
 - `src/modules/hierarchy-ssr/` — GET /hierarchy формує реальне дерево; пошук, фільтри й керування зв'язками; вкладка Leave використовує /api/events.
-- `src/modules/projects/` та `src/modules/projects-ssr/` — CRUD проєктів і сторінка списку з БД.
+- `src/modules/projects/` та `src/modules/projects-ssr/` — CRUD проєктів, список, створення й деталі; проєкт зберігає власника, бюджет, дедлайн, посилання та команду.
 - `src/routes/api/index.ts` — /auth, /about-us, /docs, /employees, /events, /hierarchy, /profile, /projects; `src/routes/ssr/index.ts` реєструє сторінки під /.
 
 - `docs/openapi.yaml` — єдиний контракт API, Swagger UI /api/docs; `docs/auth-integration.md` — конфігурація, seed та dev-перевірка. JSON login/logout: success і message, без JWT/строку дії.

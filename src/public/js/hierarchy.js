@@ -2,7 +2,6 @@ const tree = document.querySelector(".tree-root");
 const details = document.querySelector("#employee-details");
 const searchInput = document.querySelector("#employee-search");
 const teamFilter = document.querySelector("#team-filter");
-const levelFilter = document.querySelector("#level-filter");
 const positionFilter = document.querySelector("#position-filter");
 const projectFilter = document.querySelector("#project-filter");
 const clearFiltersButton = document.querySelector("#clear-filters");
@@ -21,8 +20,8 @@ const canManageEmployees = ["OWNER", "RECRUITER", "HR", "MANAGER"].includes(
 );
 let editingRelationshipId = "";
 
-for (const select of [levelFilter, positionFilter]) {
-    if (!select) continue;
+if (positionFilter) {
+    const select = positionFilter;
     const seen = new Set();
     for (const option of [...select.options]) {
         if (!option.value) continue;
@@ -49,34 +48,52 @@ function addTextElement(parent, tagName, className, text) {
     return element;
 }
 
+function makeIcon(name) {
+    const icons = {
+        person: "user-icon.svg",
+        briefcase: "position-icon.svg",
+        chart: "level-icon.svg",
+        users: "team-icon.svg",
+        star: "experience-icon.svg",
+        award: "certifications-icon.svg",
+        phone: "phone-icon.svg",
+        mail: "email-icon.svg",
+        pin: "geo-icon.svg",
+        folder: "team-icon.svg",
+    };
+    const icon = document.createElement("img");
+    icon.src = `/icons/${icons[name] || icons.person}`;
+    icon.alt = "";
+    icon.classList.add("detail-icon");
+    return icon;
+}
+
 function addInfoCard(parent, title, rows) {
     const card = document.createElement("article");
     card.className = "detail-card card";
-    const titleIcons = { "Personal information": "▣", "Contact information": "☎", Salary: "▤" };
-    addTextElement(card, "h3", "", `${titleIcons[title] || ""} ${title}`.trim());
+    const titleIcons = { "Personal information": "person", "Contact information": "phone", Salary: "chart" };
+    const heading = addTextElement(card, "h3", "", title);
+    const titleIcon = titleIcons[title] || "person";
+    if (titleIcon !== "person") heading.prepend(makeIcon(titleIcon));
     const list = document.createElement("dl");
     const rowIcons = {
-        "Full name": "♟",
-        Position: "♛",
-        Level: "▥",
-        Team: "♧",
-        Experience: "☆",
-        Certifications: "♙",
-        Phone: "☎",
-        Email: "✉",
-        Location: "⌖",
+        "Full name": "person",
+        Position: "briefcase",
+        Team: "users",
+        Experience: "star",
+        Certifications: "award",
+        Phone: "phone",
+        Email: "mail",
+        Location: "pin",
     };
     for (const [label, value] of rows) {
-        addTextElement(list, "dt", "", `${rowIcons[label] || ""} ${label}`.trim());
+        const term = addTextElement(list, "dt", "detail-term", label);
+        const rowIcon = rowIcons[label] || "person";
+        if (rowIcon !== "person") term.prepend(makeIcon(rowIcon));
         addTextElement(list, "dd", "", value || "Not provided");
     }
     card.append(list);
     parent.append(card);
-}
-
-function levelLabel(level) {
-    if (!level) return "";
-    return /^level\s/i.test(level) ? level : `Level ${level}`;
 }
 
 function showEmptyDetails() {
@@ -119,22 +136,22 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
         identity,
         "p",
         "",
-        [employee.dataset.position, levelLabel(employee.dataset.level)]
-            .filter(Boolean)
-            .join(" · ") || "Position not set",
+        employee.dataset.position || "Position not set",
     );
     const contact = document.createElement("div");
     contact.className = "contact-line";
     if (employee.dataset.email) {
         const email = document.createElement("a");
         email.href = `mailto:${employee.dataset.email}`;
-        email.textContent = `✉ ${employee.dataset.email}`;
+        email.append(makeIcon("mail"), document.createTextNode(employee.dataset.email));
         contact.append(email);
     } else {
         addTextElement(contact, "span", "", "No account email");
     }
-    addTextElement(contact, "span", "", `☎ ${employee.dataset.phone || "Not provided"}`);
-    addTextElement(contact, "span", "", `⌖ ${employee.dataset.location || "Location not set"}`);
+    const phone = addTextElement(contact, "span", "", employee.dataset.phone || "Not provided");
+    phone.prepend(makeIcon("phone"));
+    const location = addTextElement(contact, "span", "", employee.dataset.location || "Location not set");
+    location.prepend(makeIcon("pin"));
     identity.append(contact);
     heading.append(identity);
 
@@ -206,7 +223,7 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
         const tabTitle = tabNames.find((name) => name.toLowerCase() === activeTab) || "Details";
         addTextElement(empty, "h3", "", tabTitle);
         const emptyMessages = {
-            projects: "No projects are assigned to this employee yet.",
+            projects: employee.dataset.projects || "No projects are assigned to this employee yet.",
             leave: "Loading this employee’s leave requests…",
             tickets: "No tickets are recorded for this employee.",
             documents: "No documents are attached to this employee.",
@@ -236,7 +253,6 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
                 value: employee.dataset.position,
                 required: false,
             },
-            { name: "level", label: "Level", value: employee.dataset.level, required: false },
         ];
         for (const field of fields) {
             const label = document.createElement("label");
@@ -267,10 +283,8 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
             event.preventDefault();
             const nameInput = form.querySelector('input[name="fullName"]');
             const positionInput = form.querySelector('input[name="position"]');
-            const levelInput = form.querySelector('input[name="level"]');
             const fullName = nameInput?.value.trim() || "";
             const position = positionInput?.value.trim() || "";
-            const level = levelInput?.value.trim() || "";
             const nameError = nameInput?.parentElement?.querySelector("small");
             if (!fullName) {
                 nameInput?.setAttribute("aria-invalid", "true");
@@ -290,7 +304,6 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
                         body: JSON.stringify({
                             fullName,
                             position,
-                            level,
                         }),
                     },
                 );
@@ -312,9 +325,8 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
     addInfoCard(grid, "Personal information", [
         ["Full name", employeeName(employee)],
         ["Position", employee.dataset.position],
-        ["Level", levelLabel(employee.dataset.level)],
         ["Team", managerNames || "Team name"],
-        ["Experience", "5 years"],
+        ["Experience", employee.dataset.experience ? `${employee.dataset.experience} years` : "Not provided"],
         ["Certifications", roleName(employee.dataset.role)],
     ]);
     addInfoCard(grid, "Contact information", [
@@ -323,16 +335,23 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
         ["Location", "Kropyvnytskyi, Ukraine"],
     ]);
     addInfoCard(grid, "Salary", [
-        ["Monthly salary", "$4,500"],
-        ["Hourly rate", "$27.50"],
-        ["Bonus", "$500"],
-        ["Total amount", "$5,000"],
+        ["Monthly salary", employee.dataset.salary ? `${employee.dataset.salary} / month` : "Not provided"],
     ]);
+    const assignedProjects = (employee.dataset.projects || "")
+        .split(",")
+        .map((project) => project.trim())
+        .filter(Boolean);
     const projectsCard = document.createElement("article");
     projectsCard.className = "detail-card card projects-detail-card";
-    const projectsHeading = addTextElement(projectsCard, "h3", "", "▣ Projects ");
-    addTextElement(projectsHeading, "span", "count-badge", "0");
-    addTextElement(projectsCard, "p", "muted", "No projects assigned");
+    const projectsHeading = addTextElement(projectsCard, "h3", "", "Projects ");
+    projectsHeading.prepend(makeIcon("folder"));
+    addTextElement(projectsHeading, "span", "count-badge", String(assignedProjects.length));
+    addTextElement(
+        projectsCard,
+        "p",
+        "muted",
+        assignedProjects.length ? assignedProjects.join(", ") : "No projects assigned",
+    );
     const viewProjects = addTextElement(projectsCard, "button", "view-link", "View all projects →");
     viewProjects.type = "button";
     viewProjects.addEventListener("click", () => renderEmployee(employee, "projects"));
@@ -344,7 +363,6 @@ function applyFilters() {
     if (!tree) return;
     const search = searchInput?.value.trim().toLocaleLowerCase() || "";
     const teamId = teamFilter?.value || "";
-    const level = levelFilter?.value || "";
     const position = positionFilter?.value || "";
     const project = projectFilter?.value || "";
     const teamNode = teamId ? treeItems.find((item) => item.dataset.employeeId === teamId) : null;
@@ -356,7 +374,6 @@ function applyFilters() {
         const searchMatch =
             !search ||
             `${item.dataset.name} ${item.dataset.position}`.toLocaleLowerCase().includes(search);
-        const levelMatch = !level || item.dataset.level === level;
         const positionMatch = !position || item.dataset.position === position;
         const projectMatch =
             !project ||
@@ -364,7 +381,7 @@ function applyFilters() {
                 ? !item.dataset.projects
                 : item.dataset.projects.split(",").includes(project));
         const teamMatch = !teamNode || teamNode.contains(item) || item.contains(teamNode);
-        const ownMatch = searchMatch && levelMatch && positionMatch && projectMatch && teamMatch;
+        const ownMatch = searchMatch && positionMatch && projectMatch && teamMatch;
         const visible = ownMatch || childMatches;
         item.hidden = !visible;
         if (childMatches) {
@@ -478,13 +495,11 @@ async function removeRelationship(relationshipId) {
 
 searchInput?.addEventListener("input", applyFilters);
 teamFilter?.addEventListener("change", applyFilters);
-levelFilter?.addEventListener("change", applyFilters);
 positionFilter?.addEventListener("change", applyFilters);
 projectFilter?.addEventListener("change", applyFilters);
 clearFiltersButton?.addEventListener("click", () => {
     if (searchInput) searchInput.value = "";
     if (teamFilter) teamFilter.value = "";
-    if (levelFilter) levelFilter.value = "";
     if (positionFilter) positionFilter.value = "";
     if (projectFilter) projectFilter.value = "";
     applyFilters();

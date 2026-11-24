@@ -11,8 +11,11 @@
     <span class="avatar avatar-small" aria-hidden="true">{% if profile %}{{ profile.initials }}{% else %}UN{% endif %}</span>
     <details class="header-popover user-popover">
       <summary class="user-menu">
-        <strong data-current-user-name>{% if profile %}{{ profile.employee.fullName or "User Name" }}{% else %}User Name{% endif %}</strong>
-        <small>{% if profile %}{{ profile.roleKey }}{% else %}Owner{% endif %}⌄</small>
+        <span class="user-menu-copy">
+          <strong data-current-user-name>{% if profile %}{{ profile.employee.fullName or "User Name" }}{% else %}User Name{% endif %}</strong>
+          <small>{% if profile %}{{ profile.roleKey }}{% else %}Owner{% endif %}</small>
+        </span>
+        <svg class="user-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
       </summary>
       <div class="header-popover-panel">
         <a href="/profile">Profile</a>

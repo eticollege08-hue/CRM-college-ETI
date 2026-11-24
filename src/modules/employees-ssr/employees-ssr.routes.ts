@@ -10,6 +10,7 @@ import { uuidSchema } from "#schemas/id.schema.js";
 import { employeesPageController } from "./employees-ssr.controller.js";
 
 const router = Router();
+const DEFAULT_POSITIONS = ["Owner", "HR", "Manager", "Recruiter", "Worker"];
 
 router.get("/employees", isAuth, asyncCatch(employeesPageController.index));
 router.get(
@@ -28,6 +29,15 @@ router.get(
             employeeService.getAll(),
             authPageService.getProfilePageData(accountId),
         ]);
+        const positions = [
+            ...new Set(
+                DEFAULT_POSITIONS.concat(
+                    employees
+                        .map(({ position }) => position?.trim())
+                        .filter((position): position is string => Boolean(position)),
+                ),
+            ),
+        ].sort((first, second) => first.localeCompare(second));
         res.render("pages/employee-create", {
             ...profileData,
             css: "employee-create",
@@ -35,6 +45,7 @@ router.get(
             activePage: "employees",
             hideBrand: true,
             employees,
+            positions,
         });
     }),
 );

@@ -40,7 +40,7 @@
     stroke: currentColor;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 1.8;
+    stroke-width: 2;
 }
 
 .topbar .avatar-small {
@@ -78,9 +78,18 @@
 }
 
 .user-popover .user-menu {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
     max-width: 100%;
-    overflow: hidden;
+    text-align: left;
+}
+
+.user-menu-copy {
+    display: block;
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .user-popover .user-menu strong[data-current-user-name] {
@@ -89,6 +98,22 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.user-menu-chevron {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
+    transition: transform var(--transition-fast);
+}
+
+.user-popover[open] .user-menu-chevron {
+    transform: rotate(180deg);
 }
 .header-popover {
     position: relative;
@@ -191,7 +216,7 @@
     stroke: currentColor;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 1.8;
+    stroke-width: 2;
 }
 
 .sidebar .primary-nav a span {
@@ -285,7 +310,7 @@
     stroke: currentColor;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 1.8;
+    stroke-width: 2;
     vertical-align: -3px;
 }
 

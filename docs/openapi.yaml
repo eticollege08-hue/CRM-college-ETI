@@ -4,8 +4,7 @@ info:
     version: 0.3.0
     description:
         "Login/logout use UserAccount and JWT cookies. Handled API errors use { success: false,
-        message, details }. Unmatched routes retain the default Express 404 response. Public
-        self-registration is unavailable."
+        message, details }. Unmatched routes retain the default Express 404 response."
     license:
         name: Proprietary
 servers:
@@ -183,6 +182,36 @@ paths:
                     $ref: "#/components/responses/AboutUsForbidden"
                 "404":
                     $ref: "#/components/responses/AboutUsNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /about-us/order:
+        patch:
+            tags:
+                - About Us
+            operationId: reorderAboutUsRecords
+            summary: Reorder About Us records
+            description: Only users with the OWNER role can change the display order. Include every record ID exactly once.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AboutUsOrderInput"
+            responses:
+                "200":
+                    description: Records reordered.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AboutUsListSuccess"
+                "401":
+                    $ref: "#/components/responses/AboutUsUnauthorized"
+                "403":
+                    $ref: "#/components/responses/AboutUsForbidden"
                 "422":
                     $ref: "#/components/responses/ValidationError"
                 "500":
@@ -756,8 +785,8 @@ paths:
             security: []
             description:
                 Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
-                accounts, wrong passwords and inactive accounts produce identical 401 responses. No
-                public registration. Sets the authentication cookie at Path=/ only.
+                accounts, wrong passwords and inactive accounts produce identical 401 responses.
+                Sets the authentication cookie at Path=/ only.
             requestBody:
                 required: true
                 content:
@@ -916,9 +945,7 @@ paths:
                 - Employees
             operationId: createEmployee
             summary: Create an employee
-            description:
-                Only OWNER and RECRUITER can create profiles. Every field is optional; an empty object
-                is valid. Strings are trimmed before validation.
+            description: Only OWNER and RECRUITER can create profiles. Strings are trimmed before validation.
             security:
                 - cookieAuth: []
             requestBody:
@@ -953,6 +980,8 @@ paths:
                     $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
                     $ref: "#/components/responses/EmployeeForbidden"
+                "409":
+                    $ref: "#/components/responses/EmployeeConflict"
                 "413":
                     $ref: "#/components/responses/PayloadTooLarge"
                 "415":
@@ -1199,7 +1228,7 @@ paths:
                 - Projects
             operationId: updateProject
             summary: Update a project
-            description: At least one non-empty title or description must be supplied.
+            description: At least one project field must be supplied. Team member IDs must be unique.
             security:
                 - cookieAuth: []
             requestBody:
@@ -1769,6 +1798,7 @@ components:
                 - id
                 - title
                 - description
+                - sortOrder
             properties:
                 id:
                     type: string
@@ -1780,6 +1810,23 @@ components:
                 description:
                     type: string
                     minLength: 1
+                sortOrder:
+                    type: integer
+                    minimum: 0
+                    readOnly: true
+        AboutUsOrderInput:
+            type: object
+            additionalProperties: false
+            required:
+                - ids
+            properties:
+                ids:
+                    type: array
+                    minItems: 1
+                    uniqueItems: true
+                    items:
+                        type: string
+                        format: uuid
         AboutUsInput:
             type: object
             additionalProperties: false
@@ -1908,7 +1955,7 @@ components:
                           type: string
         Project:
             type: object
-            required: [id, title, description]
+            required: [id, title, description, ownerId, budget, deadline, owner, links, members]
             properties:
                 id:
                     type: string
@@ -1920,6 +1967,32 @@ components:
                 description:
                     type: string
                     minLength: 1
+                    maxLength: 1000
+                ownerId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                budget:
+                    type: string
+                    pattern: "^\\d+(\\.\\d{1,2})?$"
+                    nullable: true
+                deadline:
+                    type: string
+                    format: date-time
+                    nullable: true
+                owner:
+                    type: object
+                    allOf:
+                        - $ref: "#/components/schemas/ProjectEmployee"
+                    nullable: true
+                links:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/ProjectLink"
+                members:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/ProjectMember"
         ProjectInput:
             type: object
             additionalProperties: false
@@ -1931,6 +2004,35 @@ components:
                 description:
                     type: string
                     minLength: 1
+                    maxLength: 1000
+                ownerId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                budget:
+                    type: number
+                    minimum: 0
+                    exclusiveMinimum: true
+                    multipleOf: 0.01
+                    nullable: true
+                deadline:
+                    type: string
+                    format: date
+                    nullable: true
+                links:
+                    type: array
+                    maxItems: 20
+                    items:
+                        type: string
+                        format: uri
+                        pattern: "^https?://"
+                memberIds:
+                    type: array
+                    maxItems: 100
+                    uniqueItems: true
+                    items:
+                        type: string
+                        format: uuid
         ProjectUpdateInput:
             type: object
             additionalProperties: false
@@ -1942,6 +2044,75 @@ components:
                 description:
                     type: string
                     minLength: 1
+                    maxLength: 1000
+                ownerId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                budget:
+                    type: number
+                    minimum: 0
+                    exclusiveMinimum: true
+                    multipleOf: 0.01
+                    nullable: true
+                deadline:
+                    type: string
+                    format: date
+                    nullable: true
+                links:
+                    type: array
+                    maxItems: 20
+                    items:
+                        type: string
+                        format: uri
+                        pattern: "^https?://"
+                memberIds:
+                    type: array
+                    maxItems: 100
+                    uniqueItems: true
+                    items:
+                        type: string
+                        format: uuid
+        ProjectEmployee:
+            type: object
+            required: [id, fullName, position]
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                fullName:
+                    type: string
+                    nullable: true
+                position:
+                    type: string
+                    nullable: true
+        ProjectLink:
+            type: object
+            required: [id, projectId, url, sortOrder]
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                projectId:
+                    type: string
+                    format: uuid
+                url:
+                    type: string
+                    format: uri
+                sortOrder:
+                    type: integer
+        ProjectMember:
+            type: object
+            required: [projectId, employeeId, employee]
+            properties:
+                projectId:
+                    type: string
+                    format: uuid
+                employeeId:
+                    type: string
+                    format: uuid
+                employee:
+                    $ref: "#/components/schemas/ProjectEmployee"
         ProjectReadSuccess:
             type: object
             required: [success, project]
@@ -1984,22 +2155,64 @@ components:
                 position:
                     type: string
                     nullable: true
+                phoneNumber:
+                    type: string
+                    nullable: true
+                email:
+                    type: string
+                    format: email
+                    nullable: true
+                experience:
+                    type: integer
+                    nullable: true
+                salary:
+                    type: number
+                    nullable: true
+                projects:
+                    type: string
+                    nullable: true
         EmployeeInput:
             type: object
             additionalProperties: false
+            required:
+                - fullName
+                - phoneNumber
+                - email
+                - managerId
+                - position
+                - experience
+                - salary
+                - projects
             properties:
                 fullName:
                     type: string
                     minLength: 1
-                imageId:
+                    maxLength: 150
+                phoneNumber:
                     type: string
                     minLength: 1
-                level:
+                    maxLength: 30
+                email:
                     type: string
-                    minLength: 1
+                    format: email
+                    maxLength: 254
+                managerId:
+                    type: string
+                    format: uuid
                 position:
                     type: string
                     minLength: 1
+                    maxLength: 100
+                experience:
+                    type: integer
+                    minimum: 0
+                salary:
+                    type: number
+                    minimum: 0
+                    exclusiveMinimum: true
+                projects:
+                    type: string
+                    maxLength: 1000
         EmployeeUpdateInput:
             type: object
             additionalProperties: false
@@ -2431,3 +2644,9 @@ components:
                         success: false
                         message: You do not have permission to perform this action.
                         details: []
+        EmployeeConflict:
+            description: An employee already uses the submitted contact email.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"

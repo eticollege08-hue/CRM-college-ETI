@@ -321,8 +321,29 @@ body {
     color: var(--color-primary-700);
     font-size: 11px;
 }
-.profile-input-label > span:first-child {
+.profile-input-label > svg:first-child {
     color: var(--color-primary-700);
+}
+.profile-input-label .required-mark {
+    color: var(--color-danger);
+    font-weight: 600;
+}
+.detail-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
+    color: #1760a8;
+    vertical-align: middle;
+}
+.account-card dt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 .profile-input-label b {
     display: inline;
@@ -409,32 +430,64 @@ body {
 .contact-input-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 12px;
     gap: 8px 22px;
 }
 .contact-input-grid .profile-input-label {
+    margin-top: 0;
+}
+.contact-input-control {
     position: relative;
-    margin-top: 12px;
+    display: block;
 }
 .contact-input-grid .profile-input-label input {
     min-height: 31px;
     padding-left: 38px;
 }
-.contact-input-grid .profile-input-label > span:first-child {
+.contact-input-control > svg,
+.contact-input-control > img {
     position: absolute;
-    margin: 27px 0 0 12px;
+    top: 50%;
+    left: 12px;
+    z-index: 1;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    transform: translateY(-50%);
+    pointer-events: none;
 }
-.contact-input-grid .profile-input-label b {
-    position: absolute;
-    margin: 0 0 0 90px;
+.contact-input-grid .field-error {
+    display: block;
+    min-height: 12px;
+    line-height: 12px;
+}
+.required-field-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 .slack-icon {
     color: #36a07a !important;
+}
+.brand-icon.slack-icon {
+    fill: currentColor;
+    stroke: none;
 }
 .whatsapp-icon {
     color: #00bf74 !important;
 }
 .discord-icon {
     color: #5969e8 !important;
+}
+.avatar-upload-button svg {
+    display: block;
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
 }
 .profile-toast {
     position: fixed;

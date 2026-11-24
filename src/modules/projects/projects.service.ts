@@ -11,6 +11,7 @@ export class ProjectsService {
     constructor(private readonly repository: ProjectsRepository = projectsRepository) {}
 
     async create(data: ProjectCreateInput) {
+        await this.validateEmployees(data.ownerId, data.memberIds);
         return await this.repository.create(data);
     }
 
@@ -29,12 +30,26 @@ export class ProjectsService {
 
     async update(id: string, data: ProjectUpdateInput) {
         await this.getById(id);
+        await this.validateEmployees(data.ownerId, data.memberIds);
         return await this.repository.update(id, data);
     }
 
     async delete(id: string) {
         await this.getById(id);
         return await this.repository.delete(id);
+    }
+
+    private async validateEmployees(ownerId?: string | null, memberIds?: string[]) {
+        const requestedIds = [...new Set([...(ownerId ? [ownerId] : []), ...(memberIds ?? [])])];
+        if (!requestedIds.length) return;
+        const employees = await this.repository.getEmployeesByIds(requestedIds);
+        if (employees.length !== requestedIds.length) {
+            throw new ApiError(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "One or more employees were not found.",
+                [{ field: "ownerId/memberIds", message: "Select existing employees." }],
+            );
+        }
     }
 }
 

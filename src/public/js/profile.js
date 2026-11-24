@@ -25,9 +25,9 @@ const renderAvatar = (image) => {
         avatar.classList.add("has-image");
         avatar.textContent = "";
     } else {
-        avatar.style.backgroundImage = "";
-        avatar.classList.remove("has-image");
-        avatar.textContent = avatarInitials;
+        avatar.style.backgroundImage = 'url("/icons/profile-avatar.svg")';
+        avatar.classList.add("has-image");
+        avatar.textContent = "";
     }
     const headerAvatar = document.querySelector(".avatar-small");
     if (headerAvatar) {
