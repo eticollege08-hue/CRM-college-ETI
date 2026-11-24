@@ -71,7 +71,11 @@ function makeIcon(name) {
 function addInfoCard(parent, title, rows) {
     const card = document.createElement("article");
     card.className = "detail-card card";
-    const titleIcons = { "Personal information": "person", "Contact information": "phone", Salary: "chart" };
+    const titleIcons = {
+        "Personal information": "person",
+        "Contact information": "phone",
+        Salary: "chart",
+    };
     const heading = addTextElement(card, "h3", "", title);
     const titleIcon = titleIcons[title] || "person";
     if (titleIcon !== "person") heading.prepend(makeIcon(titleIcon));
@@ -132,12 +136,7 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
     const badge = addTextElement(title, "span", "role-badge", roleName(employee.dataset.role));
     badge.setAttribute("aria-label", roleName(employee.dataset.role));
     identity.append(title);
-    addTextElement(
-        identity,
-        "p",
-        "",
-        employee.dataset.position || "Position not set",
-    );
+    addTextElement(identity, "p", "", employee.dataset.position || "Position not set");
     const contact = document.createElement("div");
     contact.className = "contact-line";
     if (employee.dataset.email) {
@@ -150,7 +149,12 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
     }
     const phone = addTextElement(contact, "span", "", employee.dataset.phone || "Not provided");
     phone.prepend(makeIcon("phone"));
-    const location = addTextElement(contact, "span", "", employee.dataset.location || "Location not set");
+    const location = addTextElement(
+        contact,
+        "span",
+        "",
+        employee.dataset.location || "Location not set",
+    );
     location.prepend(makeIcon("pin"));
     identity.append(contact);
     heading.append(identity);
@@ -326,7 +330,10 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
         ["Full name", employeeName(employee)],
         ["Position", employee.dataset.position],
         ["Team", managerNames || "Team name"],
-        ["Experience", employee.dataset.experience ? `${employee.dataset.experience} years` : "Not provided"],
+        [
+            "Experience",
+            employee.dataset.experience ? `${employee.dataset.experience} years` : "Not provided",
+        ],
         ["Certifications", roleName(employee.dataset.role)],
     ]);
     addInfoCard(grid, "Contact information", [
@@ -335,7 +342,10 @@ function renderEmployee(employee, activeTab = "overview", isEditing = false) {
         ["Location", "Kropyvnytskyi, Ukraine"],
     ]);
     addInfoCard(grid, "Salary", [
-        ["Monthly salary", employee.dataset.salary ? `${employee.dataset.salary} / month` : "Not provided"],
+        [
+            "Monthly salary",
+            employee.dataset.salary ? `${employee.dataset.salary} / month` : "Not provided",
+        ],
     ]);
     const assignedProjects = (employee.dataset.projects || "")
         .split(",")

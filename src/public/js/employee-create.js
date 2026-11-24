@@ -65,7 +65,9 @@ if (form instanceof HTMLFormElement) {
                 result.success !== true
             ) {
                 const apiMessage =
-                    result && typeof result === "object" && "message" in result &&
+                    result &&
+                    typeof result === "object" &&
+                    "message" in result &&
                     typeof result.message === "string"
                         ? result.message
                         : `Could not save the employee (HTTP ${response.status}). Reload the page and retry.`;
