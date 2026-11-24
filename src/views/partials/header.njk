@@ -8,7 +8,7 @@
       <summary class="icon-button" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></summary>
       <div class="header-popover-panel"><strong>Notifications</strong><p>No new notifications.</p></div>
     </details>
-    <span class="avatar avatar-small" aria-hidden="true">{% if profile %}{{ profile.initials }}{% else %}UN{% endif %}</span>
+    <span class="avatar avatar-small" aria-hidden="true">{% if profile.employee.imageId %}<img width="32" height="32" alt="" src="/api/employees/{{ profile.employee.id }}/photo">{% elif profile %}{{ profile.initials }}{% else %}UN{% endif %}</span>
     <details class="header-popover user-popover">
       <summary class="user-menu">
         <strong data-current-user-name>{% if profile %}{{ profile.employee.fullName or "User Name" }}{% else %}User Name{% endif %}</strong>

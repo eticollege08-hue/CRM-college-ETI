@@ -1,0 +1,14 @@
+{% extends "base/base.njk" %}
+{% block content %}
+{% include "partials/header.njk" %}
+<div class="app-shell">{% include "partials/sidebar.njk" %}<main class="workspace">
+<h1>{{ employee.fullName or employee.userAccount.email or "Employee" }}</h1>
+{% if employee.imageId %}<img width="96" src="/api/employees/{{ employee.id }}/photo" alt="Employee photo">{% endif %}
+<dl>{% for key in ["level","position","experience","certifications"] %}<dt>{{ key | capitalize }}</dt><dd>{{ employee[key] }}</dd>{% endfor %}
+<dt>Manager</dt><dd>{% for link in employee.managers %}{{ link.manager.fullName }} {% endfor %}</dd>
+<dt>Projects</dt><dd>{% for item in employee.memberships %}{{ item.project.title }} {% endfor %}</dd>
+{% if employee.salary is defined %}<dt>Salary</dt><dd>{{ employee.salary }} {{ employee.currency }}</dd>{% endif %}</dl>
+{% if profile.roleKey in ["OWNER","HR"] and profile.employee.id != employee.id %}
+<button id="fire">Fire employee</button><dialog id="dismiss"><form method="dialog"><p>Dismiss this employee?</p>{% if employee._count.subordinates %}<label>Move direct reports to <select required id="replacement"><option value="" disabled selected>Choose a manager</option><option value="root">No manager</option>{% for candidate in candidates %}{% if candidate.id != employee.id %}<option value="{{ candidate.id }}">{{ candidate.fullName or candidate.userAccount.email }}</option>{% endif %}{% endfor %}</select></label>{% endif %}
+<button type="button" id="cancel">Cancel</button><button id="confirm" data-id="{{ employee.id }}">Confirm</button><p role="alert"></p></form></dialog>{% endif %}
+</main></div>{% endblock %}

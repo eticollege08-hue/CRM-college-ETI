@@ -5,10 +5,10 @@ const message = document.querySelector("#profile-save-message");
 const avatar = document.querySelector(".profile-avatar");
 const avatarInput = document.querySelector("#profile-avatar-file");
 const avatarInitials = avatar?.textContent?.trim() ?? "";
-const avatarStorageKey = "crm.profile.avatar";
+
 const fieldInputs = [...(form?.querySelectorAll("input[name]") ?? [])];
 let savedValues = new Map(fieldInputs.map((input) => [input.name, input.value]));
-let savedAvatar = window.localStorage.getItem(avatarStorageKey) ?? "";
+let savedAvatar = avatar?.dataset.url ?? "";
 let selectedAvatar = savedAvatar;
 
 const showMessage = (text, kind) => {
@@ -114,9 +114,12 @@ fieldInputs.forEach((input) => input.addEventListener("input", updateSaveState))
 avatarInput?.addEventListener("change", async () => {
     const file = avatarInput.files?.[0];
     if (!file) return;
-    if (!["image/jpeg", "image/png"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    if (
+        !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+        file.size > 5 * 1024 * 1024
+    ) {
         avatarInput.value = "";
-        showMessage("Choose a JPG or PNG image up to 5 MB.", "error");
+        showMessage("Choose a JPG, PNG or WebP image up to 5 MB.", "error");
         return;
     }
     try {
@@ -143,26 +146,31 @@ cancelButton?.addEventListener("click", () => {
 
 form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!(form instanceof HTMLFormElement) || !saveButton || !validateForm()) return;
+    const editDetails = fieldInputs.some((input) => input.value !== savedValues.get(input.name));
+    if (!(form instanceof HTMLFormElement) || !saveButton || (editDetails && !validateForm()))
+        return;
     saveButton.disabled = true;
     showMessage("Saving changes…", "pending");
     try {
         const data = Object.fromEntries(new FormData(form).entries());
-        const response = await fetch("/api/profile", {
-            method: "PATCH",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify(data),
-        });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.message || "Could not save your profile.");
-        try {
-            if (selectedAvatar) window.localStorage.setItem(avatarStorageKey, selectedAvatar);
-            else window.localStorage.removeItem(avatarStorageKey);
-        } catch {
-            throw new Error(
-                "Profile details were saved, but this browser could not store the photo.",
-            );
+        if (editDetails) {
+            const response = await fetch("/api/profile", {
+                method: "PATCH",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify(data),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.message || "Could not save your profile.");
+        }
+        if (selectedAvatar !== savedAvatar && avatarInput.files[0]) {
+            const photo = avatarInput.files[0];
+            const upload = await fetch(avatar.dataset.endpoint, {
+                method: "PUT",
+                headers: { "Content-Type": photo.type },
+                body: photo,
+            });
+            if (!upload.ok) throw new Error("Could not save photo.");
         }
         savedAvatar = selectedAvatar;
         savedValues = new Map(fieldInputs.map((input) => [input.name, input.value]));
