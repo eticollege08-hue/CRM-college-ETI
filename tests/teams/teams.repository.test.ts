@@ -5,13 +5,11 @@ describe("project team transaction", () => {
     const setup = () => {
         const project = { findUniqueOrThrow: vi.fn().mockResolvedValue({ id: "p" }) };
         const team = {
-            findUniqueOrThrow: vi
-                .fn()
-                .mockResolvedValue({
-                    members: ["new", "old", "dismissed"].map((id) => ({
-                        employee: { id, deletedAt: id === "dismissed" ? new Date() : null },
-                    })),
-                }),
+            findUniqueOrThrow: vi.fn().mockResolvedValue({
+                members: ["new", "old", "dismissed"].map((id) => ({
+                    employee: { id, deletedAt: id === "dismissed" ? new Date() : null },
+                })),
+            }),
         };
         const employeeProject = {
             createManyAndReturn: vi.fn().mockResolvedValue([{ employeeId: "new" }]),
