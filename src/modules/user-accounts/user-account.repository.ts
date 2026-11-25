@@ -48,6 +48,7 @@ export class UserAccountRepository {
                     select: {
                         id: true,
                         fullName: true,
+                        imageId: true,
                         position: true,
                         level: true,
                         phoneNumber: true,
@@ -73,6 +74,7 @@ export class UserAccountRepository {
                     select: {
                         id: true,
                         fullName: true,
+                        imageId: true,
                         position: true,
                         level: true,
                         phoneNumber: true,

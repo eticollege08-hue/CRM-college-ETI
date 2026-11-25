@@ -16,4 +16,7 @@ export const EVENT_MESSAGES = {
 };
 
 export const EVENT_TRANSACTION_MAX_ATTEMPTS = 3;
+// Google Calendar writes run inside the transaction, so it outlives their request timeouts.
+export const EVENT_TRANSACTION_TIMEOUT_MS = 30_000;
+export const EVENT_TRANSACTION_MAX_WAIT_MS = 5_000;
 export const EVENT_MAX_RANGE_DAYS = 366;

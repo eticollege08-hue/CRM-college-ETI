@@ -23,37 +23,42 @@ model Company {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
 
-  employees    Employee[]
-  userAccounts UserAccount[]
-  hierarchy    Hierarchy[]
-  aboutUs      AboutUs[]
-  events       Event[]
-  projects     Project[]
-  estimates    Estimate[]
+  employees     Employee[]
+  userAccounts  UserAccount[]
+  hierarchy     Hierarchy[]
+  aboutUs       AboutUs[]
+  events        Event[]
+  projects      Project[]
+  estimates     Estimate[]
   compensations EmployeeCompensation[]
 
   @@map("companies")
 }
 
 model Employee {
-  id          String       @id @default(dbgenerated("gen_random_uuid()"))
-  companyId   String       @map("company_id")
-  fullName    String?      @map("full_name")
-  imageId     String?      @map("image_id")
-  level       String?
-  position    String?
-  phoneNumber String?      @map("phone_number")
-  slack       String?
-  telegram    String?
-  viber       String?
-  whatsapp    String?
-  discord     String?
-  userAccount UserAccount?
+  id             String            @id @default(dbgenerated("gen_random_uuid()"))
+  companyId      String            @map("company_id")
+  fullName       String?           @map("full_name")
+  deletedAt      DateTime?         @map("deleted_at") @db.Timestamptz(3)
+  experience     Float?
+  certifications String[]          @default([])
+  memberships    EmployeeProject[]
+  photo          EmployeePhoto?
+  imageId        String?           @map("image_id")
+  level          String?
+  position       String?
+  phoneNumber    String?           @map("phone_number")
+  slack          String?
+  telegram       String?
+  viber          String?
+  whatsapp       String?
+  discord        String?
+  userAccount    UserAccount?
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
-  subordinates        Hierarchy[]        @relation("HierarchyManager")
-  managers            Hierarchy[]        @relation("HierarchySubordinate")
+  subordinates        Hierarchy[]           @relation("HierarchyManager")
+  managers            Hierarchy[]           @relation("HierarchySubordinate")
   eventParticipations EventParticipant[]
   compensation        EmployeeCompensation?
 
@@ -67,7 +72,7 @@ model EmployeeCompensation {
   id         String   @id @default(dbgenerated("gen_random_uuid()"))
   employeeId String   @unique @map("employee_id")
   companyId  String   @map("company_id")
-  salary     Decimal  @db.Decimal(12, 2)
+  salary     Decimal? @db.Decimal(12, 2)
   currency   String   @default("USD") @db.VarChar(3)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -140,13 +145,15 @@ enum EventType {
 }
 
 model Event {
-  id          String    @id @default(dbgenerated("gen_random_uuid()"))
-  type        EventType
-  title       String    @db.VarChar(200)
-  description String    @db.VarChar(4000)
-  startsAt    DateTime  @map("starts_at") @db.Timestamptz(3)
-  endsAt      DateTime  @map("ends_at") @db.Timestamptz(3)
-  timeZone    String    @map("time_zone") @db.VarChar(100)
+  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  type          EventType
+  title         String    @db.VarChar(200)
+  description   String    @db.VarChar(4000)
+  startsAt      DateTime  @map("starts_at") @db.Timestamptz(3)
+  endsAt        DateTime  @map("ends_at") @db.Timestamptz(3)
+  timeZone      String    @map("time_zone") @db.VarChar(100)
+  // Mirror of this event in the shared Google Calendar; null until it has been synchronized.
+  googleEventId String?   @unique @map("google_event_id") @db.VarChar(1024)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -179,14 +186,38 @@ model EventParticipant {
   @@map("event_participants")
 }
 
+model EmployeePhoto {
+  employeeId String   @id @map("employee_id")
+  companyId  String   @map("company_id")
+  mimeType   String   @map("mime_type")
+  bytes      Bytes
+  employee   Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+
+  @@unique([employeeId, companyId])
+  @@map("employee_photos")
+}
+
+model EmployeeProject {
+  employeeId String   @map("employee_id")
+  projectId  String   @map("project_id")
+  companyId  String   @map("company_id")
+  employee   Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+  project    Project  @relation(fields: [projectId, companyId], references: [id, companyId], onDelete: Cascade)
+
+  @@id([employeeId, projectId])
+  @@map("employee_projects")
+}
+
 model Project {
-  id          String @id @default(dbgenerated("gen_random_uuid()"))
+  memberships EmployeeProject[]
+  id          String            @id @default(dbgenerated("gen_random_uuid()"))
   title       String
   description String
-  companyId   String @map("company_id")
+  companyId   String            @map("company_id")
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
+  @@unique([id, companyId])
   @@index([companyId])
   @@map("projects")
 }

@@ -11,7 +11,7 @@ export type ProtectedFieldAction = "view" | "edit";
 type EmployeeWithCompensation = {
     id: string;
     companyId: string;
-    compensation?: { salary: { toString(): string }; currency: string } | null;
+    compensation?: { salary: { toString(): string } | null; currency: string } | null;
 };
 
 export class EmployeePersonalDataService {
@@ -50,7 +50,10 @@ export class EmployeePersonalDataService {
         }
         return {
             ...publicEmployee,
-            salary: Number(employee.compensation.salary.toString()),
+            salary:
+                employee.compensation.salary === null
+                    ? null
+                    : Number(employee.compensation.salary.toString()),
             currency: employee.compensation.currency,
         };
     }

@@ -16,6 +16,7 @@ const profile = {
     roleKey: "WORKER" as const,
     employee: {
         id: "employee-id",
+        imageId: null,
         fullName: "Alex Employee",
         position: "Employee",
         level: null,

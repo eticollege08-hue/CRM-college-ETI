@@ -19,7 +19,11 @@ const JSON_ERROR_STATUSES = new Map([
 export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
     let error = new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, API_MESSAGES.INTERNAL_SERVER_ERROR);
 
-    if (err instanceof ApiError && err.status < HttpStatus.INTERNAL_SERVER_ERROR) {
+    // 502 is a deliberate, sanitized upstream failure (Google Calendar); other 5xx stay generic.
+    if (
+        err instanceof ApiError &&
+        (err.status < HttpStatus.INTERNAL_SERVER_ERROR || err.status === HttpStatus.BAD_GATEWAY)
+    ) {
         error = err;
     } else if (
         err instanceof Error &&

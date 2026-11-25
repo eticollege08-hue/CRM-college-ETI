@@ -19,7 +19,8 @@
         "docker:dev:migrate": "docker compose -f docker-compose.dev.yaml exec app npx prisma migrate dev",
         "docker:prod": "docker compose -f docker-compose.yaml up --build -d",
         "docker:prod:down": "docker compose -f docker-compose.yaml down",
-        "db:seed": "tsx src/scripts/auth-seed.script.ts"
+        "db:seed": "tsx src/scripts/auth-seed.script.ts",
+        "google:auth": "tsx src/scripts/google-oauth.script.ts"
     },
     "keywords": [],
     "author": "",
