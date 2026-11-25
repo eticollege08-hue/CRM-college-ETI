@@ -12,10 +12,7 @@ export async function seedMockAccounts() {
         throw new Error("Mock account seed is allowed only in development.");
     }
 
-    const accountsByEmail = new Map<
-        string,
-        { employeeId: string; companyId: string }
-    >();
+    const accountsByEmail = new Map<string, { employeeId: string; companyId: string }>();
     const companyIdsByName = new Map<string, string>();
 
     for (const config of MOCK_SEED_ACCOUNTS) {
@@ -55,7 +52,10 @@ export async function seedMockAccounts() {
         }
 
         const relationships = relationshipsByCompany.get(subordinate.companyId) ?? [];
-        relationships.push({ managerId: manager.employeeId, subordinateId: subordinate.employeeId });
+        relationships.push({
+            managerId: manager.employeeId,
+            subordinateId: subordinate.employeeId,
+        });
         relationshipsByCompany.set(subordinate.companyId, relationships);
     }
 

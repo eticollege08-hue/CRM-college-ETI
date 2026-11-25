@@ -60,7 +60,12 @@ describe("seedMockAccounts", () => {
         });
         vi.mocked(userAccountService.createSeedAccount).mockImplementation(
             async (data, _name, companyName) => {
-                const account = makeAccount(data.email, data.passwordHash, data.roleKey, companyName);
+                const account = makeAccount(
+                    data.email,
+                    data.passwordHash,
+                    data.roleKey,
+                    companyName,
+                );
                 accounts.set(data.email, account);
                 return account;
             },
@@ -140,10 +145,15 @@ describe("seedMockAccounts", () => {
         expect(hierarchyService.create).toHaveBeenCalledTimes(38);
         expect(accounts.get("example6@example.com")).toBe(firstAccount);
         expect(hashPassword).toHaveBeenCalledTimes(MOCK_SEED_ACCOUNTS.length);
-        expect(relationships.filter((relationship) => relationship.companyId === "company-Default company"))
-            .toHaveLength(19);
         expect(
-            relationships.filter((relationship) => relationship.companyId === "company-Second company"),
+            relationships.filter(
+                (relationship) => relationship.companyId === "company-Default company",
+            ),
+        ).toHaveLength(19);
+        expect(
+            relationships.filter(
+                (relationship) => relationship.companyId === "company-Second company",
+            ),
         ).toHaveLength(19);
     });
 

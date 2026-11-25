@@ -15,10 +15,13 @@ export const calendarPageController = {
         const query = calendarQuerySchema.parse(req.query);
         const [profileData, calendarData] = await Promise.all([
             authPageService.getProfilePageData(accountId),
-            calendarPageService.getPageData({
-                ...query,
-                timeZone: req.query.timeZone === undefined ? "Europe/Kiev" : query.timeZone,
-            }, actor),
+            calendarPageService.getPageData(
+                {
+                    ...query,
+                    timeZone: req.query.timeZone === undefined ? "Europe/Kiev" : query.timeZone,
+                },
+                actor,
+            ),
         ]);
         const payload = {
             ...profileData,

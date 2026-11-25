@@ -146,12 +146,7 @@ export const MOCK_SEED_ACCOUNTS: MockSeedAccount[] = [
         companyName: MOCK_SEED_SECOND_COMPANY_NAME,
         managerEmail: "example7@example.com",
     },
-    ...createAdditionalAccounts(
-        MOCK_SEED_COMPANY_NAME,
-        "Example",
-        11,
-        "example1@example.com",
-    ),
+    ...createAdditionalAccounts(MOCK_SEED_COMPANY_NAME, "Example", 11, "example1@example.com"),
     ...createAdditionalAccounts(
         MOCK_SEED_SECOND_COMPANY_NAME,
         "Second",

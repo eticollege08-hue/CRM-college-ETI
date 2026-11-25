@@ -60,9 +60,9 @@ describe("EmployeePersonalDataService", () => {
         await expect(service.serialize(employee, actor("MANAGER"))).resolves.toMatchObject({
             salary: 4200.5,
         });
-        await expect(
-            service.mayAccess(actor("MANAGER"), employee, "salary", "edit"),
-        ).resolves.toBe(false);
+        await expect(service.mayAccess(actor("MANAGER"), employee, "salary", "edit")).resolves.toBe(
+            false,
+        );
         expect(hierarchy.isManager).toHaveBeenCalledWith(targetId, viewerEmployeeId, companyId);
     });
 

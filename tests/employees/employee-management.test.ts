@@ -12,7 +12,11 @@ const actor = { userId: "account", companyId: "company", role: "RECRUITER" } as 
 const input = employeeCreateSchema.parse({ email: "New@Example.com", password: "StrongPass123!" });
 describe("employee management", () => {
     it("requires email, defaults to WORKER and excludes companyId from client input", () => {
-        expect(input).toEqual({ email: "new@example.com", password: "StrongPass123!", role: "WORKER" });
+        expect(input).toEqual({
+            email: "new@example.com",
+            password: "StrongPass123!",
+            role: "WORKER",
+        });
         expect(employeeCreateSchema.safeParse({}).success).toBe(false);
         expect(employeeCreateSchema.safeParse({ ...input, companyId: "other" }).success).toBe(
             false,

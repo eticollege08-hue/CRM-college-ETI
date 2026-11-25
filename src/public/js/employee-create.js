@@ -33,8 +33,9 @@ if (form instanceof HTMLFormElement) {
         if (invalidFields.length > 0) {
             const fieldNames = invalidFields
                 .map((field) =>
-                    field.parentElement?.querySelector(".field-title")?.textContent
-                        ?.replace("*", "")
+                    field.parentElement
+                        ?.querySelector(".field-title")
+                        ?.textContent?.replace("*", "")
                         .trim(),
                 )
                 .filter(Boolean);
@@ -107,11 +108,7 @@ if (form instanceof HTMLFormElement) {
                     }
                 }
                 const invalidLabels = [
-                    ...new Set(
-                        details
-                            .map((detail) => labels[detail.field])
-                            .filter(Boolean),
-                    ),
+                    ...new Set(details.map((detail) => labels[detail.field]).filter(Boolean)),
                 ];
                 const apiMessage =
                     result &&

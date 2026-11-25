@@ -57,7 +57,6 @@ export class AboutUsController {
         await this.service.delete(id, companyId);
         res.status(HttpStatus.OK).json({ success: true, message: ABOUT_US_MESSAGES.DELETED });
     }
-
 }
 
 export const aboutUsController = new AboutUsController();

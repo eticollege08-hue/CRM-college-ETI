@@ -35,7 +35,6 @@ export class AboutUsService {
         await this.getById(id, companyId);
         return await this.repository.delete(id, companyId);
     }
-
 }
 
 export const aboutUsService = new AboutUsService();

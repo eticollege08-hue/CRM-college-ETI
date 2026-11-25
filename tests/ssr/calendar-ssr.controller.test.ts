@@ -62,9 +62,12 @@ describe("calendarPageController", () => {
         const res = { setHeader: vi.fn(), render: vi.fn() };
         await calendarPageController.calendar(req, res as unknown as Response);
         expect(authPageService.getProfilePageData).toHaveBeenCalledExactlyOnceWith("account");
-        expect(calendarPageService.getPageData).toHaveBeenCalledExactlyOnceWith({
-            timeZone: "Europe/Kiev",
-        }, { userId: "account" });
+        expect(calendarPageService.getPageData).toHaveBeenCalledExactlyOnceWith(
+            {
+                timeZone: "Europe/Kiev",
+            },
+            { userId: "account" },
+        );
         expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
         expect(res.render).toHaveBeenCalledWith("pages/calendar", expectedPayload);
     });
