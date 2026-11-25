@@ -64,7 +64,7 @@ describe("calendarPageController", () => {
         expect(authPageService.getProfilePageData).toHaveBeenCalledExactlyOnceWith("account");
         expect(calendarPageService.getPageData).toHaveBeenCalledExactlyOnceWith({
             timeZone: "Europe/Kiev",
-        });
+        }, { userId: "account" });
         expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
         expect(res.render).toHaveBeenCalledWith("pages/calendar", expectedPayload);
     });
