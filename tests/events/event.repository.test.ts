@@ -69,7 +69,7 @@ describe("EventRepository", () => {
             expect.objectContaining({ where: { id: "event", companyId: "company" } }),
         );
         expect(findMany).toHaveBeenNthCalledWith(2, {
-            where: { id: { in: ["employee"] }, companyId: "company" },
+            where: { id: { in: ["employee"] }, companyId: "company", deletedAt: null },
             select: { id: true },
         });
     });

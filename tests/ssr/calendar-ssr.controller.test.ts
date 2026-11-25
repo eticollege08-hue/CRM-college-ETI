@@ -22,6 +22,7 @@ describe("calendarPageController", () => {
                 initials: "E",
                 employee: {
                     id: "employee",
+                    imageId: null,
                     fullName: "Employee",
                     position: null,
                     level: null,

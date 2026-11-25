@@ -25,7 +25,7 @@ router.get(
 router.get(
     "/employees/create",
     isAuth,
-    accessFor(ALL_ROLES),
+    accessFor(["OWNER", "RECRUITER"]),
     asyncCatch(async (req, res) => {
         if (!req.user) return res.redirect("/login");
         const { userId: accountId } = req.user;

@@ -23,12 +23,33 @@ if (form instanceof HTMLFormElement) {
     };
 
     requiredFields.forEach((field) => field.addEventListener("input", () => validate(field)));
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const valid = requiredFields.map(validate).every(Boolean);
-        message.textContent = valid
-            ? "Form is valid. Employee saving will be enabled when the employee API is available."
-            : "Please fix the highlighted fields.";
+        if (!form.reportValidity()) return;
+        const data = Object.fromEntries([...new FormData(form)].filter(([, v]) => v !== ""));
+        for (const key of ["experience", "salary"]) if (key in data) data[key] = Number(data[key]);
+        const button = form.querySelector('[type="submit"]');
+        button.disabled = true;
+        try {
+            const response = await fetch("/api/employees", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                message.textContent = [
+                    result.message,
+                    ...(result.details ?? []).map((d) => d.field + " — " + d.message),
+                ].join(" ");
+                return;
+            }
+            window.location.assign("/employees/" + result.employee.id + "/profile");
+        } catch {
+            message.textContent = "Could not save employee.";
+        } finally {
+            button.disabled = false;
+        }
     });
     cancelButton?.addEventListener("click", () => {
         form.reset();

@@ -1149,6 +1149,16 @@ paths:
             description: Available to every authenticated role.
             security:
                 - cookieAuth: []
+            parameters:
+                - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+                - {
+                      in: query,
+                      name: limit,
+                      schema: { type: integer, minimum: 1, maximum: 100, default: 25 },
+                  }
+                - { in: query, name: position, schema: { type: string } }
+                - { in: query, name: level, schema: { type: string } }
+                - { in: query, name: projectId, schema: { type: string, format: uuid } }
             responses:
                 "200":
                     description: Employees returned.
@@ -1164,12 +1174,17 @@ paths:
                                         type: boolean
                                         enum:
                                             - true
+                                    page: { type: integer }
+                                    limit: { type: integer }
+                                    hasNext: { type: boolean }
                                     employees:
                                         type: array
                                         items:
                                             $ref: "#/components/schemas/Employee"
                 "401":
                     $ref: "#/components/responses/EmployeeUnauthorized"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
         post:
@@ -1177,9 +1192,7 @@ paths:
                 - Employees
             operationId: createEmployee
             summary: Create an employee
-            description:
-                Only OWNER and RECRUITER can create profiles. Every field is optional; an empty object
-                is valid. Strings are trimmed before validation.
+            description: OWNER and RECRUITER create an employee and linked account. Email is required. RECRUITER may assign every role except OWNER.
             security:
                 - cookieAuth: []
             requestBody:
@@ -1190,7 +1203,7 @@ paths:
                             $ref: "#/components/schemas/EmployeeInput"
             responses:
                 "201":
-                    description: Employee created without requiring a user account.
+                    description: Employee and account created. Only the employee ID is returned.
                     content:
                         application/json:
                             schema:
@@ -1207,7 +1220,14 @@ paths:
                                     message:
                                         type: string
                                     employee:
-                                        $ref: "#/components/schemas/Employee"
+                                        type: object
+                                        required: [id]
+                                        properties:
+                                            id: { type: string, format: uuid }
+                "409":
+                    description: Email is unavailable.
+                "404":
+                    $ref: "#/components/responses/NotFound"
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
@@ -1222,6 +1242,30 @@ paths:
                     $ref: "#/components/responses/ValidationError"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+    /employees/{id}/photo:
+        parameters:
+            - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        get:
+            operationId: getEmployeePhoto
+            summary: Download a company employee photo
+            security: [{ cookieAuth: [] }]
+            responses:
+                "200": { description: Image bytes }
+                "404": { $ref: "#/components/responses/NotFound" }
+        put:
+            operationId: uploadEmployeePhoto
+            summary: Replace own profile photo (up to 5 MiB)
+            security: [{ cookieAuth: [] }]
+            requestBody:
+                required: true
+                content:
+                    image/jpeg: { schema: { type: string, format: binary } }
+                    image/png: { schema: { type: string, format: binary } }
+                    image/webp: { schema: { type: string, format: binary } }
+            responses:
+                "200": { description: Photo saved }
+                "413": { $ref: "#/components/responses/PayloadTooLarge" }
+                "415": { $ref: "#/components/responses/UnsupportedMediaType" }
     /employees/{id}/salary:
         parameters:
             - name: id
@@ -1372,11 +1416,17 @@ paths:
                 - Employees
             operationId: deleteEmployee
             summary: Delete an employee
-            description:
-                Only OWNER and HR can delete profiles. Related accounts or event participation can
-                prevent deletion with 422.
+            description: OWNER and HR may dismiss another employee and deactivate their account. For a manager, supply a replacement manager ID or explicitly choose null for hierarchy roots.
             security:
                 - cookieAuth: []
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                                replacementManagerId: { type: string, format: uuid, nullable: true }
             responses:
                 "200":
                     description: Employee deleted.
@@ -1403,7 +1453,7 @@ paths:
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "422":
-                    description: Invalid UUID or deletion blocked by a related user account or event participant.
+                    description: Invalid UUID, self-dismissal, missing manager decision or hierarchy cycle.
                     content:
                         application/json:
                             schema:
@@ -2338,6 +2388,30 @@ components:
                     type: string
                     format: uuid
                     readOnly: true
+                experience: { type: number, nullable: true }
+                certifications: { type: array, items: { type: string } }
+                salary: { type: number, nullable: true, description: Omitted unless authorized. }
+                currency: { type: string }
+                managers:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            manager:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    fullName: { type: string, nullable: true }
+                memberships:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            project:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    title: { type: string }
                 fullName:
                     type: string
                     nullable: true
@@ -2353,24 +2427,27 @@ components:
         EmployeeInput:
             type: object
             additionalProperties: false
+            required: [email]
             properties:
-                fullName:
-                    type: string
-                    minLength: 1
-                imageId:
-                    type: string
-                    minLength: 1
-                level:
-                    type: string
-                    minLength: 1
-                position:
-                    type: string
-                    minLength: 1
+                email: { type: string, format: email }
+                role:
+                    { type: string, enum: [WORKER, MANAGER, HR, RECRUITER, OWNER], default: WORKER }
+                fullName: { type: string }
+                phoneNumber: { type: string }
+                level: { type: string }
+                position: { type: string }
+                salary: { type: number, minimum: 0 }
+                experience: { type: number, minimum: 0, maximum: 100 }
+                managerId: { type: string, format: uuid }
         EmployeeUpdateInput:
             type: object
             additionalProperties: false
             minProperties: 1
             properties:
+                managerId: { type: string, format: uuid, nullable: true }
+                experience: { type: number, minimum: 0, maximum: 100 }
+                certifications: { type: array, items: { type: string } }
+                projectIds: { type: array, items: { type: string, format: uuid } }
                 fullName:
                     type: string
                     minLength: 1

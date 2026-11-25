@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+import { hashPassword } from "#utils/password.util.js";
 import { HttpStatus } from "#constants/http-status.constants.js";
 import { hierarchyService } from "#modules/hierarchy/hierarchy.service.js";
 import { userAccountService } from "#modules/user-accounts/user-account.service.js";
@@ -13,7 +15,12 @@ import type { JWT } from "#types/common.types.js";
 import type { UserAccountService } from "#modules/user-accounts/user-account.service.js";
 import type { EmployeeRepository } from "./employee.repository.js";
 import type { EmployeePersonalDataService } from "./employee-personal-data.service.js";
-import type { EmployeeSalaryUpdateInput, EmployeeUpdateInput } from "./employee.types.js";
+import type {
+    EmployeeCreateInput,
+    EmployeeListQuery,
+    EmployeeSalaryUpdateInput,
+    EmployeeUpdateInput,
+} from "./employee.types.js";
 
 type EmployeeActor = Pick<JWT, "userId" | "role" | "companyId">;
 
@@ -69,7 +76,59 @@ export class EmployeeService {
         );
     }
 
-    /* HELPERS */
+    async list(actor: EmployeeActor, query: EmployeeListQuery) {
+        const rows = await this.repository.getAll(actor.companyId, query);
+        return {
+            employees: await this.personalData.serializeMany(rows.slice(0, query.limit), actor),
+            hasNext: rows.length > query.limit,
+            page: query.page,
+            limit: query.limit,
+        };
+    }
+    async create(actor: EmployeeActor, data: EmployeeCreateInput) {
+        if (actor.role !== "OWNER" && (actor.role !== "RECRUITER" || data.role === "OWNER"))
+            throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
+        try {
+            return await this.repository.create(
+                actor.companyId,
+                data,
+                await hashPassword(randomBytes(32).toString("hex")),
+            );
+        } catch (error) {
+            if (error && typeof error === "object" && "code" in error && error.code === "P2002")
+                throw new ApiError(HttpStatus.CONFLICT, "Email is unavailable.");
+            throw error;
+        }
+    }
+    async dismiss(id: string, actor: EmployeeActor, replacement: string | null | undefined) {
+        return this.repository.dismiss(id, actor.companyId, actor.userId, replacement);
+    }
+    async getPhoto(id: string, actor: EmployeeActor) {
+        const photo = await this.repository.getPhoto(id, actor.companyId);
+        if (!photo) throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
+        return photo;
+    }
+    async putPhoto(id: string, actor: EmployeeActor, type: string, bytes: unknown) {
+        const self = await this.userAccounts.getEmployeeByAccountId(actor.userId);
+        if (self?.id !== id || self.companyId !== actor.companyId)
+            throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
+        if (
+            !Buffer.isBuffer(bytes) ||
+            !(
+                (type === "image/png" &&
+                    bytes.subarray(0, 8).toString("hex") === "89504e470d0a1a0a") ||
+                (type === "image/jpeg" && bytes.subarray(0, 3).toString("hex") === "ffd8ff") ||
+                (type === "image/webp" &&
+                    bytes.toString("ascii", 0, 4) === "RIFF" &&
+                    bytes.toString("ascii", 8, 12) === "WEBP")
+            )
+        )
+            throw new ApiError(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Choose a JPEG, PNG or WebP photo.",
+            );
+        await this.repository.putPhoto(id, actor.companyId, type, bytes);
+    }
 
     private async checkDirectManager(id: string, actor: EmployeeActor) {
         const actorEmployee = await this.userAccounts.getEmployeeByAccountId(actor.userId);

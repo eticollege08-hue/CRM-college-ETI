@@ -71,7 +71,7 @@ export class EventRepository {
     // Resolved merge conflict: include companyId for employee filtering
     async getEmployees(ids: string[], companyId: string, tx: Prisma.TransactionClient) {
         return await tx.employee.findMany({
-            where: { id: { in: ids }, companyId },
+            where: { id: { in: ids }, companyId, deletedAt: null },
             select: { id: true },
         });
     }
