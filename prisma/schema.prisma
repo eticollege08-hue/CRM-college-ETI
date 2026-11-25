@@ -23,6 +23,7 @@ model Company {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
 
+  teams         Team[]
   employees     Employee[]
   userAccounts  UserAccount[]
   hierarchy     Hierarchy[]
@@ -36,24 +37,25 @@ model Company {
 }
 
 model Employee {
-  id             String            @id @default(dbgenerated("gen_random_uuid()"))
-  companyId      String            @map("company_id")
-  fullName       String?           @map("full_name")
-  deletedAt      DateTime?         @map("deleted_at") @db.Timestamptz(3)
-  experience     Float?
-  certifications String[]          @default([])
-  memberships    EmployeeProject[]
-  photo          EmployeePhoto?
-  imageId        String?           @map("image_id")
-  level          String?
-  position       String?
-  phoneNumber    String?           @map("phone_number")
-  slack          String?
-  telegram       String?
-  viber          String?
-  whatsapp       String?
-  discord        String?
-  userAccount    UserAccount?
+  id              String            @id @default(dbgenerated("gen_random_uuid()"))
+  companyId       String            @map("company_id")
+  fullName        String?           @map("full_name")
+  deletedAt       DateTime?         @map("deleted_at") @db.Timestamptz(3)
+  experience      Float?
+  certifications  String[]          @default([])
+  teamMemberships TeamMember[]
+  memberships     EmployeeProject[]
+  photo           EmployeePhoto?
+  imageId         String?           @map("image_id")
+  level           String?
+  position        String?
+  phoneNumber     String?           @map("phone_number")
+  slack           String?
+  telegram        String?
+  viber           String?
+  whatsapp        String?
+  discord         String?
+  userAccount     UserAccount?
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
@@ -184,6 +186,30 @@ model EventParticipant {
   @@id([eventId, employeeId])
   @@index([employeeId, eventId])
   @@map("event_participants")
+}
+
+model Team {
+  id        String       @id @default(dbgenerated("gen_random_uuid()"))
+  companyId String       @map("company_id")
+  name      String       @db.VarChar(100)
+  company   Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  members   TeamMember[]
+
+  @@unique([companyId, name])
+  @@unique([id, companyId])
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId     String   @map("team_id")
+  employeeId String   @map("employee_id")
+  companyId  String   @map("company_id")
+  team       Team     @relation(fields: [teamId, companyId], references: [id, companyId], onDelete: Cascade)
+  employee   Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+
+  @@id([teamId, employeeId])
+  @@index([companyId, employeeId])
+  @@map("team_members")
 }
 
 model EmployeePhoto {

@@ -20,6 +20,7 @@ export class EmployeeRepository {
                 deletedAt: null,
                 level: query?.level,
                 position: query?.position,
+                ...(query?.teamId ? { teamMemberships: { some: { teamId: query.teamId } } } : {}),
                 ...(query?.projectId
                     ? { memberships: { some: { projectId: query.projectId } } }
                     : {}),

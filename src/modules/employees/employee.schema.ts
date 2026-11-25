@@ -47,6 +47,7 @@ export const employeeListSchema = z.strictObject({
     limit: z.coerce.number().int().min(1).max(100).default(25),
     position: z.string().trim().min(1).max(100).optional(),
     level: z.string().trim().min(1).max(100).optional(),
+    teamId: z.uuid().optional(),
     projectId: z.uuid().optional(),
 });
 export const dismissalSchema = z.strictObject({

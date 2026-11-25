@@ -1,5 +1,8 @@
 import { Router } from "express";
 
+import { teamsController } from "#modules/teams/teams.controller.js";
+import { projectTeamSchema } from "#modules/teams/teams.schema.js";
+import { checkAuthOrigin } from "#middlewares/auth-origin.middleware.js";
 import { HttpStatus } from "#constants/http-status.constants.js";
 import { accessFor, ALL_ROLES } from "#middlewares/access.middleware.js";
 import { asyncCatch } from "#middlewares/asyncCatch.middleware.js";
@@ -18,6 +21,14 @@ import {
 import type { RequestHandler } from "express";
 
 const router = Router();
+router.post(
+    "/:id/teams",
+    accessFor(["OWNER", "MANAGER"]),
+    checkAuthOrigin,
+    validateParams(uuidSchema),
+    validateBody(projectTeamSchema),
+    asyncCatch(teamsController.addToProject),
+);
 
 const validateDeleteProject: RequestHandler = (req, _res, next) => {
     const body: unknown = req.body;
