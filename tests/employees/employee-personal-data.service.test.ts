@@ -54,15 +54,15 @@ describe("EmployeePersonalDataService", () => {
         );
     });
 
-    it("returns salary to the direct manager and allows editing", async () => {
+    it("returns salary to the direct manager but does not allow editing", async () => {
         const { service, hierarchy } = setup({ directManager: true });
 
         await expect(service.serialize(employee, actor("MANAGER"))).resolves.toMatchObject({
             salary: 4200.5,
         });
-        await expect(service.mayAccess(actor("MANAGER"), employee, "salary", "edit")).resolves.toBe(
-            true,
-        );
+        await expect(
+            service.mayAccess(actor("MANAGER"), employee, "salary", "edit"),
+        ).resolves.toBe(false);
         expect(hierarchy.isManager).toHaveBeenCalledWith(targetId, viewerEmployeeId, companyId);
     });
 

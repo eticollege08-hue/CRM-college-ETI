@@ -1192,7 +1192,7 @@ paths:
                 - Employees
             operationId: createEmployee
             summary: Create an employee
-            description: OWNER and RECRUITER create an employee and linked account. Email is required. RECRUITER may assign every role except OWNER.
+            description: OWNER and RECRUITER create an employee and linked account. Email and password are required. The password is stored as a bcrypt hash. RECRUITER may assign every role except OWNER.
             security:
                 - cookieAuth: []
             requestBody:
@@ -2427,9 +2427,13 @@ components:
         EmployeeInput:
             type: object
             additionalProperties: false
-            required: [email]
+            required: [email, password]
             properties:
                 email: { type: string, format: email }
+                password:
+                    type: string
+                    minLength: 1
+                    description: UTF-8 encoded password must not exceed 72 bytes.
                 role:
                     { type: string, enum: [WORKER, MANAGER, HR, RECRUITER, OWNER], default: WORKER }
                 fullName: { type: string }

@@ -34,6 +34,7 @@ export class EmployeePersonalDataService {
         if (actorEmployee.id === employee.id) return action === "view";
 
         return (
+            action === "view" &&
             actor.role === "MANAGER" &&
             (await this.hierarchy.isManager(employee.id, actorEmployee.id, actor.companyId))
         );

@@ -29,9 +29,16 @@ if (form instanceof HTMLFormElement) {
     });
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const valid = requiredFields.map(validate).every(Boolean);
-        if (!valid) {
-            message.textContent = "Please fix the highlighted fields.";
+        const invalidFields = requiredFields.filter((field) => !validate(field));
+        if (invalidFields.length > 0) {
+            const fieldNames = invalidFields
+                .map((field) =>
+                    field.parentElement?.querySelector(".field-title")?.textContent
+                        ?.replace("*", "")
+                        .trim(),
+                )
+                .filter(Boolean);
+            message.textContent = `Please check the highlighted fields: ${fieldNames.join(", ")}.`;
             return;
         }
 
@@ -40,6 +47,7 @@ if (form instanceof HTMLFormElement) {
             fullName: String(values.get("fullName") || "").trim(),
             phoneNumber: String(values.get("phone") || "").trim(),
             email: String(values.get("email") || "").trim(),
+            password: String(values.get("password") || ""),
             managerId: String(values.get("manager") || ""),
             position: String(values.get("position") || "").trim(),
             experience: Number(values.get("experience")),
@@ -63,12 +71,60 @@ if (form instanceof HTMLFormElement) {
                 !("success" in result) ||
                 result.success !== true
             ) {
+                const details =
+                    result &&
+                    typeof result === "object" &&
+                    "details" in result &&
+                    Array.isArray(result.details)
+                        ? result.details.filter(
+                              (detail) =>
+                                  detail &&
+                                  typeof detail === "object" &&
+                                  "field" in detail &&
+                                  typeof detail.field === "string" &&
+                                  "message" in detail &&
+                                  typeof detail.message === "string",
+                          )
+                        : [];
+                const labels = {
+                    fullName: "Full name",
+                    phoneNumber: "Phone number",
+                    email: "Email",
+                    password: "Password",
+                    managerId: "Manager",
+                    position: "Position",
+                    experience: "Experience",
+                    salary: "Salary",
+                    role: "Role",
+                };
+                for (const detail of details) {
+                    const fieldName = detail.field === "managerId" ? "manager" : detail.field;
+                    const field = form.elements.namedItem(fieldName);
+                    if (field instanceof HTMLElement && "setAttribute" in field) {
+                        field.setAttribute("aria-invalid", "true");
+                        const error = field.parentElement?.querySelector("small");
+                        if (error) error.textContent = detail.message;
+                    }
+                }
+                const invalidLabels = [
+                    ...new Set(
+                        details
+                            .map((detail) => labels[detail.field])
+                            .filter(Boolean),
+                    ),
+                ];
                 const apiMessage =
-                    result && typeof result === "object" && "message" in result &&
+                    result &&
+                    typeof result === "object" &&
+                    "message" in result &&
                     typeof result.message === "string"
                         ? result.message
                         : `Could not save the employee (HTTP ${response.status}). Reload the page and retry.`;
-                throw new Error(apiMessage);
+                throw new Error(
+                    invalidLabels.length > 0
+                        ? `${apiMessage} Check: ${invalidLabels.join(", ")}.`
+                        : apiMessage,
+                );
             }
             window.location.assign("/hierarchy");
         } catch (error) {
