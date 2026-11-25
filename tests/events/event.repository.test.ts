@@ -8,21 +8,83 @@ import type { PrismaClient } from "@prisma/client";
 vi.mock("#config/prisma.config.js", () => ({ default: {} }));
 
 describe("EventRepository", () => {
-    it("uses strict overlap boundaries and excludes the edited event", async () => {
+    it("returns only events overlapping the day for the requested participant without sorting", async () => {
+        const findMany = vi.fn().mockResolvedValue([]);
+        const repo = new EventRepository({ event: { findMany } } as unknown as PrismaClient);
+        const from = new Date("2026-11-10T00:00:00.000Z");
+        const to = new Date("2026-11-11T00:00:00.000Z");
+
+        await repo.getParticipantRange("employee-id", from, to);
+
+        expect(findMany).toHaveBeenCalledWith({
+            where: {
+                startsAt: { lt: to },
+                endsAt: { gt: from },
+                participants: { some: { employeeId: "employee-id" } },
+            },
+            select: { title: true, startsAt: true, endsAt: true },
+        });
+    });
+
+    it("uses strict overlap boundaries, stays inside the company and excludes the edited event", async () => {
         const findFirst = vi.fn().mockResolvedValue(null);
         const tx = { event: { findFirst } } as unknown as Prisma.TransactionClient;
         const repo = new EventRepository({} as PrismaClient);
         const startsAt = new Date("2026-10-26T10:00:00Z");
         const endsAt = new Date("2026-10-26T11:00:00Z");
-        expect(await repo.hasConflict(["employee"], startsAt, endsAt, tx, "event")).toBe(false);
+        expect(await repo.hasConflict(["employee"], startsAt, endsAt, "company", tx, "event")).toBe(
+            false,
+        );
         expect(findFirst).toHaveBeenCalledWith({
             where: {
                 id: { not: "event" },
+                companyId: "company",
                 startsAt: { lt: endsAt },
                 endsAt: { gt: startsAt },
                 participants: { some: { employeeId: { in: ["employee"] } } },
             },
             select: { id: true },
+        });
+    });
+    it("reads events and participant candidates only from the given company", async () => {
+        const findMany = vi.fn().mockResolvedValue([]);
+        const findUnique = vi.fn().mockResolvedValue(null);
+        const db = { event: { findMany, findUnique } } as unknown as PrismaClient;
+        const tx = { employee: { findMany } } as unknown as Prisma.TransactionClient;
+        const repo = new EventRepository(db);
+        const from = new Date("2026-10-01T00:00:00Z");
+        const to = new Date("2026-11-01T00:00:00Z");
+
+        await repo.getRange(from, to, "company");
+        await repo.getById("event", "company", db);
+        await repo.getEmployees(["employee"], "company", tx);
+
+        expect(findMany).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                where: { companyId: "company", startsAt: { lt: to }, endsAt: { gt: from } },
+            }),
+        );
+        expect(findUnique).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { id: "event", companyId: "company" } }),
+        );
+        expect(findMany).toHaveBeenNthCalledWith(2, {
+            where: { id: { in: ["employee"] }, companyId: "company", deletedAt: null },
+            select: { id: true },
+        });
+    });
+    it("reads attendee emails only from active accounts of the company", async () => {
+        const findMany = vi.fn().mockResolvedValue([{ email: "olena@example.com" }]);
+        const tx = { userAccount: { findMany } } as unknown as Prisma.TransactionClient;
+        const repo = new EventRepository({} as PrismaClient);
+
+        expect(await repo.getAttendeeEmails(["employee"], "company", tx)).toEqual([
+            "olena@example.com",
+        ]);
+        expect(findMany).toHaveBeenCalledWith({
+            where: { employeeId: { in: ["employee"] }, companyId: "company", isActive: true },
+            orderBy: { email: "asc" },
+            select: { email: true },
         });
     });
     it("retries Serializable conflicts using a fresh transaction", async () => {
@@ -35,7 +97,11 @@ describe("EventRepository", () => {
         const repo = new EventRepository({ $transaction: transaction } as unknown as PrismaClient);
         expect(await repo.transaction(operation)).toBe("result");
         expect(transaction).toHaveBeenCalledTimes(2);
-        expect(transaction).toHaveBeenCalledWith(operation, { isolationLevel: "Serializable" });
+        expect(transaction).toHaveBeenCalledWith(operation, {
+            isolationLevel: "Serializable",
+            timeout: 30_000,
+            maxWait: 5_000,
+        });
     });
     it("returns 409 after bounded retries", async () => {
         const conflict = new Prisma.PrismaClientKnownRequestError("conflict", {

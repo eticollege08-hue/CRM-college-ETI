@@ -1,5 +1,6 @@
 import { authPageService } from "#modules/auth-ssr/auth-ssr.service.js";
 import { calendarQuerySchema } from "#modules/events/event.schema.js";
+import { getAuthUser } from "#utils/auth-user.util.js";
 
 import { PAGE_PATH } from "./calendar-ssr.constants.js";
 import { calendarPageService } from "./calendar-ssr.service.js";
@@ -10,13 +11,14 @@ export const calendarPageController = {
     async calendar(req: Request, res: Response) {
         const accountId = req.user?.userId;
         if (!accountId) return res.redirect("/login");
+        const actor = getAuthUser(req);
         const query = calendarQuerySchema.parse(req.query);
         const [profileData, calendarData] = await Promise.all([
             authPageService.getProfilePageData(accountId),
             calendarPageService.getPageData({
                 ...query,
                 timeZone: req.query.timeZone === undefined ? "Europe/Kiev" : query.timeZone,
-            }),
+            }, actor),
         ]);
         const payload = {
             ...profileData,

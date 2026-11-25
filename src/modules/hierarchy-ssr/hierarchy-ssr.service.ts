@@ -2,6 +2,8 @@ import { employeeService } from "#modules/employees/employee.service.js";
 import { hierarchyService } from "#modules/hierarchy/hierarchy.service.js";
 import { userAccountService } from "#modules/user-accounts/user-account.service.js";
 
+import type { JWT } from "#types/common.types.js";
+
 type Employee = Awaited<ReturnType<typeof employeeService.getAll>>[number];
 
 interface HierarchyNode extends Employee {
@@ -14,10 +16,12 @@ interface HierarchyNode extends Employee {
 }
 
 export const hierarchyPageService = {
-    async hierarchyTree(accountId: string) {
+    async hierarchyTree(actor: JWT | string, legacyCompanyId?: string) {
+        const accountId = typeof actor === "string" ? actor : actor.userId;
+        const companyId = typeof actor === "string" ? (legacyCompanyId ?? "") : actor.companyId;
         const [employees, relationships, account] = await Promise.all([
-            employeeService.getAll(),
-            hierarchyService.getAll(),
+            employeeService.getAll(typeof actor === "string" ? companyId : actor),
+            hierarchyService.getAll(companyId),
             userAccountService.getProfileById(accountId),
         ]);
 

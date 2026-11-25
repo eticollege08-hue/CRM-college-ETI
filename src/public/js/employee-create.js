@@ -44,7 +44,6 @@ if (form instanceof HTMLFormElement) {
             position: String(values.get("position") || "").trim(),
             experience: Number(values.get("experience")),
             salary: Number(values.get("salary")),
-            projects: String(values.get("projects") || "").trim(),
         };
 
         if (saveButton instanceof HTMLButtonElement) saveButton.disabled = true;

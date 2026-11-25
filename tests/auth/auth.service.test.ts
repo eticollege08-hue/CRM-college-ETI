@@ -15,11 +15,13 @@ const input = { email: "  OLENA@EXAMPLE.COM  ", password: "test-password" };
 const account = {
     id: "550e8400-e29b-41d4-a716-446655440000",
     employeeId: "550e8400-e29b-41d4-a716-446655440001",
+    companyId: "550e8400-e29b-41d4-a716-4466554400c1",
     email: "olena@example.com",
     passwordHash: "stored-hash",
     roleKey: "OWNER" as const,
     isActive: true,
     lastLoginAt: null,
+    company: { deletedAt: null },
 };
 
 describe("AuthService", () => {
@@ -44,24 +46,30 @@ describe("AuthService", () => {
         service = new AuthService(accounts as unknown as UserAccountService, limiter);
     });
 
-    it("normalizes email, signs account claims, updates last_login_at and returns only the internal token", async () => {
+    it("normalizes email, signs account and company claims, updates last_login_at and returns only the internal token", async () => {
         await expect(service.login(input, "192.0.2.1")).resolves.toBe("test-token");
         expect(accounts.getByEmail).toHaveBeenCalledWith("olena@example.com");
         expect(verifyPassword).toHaveBeenCalledWith(input.password, account.passwordHash);
         expect(generateToken).toHaveBeenCalledExactlyOnceWith({
             userId: account.id,
             role: account.roleKey,
+            companyId: account.companyId,
         });
         expect(accounts.updateLastLoginAt).toHaveBeenCalledExactlyOnceWith(account.id);
     });
 
-    it.each(["missing account", "wrong password", "inactive account"])(
+    it.each(["missing account", "wrong password", "inactive account", "soft-deleted company"])(
         "returns the same generic 401 for %s",
         async (scenario) => {
             if (scenario === "missing account") accounts.getByEmail.mockResolvedValue(null);
             if (scenario === "wrong password") vi.mocked(verifyPassword).mockResolvedValue(false);
             if (scenario === "inactive account")
                 accounts.getByEmail.mockResolvedValue({ ...account, isActive: false });
+            if (scenario === "soft-deleted company")
+                accounts.getByEmail.mockResolvedValue({
+                    ...account,
+                    company: { deletedAt: new Date("2026-11-01T00:00:00Z") },
+                });
             await expect(service.login(input, "192.0.2.1")).rejects.toMatchObject({
                 status: 401,
                 message: "Invalid email or password.",

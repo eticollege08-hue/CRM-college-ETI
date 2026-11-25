@@ -10,9 +10,9 @@
       <section class="profile-card card profile-information-card">
         <header class="section-heading"><div><h2>Profile information</h2><p>Update your personal details. Position and salary are managed by administrator.</p></div></header>
         <div class="profile-avatar-wrap">
-          <div class="profile-avatar" aria-label="Profile photo" role="img">{{ profile.initials }}</div>
+          <div class="profile-avatar" data-endpoint="/api/employees/{{ profile.employee.id }}/photo" data-url="{% if profile.employee.imageId %}/api/employees/{{ profile.employee.id }}/photo{% endif %}" aria-label="Profile photo" role="img">{{ profile.initials }}</div>
           <label class="avatar-upload-button" for="profile-avatar-file" title="Change profile photo" aria-label="Change profile photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v13H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg></label>
-          <input id="profile-avatar-file" type="file" accept="image/png,image/jpeg" hidden>
+          <input id="profile-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
         </div>
         <p class="avatar-hint">JPG, PNG up to 5 MB</p>
         <label class="profile-input-label" for="full-name"><span class="required-field-title">Full name <span class="required-mark">*</span></span>

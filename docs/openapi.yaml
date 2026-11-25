@@ -1,10 +1,12 @@
-openapi: 3.0.3
+﻿openapi: 3.0.3
 info:
     title: CRM API
     version: 0.3.0
     description:
         "Login/logout use UserAccount and JWT cookies. Handled API errors use { success: false,
-        message, details }. Unmatched routes retain the default Express 404 response."
+        message, details }. Unmatched routes retain the default Express 404 response. Public
+        self-registration is unavailable. Data is multi-tenant: every authenticated request is
+        limited to the company in the JWT, and records of other companies respond as not found."
     license:
         name: Proprietary
 servers:
@@ -27,7 +29,251 @@ tags:
       description: CRM projects
     - name: Profile
       description: The authenticated user's own profile
+    - name: Estimates
+      description: Estimate management and calculations
 paths:
+    /estimates:
+        get:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: listEstimates
+            summary: List paginated estimates
+            description: Returns a paginated list of estimates. Supports search by name, sorting by name or createdAt. Deleted estimates are excluded.
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number
+                - in: query
+                  name: pageSize
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 20
+                  description: Page size
+                - in: query
+                  name: search
+                  schema:
+                      type: string
+                  description: Partial match search on name (case-insensitive)
+                - in: query
+                  name: sortBy
+                  schema:
+                      type: string
+                      enum: [name, createdAt]
+                      default: createdAt
+                  description: Sort field
+                - in: query
+                  name: sortOrder
+                  schema:
+                      type: string
+                      enum: [asc, desc]
+                      default: desc
+                  description: Sort direction
+            responses:
+                "200":
+                    description: List of estimates with pagination metadata
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - estimates
+                                    - meta
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    estimates:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Estimate"
+                                    meta:
+                                        $ref: "#/components/schemas/EstimatePaginationMeta"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+        post:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: createEstimate
+            summary: Create estimate
+            description: Creates an estimate. Only OWNER and MANAGER can create estimates.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/EstimateCreateRequest"
+            responses:
+                "201":
+                    description: Estimate created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                    - estimate
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    message:
+                                        type: string
+                                        example: Estimate created successfully.
+                                    estimate:
+                                        $ref: "#/components/schemas/Estimate"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+    /estimates/{id}:
+        get:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: getEstimateById
+            summary: Get estimate by ID
+            description: Retrieve an existing estimate by UUID. OWNER, MANAGER, HR, and EMPLOYEE (WORKER) have access.
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            responses:
+                "200":
+                    description: Estimate details
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - estimate
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    estimate:
+                                        $ref: "#/components/schemas/Estimate"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/EstimateNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+        patch:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: updateEstimate
+            summary: Update estimate
+            description: Update editable fields of an estimate. Only OWNER and MANAGER can update.
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/EstimateUpdateRequest"
+            responses:
+                "200":
+                    description: Estimate updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                    - estimate
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    message:
+                                        type: string
+                                        example: Estimate updated successfully.
+                                    estimate:
+                                        $ref: "#/components/schemas/Estimate"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/EstimateNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+        delete:
+            tags:
+                - Estimates
+            security:
+                - cookieAuth: []
+            operationId: deleteEstimate
+            summary: Soft delete estimate
+            description: Soft deletes an estimate. Only OWNER and MANAGER can delete.
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            responses:
+                "200":
+                    description: Estimate deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        example: true
+                                    message:
+                                        type: string
+                                        example: Estimate deleted successfully.
+                "401":
+                    $ref: "#/components/responses/HierarchyUnauthorized"
+                "403":
+                    $ref: "#/components/responses/HierarchyForbidden"
+                "404":
+                    $ref: "#/components/responses/EstimateNotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
     /about-us:
         get:
             tags:
@@ -186,36 +432,6 @@ paths:
                     $ref: "#/components/responses/ValidationError"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
-    /about-us/order:
-        patch:
-            tags:
-                - About Us
-            operationId: reorderAboutUsRecords
-            summary: Reorder About Us records
-            description: Only users with the OWNER role can change the display order. Include every record ID exactly once.
-            security:
-                - cookieAuth: []
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: "#/components/schemas/AboutUsOrderInput"
-            responses:
-                "200":
-                    description: Records reordered.
-                    content:
-                        application/json:
-                            schema:
-                                $ref: "#/components/schemas/AboutUsListSuccess"
-                "401":
-                    $ref: "#/components/responses/AboutUsUnauthorized"
-                "403":
-                    $ref: "#/components/responses/AboutUsForbidden"
-                "422":
-                    $ref: "#/components/responses/ValidationError"
-                "500":
-                    $ref: "#/components/responses/InternalServerError"
     /events:
         get:
             tags:
@@ -275,6 +491,7 @@ paths:
                                       startsAt: 2026-10-26T08:00:00.000Z
                                       endsAt: 2026-10-26T09:00:00.000Z
                                       timeZone: Europe/Kyiv
+                                      googleEventId: 550e8400e29b41d4a716446655440010
                                       createdAt: 2026-10-26T07:00:00.000Z
                                       updatedAt: 2026-10-26T07:00:00.000Z
                                       participants:
@@ -348,6 +565,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -374,6 +592,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
     /events/{id}:
         parameters:
             - in: path
@@ -407,6 +627,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -470,6 +691,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -496,6 +718,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
         delete:
             tags:
                 - Events
@@ -562,6 +786,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
     /events/{id}/participants:
         parameters:
             - in: path
@@ -617,6 +843,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -643,6 +870,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
     /events/{id}/participants/{employeeId}:
         parameters:
             - in: path
@@ -695,6 +924,7 @@ paths:
                                     startsAt: 2026-10-26T08:00:00.000Z
                                     endsAt: 2026-10-26T09:00:00.000Z
                                     timeZone: Europe/Kyiv
+                                    googleEventId: 550e8400e29b41d4a716446655440010
                                     createdAt: 2026-10-26T07:00:00.000Z
                                     updatedAt: 2026-10-26T07:00:00.000Z
                                     participants:
@@ -715,6 +945,8 @@ paths:
                     $ref: "#/components/responses/EventValidation"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
+                "502":
+                    $ref: "#/components/responses/GoogleCalendarUnavailable"
     /calendar:
         get:
             tags:
@@ -785,8 +1017,8 @@ paths:
             security: []
             description:
                 Uses UserAccount only. Email is trimmed/lowercased; passwords are unchanged. Missing
-                accounts, wrong passwords and inactive accounts produce identical 401 responses.
-                Sets the authentication cookie at Path=/ only.
+                accounts, wrong passwords, inactive accounts and accounts of a soft-deleted company
+                produce identical 401 responses. No public registration. Sets the authentication cookie at Path=/ only.
             requestBody:
                 required: true
                 content:
@@ -917,6 +1149,16 @@ paths:
             description: Available to every authenticated role.
             security:
                 - cookieAuth: []
+            parameters:
+                - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+                - {
+                      in: query,
+                      name: limit,
+                      schema: { type: integer, minimum: 1, maximum: 100, default: 25 },
+                  }
+                - { in: query, name: position, schema: { type: string } }
+                - { in: query, name: level, schema: { type: string } }
+                - { in: query, name: projectId, schema: { type: string, format: uuid } }
             responses:
                 "200":
                     description: Employees returned.
@@ -932,12 +1174,17 @@ paths:
                                         type: boolean
                                         enum:
                                             - true
+                                    page: { type: integer }
+                                    limit: { type: integer }
+                                    hasNext: { type: boolean }
                                     employees:
                                         type: array
                                         items:
                                             $ref: "#/components/schemas/Employee"
                 "401":
                     $ref: "#/components/responses/EmployeeUnauthorized"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
                 "500":
                     $ref: "#/components/responses/InternalServerError"
         post:
@@ -945,7 +1192,7 @@ paths:
                 - Employees
             operationId: createEmployee
             summary: Create an employee
-            description: Only OWNER and RECRUITER can create profiles. Strings are trimmed before validation.
+            description: OWNER and RECRUITER create an employee and linked account. Email is required. RECRUITER may assign every role except OWNER.
             security:
                 - cookieAuth: []
             requestBody:
@@ -956,7 +1203,7 @@ paths:
                             $ref: "#/components/schemas/EmployeeInput"
             responses:
                 "201":
-                    description: Employee created without requiring a user account.
+                    description: Employee and account created. Only the employee ID is returned.
                     content:
                         application/json:
                             schema:
@@ -973,15 +1220,103 @@ paths:
                                     message:
                                         type: string
                                     employee:
-                                        $ref: "#/components/schemas/Employee"
+                                        type: object
+                                        required: [id]
+                                        properties:
+                                            id: { type: string, format: uuid }
+                "409":
+                    description: Email is unavailable.
+                "404":
+                    $ref: "#/components/responses/NotFound"
                 "400":
                     $ref: "#/components/responses/BadRequest"
                 "401":
                     $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
                     $ref: "#/components/responses/EmployeeForbidden"
-                "409":
-                    $ref: "#/components/responses/EmployeeConflict"
+                "413":
+                    $ref: "#/components/responses/PayloadTooLarge"
+                "415":
+                    $ref: "#/components/responses/UnsupportedMediaType"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+                "500":
+                    $ref: "#/components/responses/InternalServerError"
+    /employees/{id}/photo:
+        parameters:
+            - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        get:
+            operationId: getEmployeePhoto
+            summary: Download a company employee photo
+            security: [{ cookieAuth: [] }]
+            responses:
+                "200": { description: Image bytes }
+                "404": { $ref: "#/components/responses/NotFound" }
+        put:
+            operationId: uploadEmployeePhoto
+            summary: Replace own profile photo (up to 5 MiB)
+            security: [{ cookieAuth: [] }]
+            requestBody:
+                required: true
+                content:
+                    image/jpeg: { schema: { type: string, format: binary } }
+                    image/png: { schema: { type: string, format: binary } }
+                    image/webp: { schema: { type: string, format: binary } }
+            responses:
+                "200": { description: Photo saved }
+                "413": { $ref: "#/components/responses/PayloadTooLarge" }
+                "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+    /employees/{id}/salary:
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: string
+                  format: uuid
+        patch:
+            tags:
+                - Employees
+            operationId: updateEmployeeSalary
+            summary: Update an employee salary
+            description: |
+                Available only to OWNER, HR, and the employee's direct MANAGER. The employee
+                themselves cannot update salary. A user without access receives the same 404
+                response as for a missing employee.
+            security:
+                - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: false
+                            required:
+                                - salary
+                            properties:
+                                salary:
+                                    type: number
+                                    minimum: 0
+                                currency:
+                                    type: string
+                                    pattern: "^[A-Z]{3}$"
+                        example:
+                            salary: 4200.5
+                            currency: USD
+            responses:
+                "200":
+                    description: Salary updated.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/EmployeeUpdateSuccess"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
                 "413":
                     $ref: "#/components/responses/PayloadTooLarge"
                 "415":
@@ -1040,9 +1375,9 @@ paths:
                 - cookieAuth: []
             operationId: updateEmployeeProfile
             summary: Update an employee name, position, or level
-            description:
-                Available to OWNER, RECRUITER, HR, and MANAGER accounts. Mutation Origin must match
-                AUTH_ALLOWED_ORIGINS. Empty position or level values clear those fields.
+            description: Available to OWNER, HR, and MANAGER accounts. A MANAGER may update only
+                their direct subordinates. Mutation Origin must match AUTH_ALLOWED_ORIGINS. Empty
+                position or level values clear those fields.
             requestBody:
                 required: true
                 content:
@@ -1065,7 +1400,7 @@ paths:
                 "401":
                     $ref: "#/components/responses/EmployeeUnauthorized"
                 "403":
-                    $ref: "#/components/responses/Forbidden"
+                    $ref: "#/components/responses/EmployeeUpdateForbidden"
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "413":
@@ -1081,11 +1416,17 @@ paths:
                 - Employees
             operationId: deleteEmployee
             summary: Delete an employee
-            description:
-                Only OWNER and HR can delete profiles. Related accounts or event participation can
-                prevent deletion with 422.
+            description: OWNER and HR may dismiss another employee and deactivate their account. For a manager, supply a replacement manager ID or explicitly choose null for hierarchy roots.
             security:
                 - cookieAuth: []
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                                replacementManagerId: { type: string, format: uuid, nullable: true }
             responses:
                 "200":
                     description: Employee deleted.
@@ -1112,7 +1453,7 @@ paths:
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "422":
-                    description: Invalid UUID or deletion blocked by a related user account or event participant.
+                    description: Invalid UUID, self-dismissal, missing manager decision or hierarchy cycle.
                     content:
                         application/json:
                             schema:
@@ -1228,7 +1569,7 @@ paths:
                 - Projects
             operationId: updateProject
             summary: Update a project
-            description: At least one project field must be supplied. Team member IDs must be unique.
+            description: At least one non-empty title or description must be supplied.
             security:
                 - cookieAuth: []
             requestBody:
@@ -1263,8 +1604,15 @@ paths:
                 - Projects
             operationId: deleteProject
             summary: Delete a project
+            description: Checks exact project name confirmation in the same transaction before deleting.
             security:
                 - cookieAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/ProjectDeleteInput"
             responses:
                 "200":
                     description: Project deleted.
@@ -1279,6 +1627,8 @@ paths:
                                         enum: [true]
                                     message:
                                         type: string
+                "400":
+                    $ref: "#/components/responses/BadRequest"
                 "401":
                     $ref: "#/components/responses/ProjectsUnauthorized"
                 "404":
@@ -1549,8 +1899,8 @@ components:
             description:
                 "JWT in HttpOnly cookie only; never in JSON or Authorization. Path=/; SameSite=Lax;
                 host-only. Secure defaults to true and can be disabled only for local development.
-                Max-Age equals JWT_EXPIRES_IN (default 3600 seconds). JWT claims use UserAccount ID
-                and Prisma Role. Auth POST requests require an exact allowed Origin; Referer is not
+                Max-Age equals JWT_EXPIRES_IN (default 3600 seconds). JWT claims use UserAccount ID,
+                Prisma Role and the account's company ID. Auth POST requests require an exact allowed Origin; Referer is not
                 used. Use credentials: include / withCredentials: true. Deploy same-origin, or
                 explicitly configure credentialed CORS for separate origins."
     schemas:
@@ -1671,6 +2021,7 @@ components:
                 - startsAt
                 - endsAt
                 - timeZone
+                - googleEventId
                 - createdAt
                 - updatedAt
                 - participants
@@ -1681,6 +2032,8 @@ components:
                 ownerAccountId:
                     type: string
                     format: uuid
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
                 type:
                     type: string
                     enum:
@@ -1711,6 +2064,18 @@ components:
                     maxLength: 100
                     example: Europe/Kyiv
                     description: IANA time zone identifier or UTC; fixed-offset zone identifiers are rejected.
+                googleEventId:
+                    type: string
+                    nullable: true
+                    maxLength: 1024
+                    example: 550e8400e29b41d4a716446655440010
+                    description:
+                        ID of the event in Google Calendar of the CRM account (the event UUID
+                        without dashes). Participants with an active account are invited by their
+                        login email and receive the event in their own Google Calendar. Null while
+                        the event has not been synchronized, e.g. it was created before the sync or
+                        while GOOGLE_CALENDAR_ENABLED=false; it is synchronized on the next change.
+                        Read-only; the database remains the source of truth.
                 createdAt:
                     type: string
                     format: date-time
@@ -1740,6 +2105,7 @@ components:
                 startsAt: 2026-10-26T08:00:00.000Z
                 endsAt: 2026-10-26T09:00:00.000Z
                 timeZone: Europe/Kyiv
+                googleEventId: 550e8400e29b41d4a716446655440010
                 createdAt: 2026-10-26T07:00:00.000Z
                 updatedAt: 2026-10-26T07:00:00.000Z
                 participants:
@@ -1798,35 +2164,19 @@ components:
                 - id
                 - title
                 - description
-                - sortOrder
             properties:
                 id:
                     type: string
                     format: uuid
                     readOnly: true
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
                 title:
                     type: string
                     minLength: 1
                 description:
                     type: string
                     minLength: 1
-                sortOrder:
-                    type: integer
-                    minimum: 0
-                    readOnly: true
-        AboutUsOrderInput:
-            type: object
-            additionalProperties: false
-            required:
-                - ids
-            properties:
-                ids:
-                    type: array
-                    minItems: 1
-                    uniqueItems: true
-                    items:
-                        type: string
-                        format: uuid
         AboutUsInput:
             type: object
             additionalProperties: false
@@ -1905,6 +2255,8 @@ components:
                     type: string
                     format: uuid
                     description: Subordinate employee ID.
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
         HierarchyCreateInput:
             type: object
             additionalProperties: false
@@ -1953,46 +2305,29 @@ components:
                   properties:
                       message:
                           type: string
+        TenantCompanyId:
+            type: string
+            format: uuid
+            readOnly: true
+            description:
+                Company that owns the record. Always taken from the authenticated account's JWT;
+                clients cannot send it, and records of other companies respond as not found.
         Project:
             type: object
-            required: [id, title, description, ownerId, budget, deadline, owner, links, members]
+            required: [id, title, description]
             properties:
                 id:
                     type: string
                     format: uuid
                     readOnly: true
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
                 title:
                     type: string
                     minLength: 1
                 description:
                     type: string
                     minLength: 1
-                    maxLength: 1000
-                ownerId:
-                    type: string
-                    format: uuid
-                    nullable: true
-                budget:
-                    type: string
-                    pattern: "^\\d+(\\.\\d{1,2})?$"
-                    nullable: true
-                deadline:
-                    type: string
-                    format: date-time
-                    nullable: true
-                owner:
-                    type: object
-                    allOf:
-                        - $ref: "#/components/schemas/ProjectEmployee"
-                    nullable: true
-                links:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/ProjectLink"
-                members:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/ProjectMember"
         ProjectInput:
             type: object
             additionalProperties: false
@@ -2004,35 +2339,6 @@ components:
                 description:
                     type: string
                     minLength: 1
-                    maxLength: 1000
-                ownerId:
-                    type: string
-                    format: uuid
-                    nullable: true
-                budget:
-                    type: number
-                    minimum: 0
-                    exclusiveMinimum: true
-                    multipleOf: 0.01
-                    nullable: true
-                deadline:
-                    type: string
-                    format: date
-                    nullable: true
-                links:
-                    type: array
-                    maxItems: 20
-                    items:
-                        type: string
-                        format: uri
-                        pattern: "^https?://"
-                memberIds:
-                    type: array
-                    maxItems: 100
-                    uniqueItems: true
-                    items:
-                        type: string
-                        format: uuid
         ProjectUpdateInput:
             type: object
             additionalProperties: false
@@ -2044,75 +2350,14 @@ components:
                 description:
                     type: string
                     minLength: 1
-                    maxLength: 1000
-                ownerId:
-                    type: string
-                    format: uuid
-                    nullable: true
-                budget:
-                    type: number
-                    minimum: 0
-                    exclusiveMinimum: true
-                    multipleOf: 0.01
-                    nullable: true
-                deadline:
-                    type: string
-                    format: date
-                    nullable: true
-                links:
-                    type: array
-                    maxItems: 20
-                    items:
-                        type: string
-                        format: uri
-                        pattern: "^https?://"
-                memberIds:
-                    type: array
-                    maxItems: 100
-                    uniqueItems: true
-                    items:
-                        type: string
-                        format: uuid
-        ProjectEmployee:
+        ProjectDeleteInput:
             type: object
-            required: [id, fullName, position]
+            additionalProperties: false
+            required: [confirmName]
             properties:
-                id:
+                confirmName:
                     type: string
-                    format: uuid
-                fullName:
-                    type: string
-                    nullable: true
-                position:
-                    type: string
-                    nullable: true
-        ProjectLink:
-            type: object
-            required: [id, projectId, url, sortOrder]
-            properties:
-                id:
-                    type: string
-                    format: uuid
-                projectId:
-                    type: string
-                    format: uuid
-                url:
-                    type: string
-                    format: uri
-                sortOrder:
-                    type: integer
-        ProjectMember:
-            type: object
-            required: [projectId, employeeId, employee]
-            properties:
-                projectId:
-                    type: string
-                    format: uuid
-                employeeId:
-                    type: string
-                    format: uuid
-                employee:
-                    $ref: "#/components/schemas/ProjectEmployee"
+                    minLength: 1
         ProjectReadSuccess:
             type: object
             required: [success, project]
@@ -2143,6 +2388,30 @@ components:
                     type: string
                     format: uuid
                     readOnly: true
+                experience: { type: number, nullable: true }
+                certifications: { type: array, items: { type: string } }
+                salary: { type: number, nullable: true, description: Omitted unless authorized. }
+                currency: { type: string }
+                managers:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            manager:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    fullName: { type: string, nullable: true }
+                memberships:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            project:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    title: { type: string }
                 fullName:
                     type: string
                     nullable: true
@@ -2155,69 +2424,30 @@ components:
                 position:
                     type: string
                     nullable: true
-                phoneNumber:
-                    type: string
-                    nullable: true
-                email:
-                    type: string
-                    format: email
-                    nullable: true
-                experience:
-                    type: integer
-                    nullable: true
-                salary:
-                    type: number
-                    nullable: true
-                projects:
-                    type: string
-                    nullable: true
         EmployeeInput:
             type: object
             additionalProperties: false
-            required:
-                - fullName
-                - phoneNumber
-                - email
-                - managerId
-                - position
-                - experience
-                - salary
-                - projects
+            required: [email]
             properties:
-                fullName:
-                    type: string
-                    minLength: 1
-                    maxLength: 150
-                phoneNumber:
-                    type: string
-                    minLength: 1
-                    maxLength: 30
-                email:
-                    type: string
-                    format: email
-                    maxLength: 254
-                managerId:
-                    type: string
-                    format: uuid
-                position:
-                    type: string
-                    minLength: 1
-                    maxLength: 100
-                experience:
-                    type: integer
-                    minimum: 0
-                salary:
-                    type: number
-                    minimum: 0
-                    exclusiveMinimum: true
-                projects:
-                    type: string
-                    maxLength: 1000
+                email: { type: string, format: email }
+                role:
+                    { type: string, enum: [WORKER, MANAGER, HR, RECRUITER, OWNER], default: WORKER }
+                fullName: { type: string }
+                phoneNumber: { type: string }
+                level: { type: string }
+                position: { type: string }
+                salary: { type: number, minimum: 0 }
+                experience: { type: number, minimum: 0, maximum: 100 }
+                managerId: { type: string, format: uuid }
         EmployeeUpdateInput:
             type: object
             additionalProperties: false
             minProperties: 1
             properties:
+                managerId: { type: string, format: uuid, nullable: true }
+                experience: { type: number, minimum: 0, maximum: 100 }
+                certifications: { type: array, items: { type: string } }
+                projectIds: { type: array, items: { type: string, format: uuid } }
                 fullName:
                     type: string
                     minLength: 1
@@ -2349,6 +2579,105 @@ components:
                         - true
                 message:
                     type: string
+        Estimate:
+            type: object
+            required:
+                - id
+                - name
+                - description
+                - createdBy
+                - createdAt
+                - updatedAt
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                name:
+                    type: string
+                    maxLength: 100
+                description:
+                    type: string
+                    maxLength: 1000
+                time:
+                    type: number
+                    nullable: true
+                    description: In hours, must be greater than 0
+                payment:
+                    type: number
+                    nullable: true
+                    description: Must be greater than 0, up to 2 decimal places
+                createdBy:
+                    type: string
+                    format: uuid
+                companyId:
+                    $ref: "#/components/schemas/TenantCompanyId"
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                deletedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+        EstimateCreateRequest:
+            type: object
+            additionalProperties: false
+            required:
+                - name
+                - description
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                description:
+                    type: string
+                    minLength: 1
+                    maxLength: 1000
+                time:
+                    type: number
+                    minimum: 0.0001
+                    nullable: true
+                payment:
+                    type: number
+                    minimum: 0.01
+                    nullable: true
+        EstimateUpdateRequest:
+            type: object
+            additionalProperties: false
+            minProperties: 1
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                description:
+                    type: string
+                    minLength: 1
+                    maxLength: 1000
+                time:
+                    type: number
+                    minimum: 0.0001
+                    nullable: true
+                payment:
+                    type: number
+                    minimum: 0.01
+                    nullable: true
+        EstimatePaginationMeta:
+            type: object
+            required:
+                - totalCount
+                - page
+                - pageSize
+            properties:
+                totalCount:
+                    type: integer
+                page:
+                    type: integer
+                pageSize:
+                    type: integer
     responses:
         ProjectsUnauthorized:
             description: Missing, invalid or expired authentication cookie.
@@ -2563,7 +2892,9 @@ components:
                         message: Invalid request.
                         details: []
         LoginUnauthorized:
-            description: Wrong credentials, missing account or inactive account; identical response.
+            description:
+                Wrong credentials, missing account, inactive account or soft-deleted company;
+                identical response.
             content:
                 application/json:
                     schema:
@@ -2608,6 +2939,19 @@ components:
                         success: false
                         message: Too many attempts. Please try again later.
                         details: []
+        GoogleCalendarUnavailable:
+            description:
+                The change could not be synchronized to Google Calendar (network failure, timeout,
+                revoked refresh token or Google error). The database change was rolled back;
+                upstream details are never exposed. Retry later.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Google Calendar is unavailable. Please try again later.
+                        details: []
         InternalServerError:
             description: Unexpected failure; no internal details are exposed.
             content:
@@ -2644,9 +2988,32 @@ components:
                         success: false
                         message: You do not have permission to perform this action.
                         details: []
-        EmployeeConflict:
-            description: An employee already uses the submitted contact email.
+        EmployeeUpdateForbidden:
+            description:
+                Origin is missing or not allowed, the role cannot update employees, or a MANAGER
+                targets an employee who is not their direct subordinate.
             content:
                 application/json:
                     schema:
                         $ref: "#/components/schemas/ErrorResponse"
+                    examples:
+                        forbidden:
+                            value:
+                                success: false
+                                message: You do not have permission to perform this action.
+                                details: []
+                        notDirectManager:
+                            value:
+                                success: false
+                                message: You can only update your direct subordinates' data
+                                details: []
+        EstimateNotFound:
+            description: Estimate does not exist or has been deleted.
+            content:
+                application/json:
+                    schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                    example:
+                        success: false
+                        message: Estimate not found.
+                        details: []

@@ -11,12 +11,15 @@ import type {
 export class UserAccountRepository {
     constructor(private readonly db: PrismaClient = prisma) {}
 
-    async create(data: UserAccountCreateInput) {
-        return await this.db.userAccount.create({ data });
+    async create(data: UserAccountCreateInput, companyId: string) {
+        return await this.db.userAccount.create({ data: { ...data, companyId } });
     }
 
     async getByEmail(email: string) {
-        return await this.db.userAccount.findUnique({ where: { email } });
+        return await this.db.userAccount.findUnique({
+            where: { email },
+            include: { company: { select: { deletedAt: true } } },
+        });
     }
 
     async getEmployeeByAccountId(accountId: string) {
@@ -45,6 +48,7 @@ export class UserAccountRepository {
                     select: {
                         id: true,
                         fullName: true,
+                        imageId: true,
                         position: true,
                         level: true,
                         phoneNumber: true,
@@ -70,6 +74,7 @@ export class UserAccountRepository {
                     select: {
                         id: true,
                         fullName: true,
+                        imageId: true,
                         position: true,
                         level: true,
                         phoneNumber: true,
@@ -90,17 +95,31 @@ export class UserAccountRepository {
     async createSeedAccount(
         data: Pick<UserAccountCreateInput, "email" | "passwordHash" | "roleKey">,
         fullName: string,
+        companyName: string,
     ) {
         const existing = await this.getByEmail(data.email);
         if (existing) return existing;
 
         try {
-            return await this.db.userAccount.create({
-                data: {
-                    ...data,
-                    isActive: true,
-                    employee: { create: { fullName } },
-                },
+            // Company, Employee and UserAccount are written together so a failed account
+            // insert never leaves an orphaned employee behind.
+            return await this.db.$transaction(async (tx) => {
+                const company = await tx.company.upsert({
+                    where: { name: companyName },
+                    update: {},
+                    create: { name: companyName },
+                });
+                const employee = await tx.employee.create({
+                    data: { fullName, companyId: company.id },
+                });
+                return await tx.userAccount.create({
+                    data: {
+                        ...data,
+                        isActive: true,
+                        employeeId: employee.id,
+                        companyId: company.id,
+                    },
+                });
             });
         } catch (error: unknown) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

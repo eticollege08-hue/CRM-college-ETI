@@ -1,4 +1,5 @@
 import { authPageService } from "#modules/auth-ssr/auth-ssr.service.js";
+import { getAuthUser } from "#utils/auth-user.util.js";
 import { uuidSchema } from "#schemas/id.schema.js";
 import {
     PROJECTS_PAGE,
@@ -13,9 +14,10 @@ export const projectsPageController = {
     async index(req: Request, res: Response) {
         const accountId = req.user?.userId;
         if (!accountId) return res.redirect("/login");
+        const { companyId } = getAuthUser(req);
         const [profileData, pageData] = await Promise.all([
             authPageService.getProfilePageData(accountId),
-            projectsPageService.getPageData(),
+            projectsPageService.getPageData(companyId),
         ]);
         const payload = { ...profileData, ...pageData, hideBrand: true };
         res.render(PROJECTS_PAGE.path, { ...payload, ...PROJECTS_PAGE.data });
@@ -23,10 +25,11 @@ export const projectsPageController = {
     async details(req: Request, res: Response) {
         const accountId = req.user?.userId;
         if (!accountId) return res.redirect("/login");
+        const { companyId } = getAuthUser(req);
         const { id } = uuidSchema.parse(req.params);
         const [profileData, pageData] = await Promise.all([
             authPageService.getProfilePageData(accountId),
-            projectsPageService.getProject(id),
+            projectsPageService.getProject(id, companyId),
         ]);
         const payload = { ...profileData, ...pageData, hideBrand: true };
         res.setHeader("Cache-Control", "no-store");

@@ -137,9 +137,13 @@
         try {
             const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, {
                 method: "DELETE",
-                headers: { Accept: "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
                 credentials: "include",
                 cache: "no-store",
+                body: JSON.stringify({ confirmName: page.dataset.projectTitle || "" }),
             });
             const payload = await response.json();
             if (!response.ok) throw new Error(payload.message || "Unable to delete project.");

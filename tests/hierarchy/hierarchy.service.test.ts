@@ -13,20 +13,22 @@ import type { HierarchyRepository } from "../../src/modules/hierarchy/hierarchy.
 const { tx, transaction } = vi.hoisted(() => ({ tx: {}, transaction: vi.fn() }));
 vi.mock("#config/prisma.config.js", () => ({ default: { $transaction: transaction } }));
 
+const companyId = "550e8400-e29b-41d4-a716-4466554400c1";
 const hierarchy = {
     id: "550e8400-e29b-41d4-a716-446655440000",
     employeeId: "550e8400-e29b-41d4-a716-446655440001",
     subordinateId: "550e8400-e29b-41d4-a716-446655440002",
+    companyId,
 };
 const input = { employeeId: hierarchy.employeeId, subordinateId: hierarchy.subordinateId };
 const employee = (id: string) => ({
     id,
-    email: null,
+    companyId,
     fullName: null,
-    experience: null,
-    salary: null,
-    projects: null,
     imageId: null,
+    certifications: [],
+    experience: null,
+    deletedAt: null,
     level: null,
     position: null,
     phoneNumber: null,
@@ -77,34 +79,36 @@ describe("HierarchyService", () => {
         it("returns true for a direct manager and checks the pair in manager-subordinate order", async () => {
             repository.getByPair.mockResolvedValue(hierarchy);
 
-            await expect(service.isManager(input.subordinateId, input.employeeId)).resolves.toBe(
-                true,
-            );
+            await expect(
+                service.isManager(input.subordinateId, input.employeeId, companyId),
+            ).resolves.toBe(true);
 
             expect(repository.getByPair).toHaveBeenCalledExactlyOnceWith(
                 input.employeeId,
                 input.subordinateId,
+                companyId,
             );
         });
 
         it("returns false without a direct relationship and does not search indirect paths", async () => {
             repository.getByPair.mockResolvedValue(null);
 
-            await expect(service.isManager(input.subordinateId, input.employeeId)).resolves.toBe(
-                false,
-            );
+            await expect(
+                service.isManager(input.subordinateId, input.employeeId, companyId),
+            ).resolves.toBe(false);
 
             expect(repository.getByPair).toHaveBeenCalledExactlyOnceWith(
                 input.employeeId,
                 input.subordinateId,
+                companyId,
             );
             expect(repository.getAllRelationships).not.toHaveBeenCalled();
         });
 
         it("returns false when the employee and manager are the same person", async () => {
-            await expect(service.isManager(input.employeeId, input.employeeId)).resolves.toBe(
-                false,
-            );
+            await expect(
+                service.isManager(input.employeeId, input.employeeId, companyId),
+            ).resolves.toBe(false);
 
             expect(repository.getByPair).not.toHaveBeenCalled();
         });
@@ -113,9 +117,9 @@ describe("HierarchyService", () => {
             const error = new Error("Lookup failed");
             repository.getByPair.mockRejectedValue(error);
 
-            await expect(service.isManager(input.subordinateId, input.employeeId)).rejects.toBe(
-                error,
-            );
+            await expect(
+                service.isManager(input.subordinateId, input.employeeId, companyId),
+            ).rejects.toBe(error);
         });
     });
 
@@ -125,17 +129,17 @@ describe("HierarchyService", () => {
         repository.update.mockResolvedValue(hierarchy);
         repository.delete.mockResolvedValue(hierarchy);
 
-        await expect(service.create(input)).resolves.toEqual(hierarchy);
-        await expect(service.getAll()).resolves.toEqual([hierarchy]);
-        await expect(service.getById(hierarchy.id)).resolves.toEqual(hierarchy);
-        await expect(service.update(hierarchy.id, input)).resolves.toEqual(hierarchy);
-        await expect(service.delete(hierarchy.id)).resolves.toEqual(hierarchy);
+        await expect(service.create(input, companyId)).resolves.toEqual(hierarchy);
+        await expect(service.getAll(companyId)).resolves.toEqual([hierarchy]);
+        await expect(service.getById(hierarchy.id, companyId)).resolves.toEqual(hierarchy);
+        await expect(service.update(hierarchy.id, companyId, input)).resolves.toEqual(hierarchy);
+        await expect(service.delete(hierarchy.id, companyId)).resolves.toEqual(hierarchy);
 
-        expect(repository.create).toHaveBeenCalledWith(input, tx);
-        expect(repository.getAll).toHaveBeenCalledOnce();
-        expect(repository.getById).toHaveBeenCalledWith(hierarchy.id, tx);
-        expect(repository.update).toHaveBeenCalledWith(hierarchy.id, input, tx);
-        expect(repository.delete).toHaveBeenCalledWith(hierarchy.id, tx);
+        expect(repository.create).toHaveBeenCalledWith(input, companyId, tx);
+        expect(repository.getAll).toHaveBeenCalledExactlyOnceWith(companyId);
+        expect(repository.getById).toHaveBeenCalledWith(hierarchy.id, companyId, tx);
+        expect(repository.update).toHaveBeenCalledWith(hierarchy.id, companyId, input, tx);
+        expect(repository.delete).toHaveBeenCalledWith(hierarchy.id, companyId, tx);
     });
 
     it.each(["getById", "update", "delete"] as const)(
@@ -145,8 +149,8 @@ describe("HierarchyService", () => {
 
             const result =
                 operation === "update"
-                    ? service.update(hierarchy.id, input)
-                    : service[operation](hierarchy.id);
+                    ? service.update(hierarchy.id, companyId, input)
+                    : service[operation](hierarchy.id, companyId);
 
             await expect(result).rejects.toMatchObject({
                 status: 404,
@@ -164,8 +168,8 @@ describe("HierarchyService", () => {
 
             const result =
                 operation === "create"
-                    ? service.create(input)
-                    : service.update(hierarchy.id, input);
+                    ? service.create(input, companyId)
+                    : service.update(hierarchy.id, companyId, input);
 
             await expect(result).rejects.toMatchObject({
                 status: 409,
@@ -182,7 +186,9 @@ describe("HierarchyService", () => {
             const data = { employeeId: input.employeeId, subordinateId: input.employeeId };
 
             const result =
-                operation === "create" ? service.create(data) : service.update(hierarchy.id, data);
+                operation === "create"
+                    ? service.create(data, companyId)
+                    : service.update(hierarchy.id, companyId, data);
 
             await expect(result).rejects.toMatchObject({
                 status: 409,
@@ -198,7 +204,7 @@ describe("HierarchyService", () => {
     it.each([{ employeeId: input.subordinateId }, { subordinateId: input.employeeId }])(
         "rejects self-assignment in a partial update: %j",
         async (data) => {
-            await expect(service.update(hierarchy.id, data)).rejects.toMatchObject({
+            await expect(service.update(hierarchy.id, companyId, data)).rejects.toMatchObject({
                 status: 409,
                 message: HIERARCHY_MESSAGES.SELF_ASSIGNMENT,
             });
@@ -216,8 +222,8 @@ describe("HierarchyService", () => {
 
                 const result =
                     operation === "create"
-                        ? service.create(input)
-                        : service.update(hierarchy.id, input);
+                        ? service.create(input, companyId)
+                        : service.update(hierarchy.id, companyId, input);
 
                 await expect(result).rejects.toMatchObject({
                     status: 404,
@@ -236,15 +242,18 @@ describe("HierarchyService", () => {
             const updated = { ...hierarchy, ...changes };
             repository.update.mockResolvedValue(updated);
 
-            await expect(service.update(hierarchy.id, changes)).resolves.toEqual(updated);
+            await expect(service.update(hierarchy.id, companyId, changes)).resolves.toEqual(
+                updated,
+            );
 
             expect(repository.getByPair).toHaveBeenCalledWith(
                 updated.employeeId,
                 updated.subordinateId,
+                companyId,
                 tx,
             );
-            expect(employees.getById).toHaveBeenCalledWith(updated.employeeId, tx);
-            expect(employees.getById).toHaveBeenCalledWith(updated.subordinateId, tx);
+            expect(employees.getById).toHaveBeenCalledWith(updated.employeeId, companyId, tx);
+            expect(employees.getById).toHaveBeenCalledWith(updated.subordinateId, companyId, tx);
         },
     );
 
@@ -252,15 +261,15 @@ describe("HierarchyService", () => {
         repository.getByPair.mockResolvedValue(hierarchy);
         repository.update.mockResolvedValue(hierarchy);
 
-        await expect(service.update(hierarchy.id, {})).resolves.toEqual(hierarchy);
-        expect(repository.update).toHaveBeenCalledWith(hierarchy.id, {}, tx);
+        await expect(service.update(hierarchy.id, companyId, {})).resolves.toEqual(hierarchy);
+        expect(repository.update).toHaveBeenCalledWith(hierarchy.id, companyId, {}, tx);
     });
 
     it("propagates unexpected repository errors", async () => {
         const error = new Error("Unexpected failure");
         repository.create.mockRejectedValue(error);
 
-        await expect(service.create(input)).rejects.toBe(error);
+        await expect(service.create(input, companyId)).rejects.toBe(error);
     });
 
     describe("transactions", () => {
@@ -272,20 +281,21 @@ describe("HierarchyService", () => {
         it("uses Serializable and shares the transaction across all create queries", async () => {
             repository.create.mockResolvedValue(hierarchy);
 
-            await service.create(input);
+            await service.create(input, companyId);
 
             expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
                 isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
             });
-            expect(employees.getById).toHaveBeenCalledWith(input.employeeId, tx);
-            expect(employees.getById).toHaveBeenCalledWith(input.subordinateId, tx);
+            expect(employees.getById).toHaveBeenCalledWith(input.employeeId, companyId, tx);
+            expect(employees.getById).toHaveBeenCalledWith(input.subordinateId, companyId, tx);
             expect(repository.getByPair).toHaveBeenCalledWith(
                 input.employeeId,
                 input.subordinateId,
+                companyId,
                 tx,
             );
-            expect(repository.getAllRelationships).toHaveBeenCalledWith(tx);
-            expect(repository.create).toHaveBeenCalledWith(input, tx);
+            expect(repository.getAllRelationships).toHaveBeenCalledWith(companyId, tx);
+            expect(repository.create).toHaveBeenCalledWith(input, companyId, tx);
         });
 
         it.each(["create", "update"] as const)(
@@ -295,8 +305,8 @@ describe("HierarchyService", () => {
 
                 const result =
                     operation === "create"
-                        ? service.create(input)
-                        : service.update(hierarchy.id, input);
+                        ? service.create(input, companyId)
+                        : service.update(hierarchy.id, companyId, input);
 
                 await expect(result).resolves.toEqual(hierarchy);
                 expect(transaction).toHaveBeenCalledTimes(2);
@@ -315,7 +325,7 @@ describe("HierarchyService", () => {
                 .mockResolvedValueOnce([])
                 .mockResolvedValueOnce([edge(input.subordinateId, input.employeeId)]);
 
-            await expect(service.create(input)).rejects.toMatchObject({
+            await expect(service.create(input, companyId)).rejects.toMatchObject({
                 status: 409,
                 message: HIERARCHY_MESSAGES.CYCLE_DETECTED,
             });
@@ -326,7 +336,7 @@ describe("HierarchyService", () => {
         it("limits retries and returns 409 when serialization conflicts persist", async () => {
             transaction.mockRejectedValue(conflict);
 
-            await expect(service.create(input)).rejects.toMatchObject({
+            await expect(service.create(input, companyId)).rejects.toMatchObject({
                 status: 409,
                 message: HIERARCHY_MESSAGES.TRANSACTION_CONFLICT,
             });
@@ -335,7 +345,10 @@ describe("HierarchyService", () => {
 
         it("does not retry domain errors", async () => {
             await expect(
-                service.create({ employeeId: input.employeeId, subordinateId: input.employeeId }),
+                service.create(
+                    { employeeId: input.employeeId, subordinateId: input.employeeId },
+                    companyId,
+                ),
             ).rejects.toMatchObject({ status: 409 });
             expect(transaction).toHaveBeenCalledOnce();
         });
@@ -344,7 +357,7 @@ describe("HierarchyService", () => {
             const error = new Error("Transaction failed");
             transaction.mockRejectedValue(error);
 
-            await expect(service.create(input)).rejects.toBe(error);
+            await expect(service.create(input, companyId)).rejects.toBe(error);
             expect(transaction).toHaveBeenCalledOnce();
         });
     });
@@ -379,7 +392,7 @@ describe("HierarchyService", () => {
         it.each(cyclicPaths)("rejects create with $name", async ({ edges }) => {
             repository.getAllRelationships.mockResolvedValue(edges);
 
-            await expect(service.create(input)).rejects.toMatchObject({
+            await expect(service.create(input, companyId)).rejects.toMatchObject({
                 status: 409,
                 message: HIERARCHY_MESSAGES.CYCLE_DETECTED,
             });
@@ -397,7 +410,9 @@ describe("HierarchyService", () => {
                     edge("middle", updated.employeeId),
                 ]);
 
-                await expect(service.update(hierarchy.id, changes)).rejects.toMatchObject({
+                await expect(
+                    service.update(hierarchy.id, companyId, changes),
+                ).rejects.toMatchObject({
                     status: 409,
                     message: HIERARCHY_MESSAGES.CYCLE_DETECTED,
                 });
@@ -411,13 +426,14 @@ describe("HierarchyService", () => {
                 employeeId: input.subordinateId,
                 subordinateId: input.employeeId,
             };
-            repository.update.mockResolvedValue({ id: hierarchy.id, ...reversed });
+            repository.update.mockResolvedValue({ id: hierarchy.id, companyId, ...reversed });
 
-            await expect(service.update(hierarchy.id, reversed)).resolves.toEqual({
+            await expect(service.update(hierarchy.id, companyId, reversed)).resolves.toEqual({
                 id: hierarchy.id,
+                companyId,
                 ...reversed,
             });
-            expect(repository.update).toHaveBeenCalledWith(hierarchy.id, reversed, tx);
+            expect(repository.update).toHaveBeenCalledWith(hierarchy.id, companyId, reversed, tx);
         });
 
         it("allows multiple managers, shared descendants and an existing forward path", async () => {
@@ -432,7 +448,7 @@ describe("HierarchyService", () => {
             ]);
             repository.create.mockResolvedValue(hierarchy);
 
-            await expect(service.create(input)).resolves.toEqual(hierarchy);
+            await expect(service.create(input, companyId)).resolves.toEqual(hierarchy);
         });
 
         it("finishes even if the reachable graph already contains an unrelated cycle", async () => {
@@ -442,7 +458,7 @@ describe("HierarchyService", () => {
             ]);
             repository.create.mockResolvedValue(hierarchy);
 
-            await expect(service.create(input)).resolves.toEqual(hierarchy);
+            await expect(service.create(input, companyId)).resolves.toEqual(hierarchy);
         });
 
         it("checks a deep hierarchy without recursion", async () => {
@@ -455,7 +471,7 @@ describe("HierarchyService", () => {
                 edge("15000", input.employeeId),
             ]);
 
-            await expect(service.create(input)).rejects.toMatchObject({
+            await expect(service.create(input, companyId)).rejects.toMatchObject({
                 status: 409,
                 message: HIERARCHY_MESSAGES.CYCLE_DETECTED,
             });

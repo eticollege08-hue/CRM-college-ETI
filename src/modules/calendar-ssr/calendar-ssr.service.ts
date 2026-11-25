@@ -6,19 +6,24 @@ import { eventService } from "#modules/events/event.service.js";
 import { monthBounds } from "#utils/event-time.util.js";
 
 import type { CalendarQuery } from "#modules/events/event.types.js";
+import type { JWT } from "#types/common.types.js";
 
 export const calendarPageService = {
-    async getPageData(query: CalendarQuery) {
+    async getPageData(query: CalendarQuery, actor: JWT | string) {
+        const companyId = typeof actor === "string" ? actor : actor.companyId;
         const today = Temporal.Now.plainDateISO(query.timeZone);
         const month = query.month ?? today.toPlainYearMonth().toString();
         const { from, to } = monthBounds(month, query.timeZone);
         const [events, employees] = await Promise.all([
-            eventService.getRange({
-                from: from.toISOString(),
-                to: to.toISOString(),
-                timeZone: query.timeZone,
-            }),
-            employeeService.getAll(),
+            eventService.getRange(
+                {
+                    from: from.toISOString(),
+                    to: to.toISOString(),
+                    timeZone: query.timeZone,
+                },
+                companyId,
+            ),
+            employeeService.getAll(actor),
         ]);
         return {
             currentDate: today.toString(),

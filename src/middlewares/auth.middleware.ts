@@ -20,7 +20,7 @@ export function isAuth(req: Request, res: Response, next: NextFunction) {
     const token: unknown = req.cookies?.[AUTH_COOKIE_NAME];
     if (typeof token !== "string" || token.length === 0) {
         clearAuthCookie(res);
-        return next(new ApiError(HttpStatus.UNAUTHORIZED, API_MESSAGES.UNAUTHORIZED));
+        return rejectUnauthenticated(req, res, next, API_MESSAGES.UNAUTHORIZED);
     }
     try {
         req.user = verifyToken(token);
@@ -31,16 +31,24 @@ export function isAuth(req: Request, res: Response, next: NextFunction) {
             error instanceof jwt.NotBeforeError
         ) {
             clearAuthCookie(res);
-            return next(
-                new ApiError(
-                    HttpStatus.UNAUTHORIZED,
-                    error instanceof jwt.TokenExpiredError
-                        ? API_MESSAGES.TOKEN_EXPIRED
-                        : API_MESSAGES.UNAUTHORIZED,
-                ),
+            return rejectUnauthenticated(
+                req,
+                res,
+                next,
+                error instanceof jwt.TokenExpiredError
+                    ? API_MESSAGES.TOKEN_EXPIRED
+                    : API_MESSAGES.UNAUTHORIZED,
             );
         }
         return next(error);
     }
     next();
+}
+
+function rejectUnauthenticated(req: Request, res: Response, next: NextFunction, message: string) {
+    const requestPath = req.originalUrl ?? req.url ?? "";
+    if (requestPath.length > 0 && !requestPath.startsWith("/api/")) {
+        return res.redirect("/login");
+    }
+    return next(new ApiError(HttpStatus.UNAUTHORIZED, message));
 }

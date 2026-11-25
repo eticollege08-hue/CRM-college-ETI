@@ -9,15 +9,20 @@ vi.mock("../../src/modules/employees-ssr/employees-ssr.service.js", () => ({
     employeesPageService: { getProfilePageData: vi.fn() },
 }));
 
+vi.mock("#modules/auth-ssr/auth-ssr.service.js", () => ({
+    authPageService: { getProfilePageData: vi.fn().mockResolvedValue({}) },
+}));
+const companyId = "550e8400-e29b-41d4-a716-4466554400c1";
+const user = { userId: "account", role: "WORKER", companyId, exp: 2000000000 };
 const employeeId = "550e8400-e29b-41d4-a716-446655440000";
 const employee = {
     id: employeeId,
-    email: null,
+    companyId,
     fullName: "Olena Kovalenko",
-    experience: null,
-    salary: null,
-    projects: null,
     imageId: null,
+    certifications: [],
+    experience: null,
+    deletedAt: null,
     level: null,
     position: "HR",
     phoneNumber: null,
@@ -26,27 +31,32 @@ const employee = {
     viber: null,
     whatsapp: null,
     discord: null,
+    compensation: null,
+    userAccount: null,
+    _count: { subordinates: 0 },
+    memberships: [],
+    managers: [],
 };
 
 describe("employeesPageController profile", () => {
-    it("renders the requested employee profile", async () => {
-        const req = { params: { id: employeeId } } as unknown as Request;
+    it("renders the requested employee profile from the signed-in company", async () => {
+        const req = { params: { id: employeeId }, user } as unknown as Request;
         const res = { render: vi.fn() } as unknown as Response;
         vi.mocked(employeesPageService.getProfilePageData).mockResolvedValueOnce({ employee });
 
         await employeesPageController.profile(req, res);
 
-        expect(employeesPageService.getProfilePageData).toHaveBeenCalledWith(employeeId);
+        expect(employeesPageService.getProfilePageData).toHaveBeenCalledWith(employeeId, req.user);
         expect(res.render).toHaveBeenCalledWith("pages/employee-details", {
-            css: "employee-details",
             js: "employee-details",
             activePage: "employees",
             employee,
+            candidates: [],
         });
     });
 
     it("rejects malformed employee IDs", async () => {
-        const req = { params: { id: "invalid-id" } } as unknown as Request;
+        const req = { params: { id: "invalid-id" }, user } as unknown as Request;
         const res = { render: vi.fn() } as unknown as Response;
 
         await expect(employeesPageController.profile(req, res)).rejects.toBeDefined();

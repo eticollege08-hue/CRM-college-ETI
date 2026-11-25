@@ -15,44 +15,97 @@ enum Role {
   WORKER
 }
 
+model Company {
+  id   String @id @default(dbgenerated("gen_random_uuid()"))
+  name String @unique
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  employees     Employee[]
+  userAccounts  UserAccount[]
+  hierarchy     Hierarchy[]
+  aboutUs       AboutUs[]
+  events        Event[]
+  projects      Project[]
+  estimates     Estimate[]
+  compensations EmployeeCompensation[]
+
+  @@map("companies")
+}
+
 model Employee {
-  id          String       @id @default(dbgenerated("gen_random_uuid()"))
-  fullName    String?      @map("full_name")
-  imageId     String?      @map("image_id")
-  level       String?
-  position    String?
-  phoneNumber String?      @map("phone_number")
-  email       String?      @unique
-  experience  Int?
-  salary      Decimal?     @db.Decimal(12, 2)
-  projects    String?
-  slack       String?
-  telegram    String?
-  viber       String?
-  whatsapp    String?
-  discord     String?
-  userAccount UserAccount?
+  id             String            @id @default(dbgenerated("gen_random_uuid()"))
+  companyId      String            @map("company_id")
+  fullName       String?           @map("full_name")
+  deletedAt      DateTime?         @map("deleted_at") @db.Timestamptz(3)
+  experience     Float?
+  certifications String[]          @default([])
+  memberships    EmployeeProject[]
+  photo          EmployeePhoto?
+  imageId        String?           @map("image_id")
+  level          String?
+  position       String?
+  phoneNumber    String?           @map("phone_number")
+  slack          String?
+  telegram       String?
+  viber          String?
+  whatsapp       String?
+  discord        String?
+  userAccount    UserAccount?
 
-  subordinates        Hierarchy[]        @relation("HierarchyManager")
-  managers            Hierarchy[]        @relation("HierarchySubordinate")
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  subordinates        Hierarchy[]           @relation("HierarchyManager")
+  managers            Hierarchy[]           @relation("HierarchySubordinate")
   eventParticipations EventParticipant[]
-  ownedProjects       Project[]          @relation("ProjectOwner")
-  projectMemberships  ProjectMember[]
+  compensation        EmployeeCompensation?
 
+  // Composite key target so child rows can only reference employees of their own company.
+  @@unique([id, companyId])
+  @@index([companyId])
   @@map("employees")
+}
+
+model EmployeeCompensation {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  employeeId String   @unique @map("employee_id")
+  companyId  String   @map("company_id")
+  salary     Decimal? @db.Decimal(12, 2)
+  currency   String   @default("USD") @db.VarChar(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  employee Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, companyId])
+  @@index([companyId])
+  @@map("employee_compensations")
 }
 
 model UserAccount {
   id           String    @id @default(dbgenerated("gen_random_uuid()"))
   employeeId   String    @unique @map("employee_id")
+  companyId    String    @map("company_id")
+  // Globally unique: login identifies the account, and its company, by email alone.
   email        String    @unique
   passwordHash String    @map("password_hash")
   roleKey      Role      @map("role_key")
   isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
-  ownedEvents Event[]
 
+  employee Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Restrict)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  ownedEvents Event[]
+  estimates   Estimate[]
+
+  @@unique([id, companyId])
+  // Required by Prisma for the one-to-one composite relation to Employee.
+  @@unique([employeeId, companyId])
+  @@index([companyId])
   @@map("user_accounts")
 }
 
@@ -60,11 +113,14 @@ model Hierarchy {
   id            String @id @default(dbgenerated("gen_random_uuid()"))
   employeeId    String @map("employee_id")
   subordinateId String @map("subordinate_id")
+  companyId     String @map("company_id")
 
-  manager     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, name: "HierarchyManager")
-  subordinate Employee @relation(fields: [subordinateId], references: [id], onDelete: Cascade, name: "HierarchySubordinate")
+  manager     Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade, name: "HierarchyManager")
+  subordinate Employee @relation(fields: [subordinateId, companyId], references: [id, companyId], onDelete: Cascade, name: "HierarchySubordinate")
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
   @@unique([employeeId, subordinateId])
+  @@index([companyId])
   @@map("hierarchy")
 }
 
@@ -72,8 +128,11 @@ model AboutUs {
   id          String @id @default(dbgenerated("gen_random_uuid()"))
   title       String
   description String
-  sortOrder   Int    @default(0) @map("sort_order")
+  companyId   String @map("company_id")
 
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
   @@map("about_us")
 }
 
@@ -86,68 +145,101 @@ enum EventType {
 }
 
 model Event {
-  id             String             @id @default(dbgenerated("gen_random_uuid()"))
-  ownerAccountId String             @map("owner_account_id")
-  type           EventType
-  title          String             @db.VarChar(200)
-  description    String             @db.VarChar(4000)
-  startsAt       DateTime           @map("starts_at") @db.Timestamptz(3)
-  endsAt         DateTime           @map("ends_at") @db.Timestamptz(3)
-  timeZone       String             @map("time_zone") @db.VarChar(100)
-  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
-  owner          UserAccount        @relation(fields: [ownerAccountId], references: [id], onDelete: Restrict)
-  participants   EventParticipant[]
+  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  type          EventType
+  title         String    @db.VarChar(200)
+  description   String    @db.VarChar(4000)
+  startsAt      DateTime  @map("starts_at") @db.Timestamptz(3)
+  endsAt        DateTime  @map("ends_at") @db.Timestamptz(3)
+  timeZone      String    @map("time_zone") @db.VarChar(100)
+  // Mirror of this event in the shared Google Calendar; null until it has been synchronized.
+  googleEventId String?   @unique @map("google_event_id") @db.VarChar(1024)
 
-  @@index([startsAt, endsAt])
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  ownerAccountId String @map("owner_account_id")
+  companyId      String @map("company_id")
+
+  company Company     @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  owner   UserAccount @relation(fields: [ownerAccountId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  participants EventParticipant[]
+
+  @@unique([id, companyId])
+  @@index([companyId, startsAt, endsAt])
   @@index([ownerAccountId])
   @@map("events")
 }
 
 model EventParticipant {
-  eventId    String   @map("event_id")
-  employeeId String   @map("employee_id")
-  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  eventId    String @map("event_id")
+  employeeId String @map("employee_id")
+  // Duplicated from the event so both foreign keys can require the same company.
+  companyId  String @map("company_id")
+
+  event    Event    @relation(fields: [eventId, companyId], references: [id, companyId], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Restrict)
 
   @@id([eventId, employeeId])
   @@index([employeeId, eventId])
   @@map("event_participants")
 }
 
+model EmployeePhoto {
+  employeeId String   @id @map("employee_id")
+  companyId  String   @map("company_id")
+  mimeType   String   @map("mime_type")
+  bytes      Bytes
+  employee   Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+
+  @@unique([employeeId, companyId])
+  @@map("employee_photos")
+}
+
+model EmployeeProject {
+  employeeId String   @map("employee_id")
+  projectId  String   @map("project_id")
+  companyId  String   @map("company_id")
+  employee   Employee @relation(fields: [employeeId, companyId], references: [id, companyId], onDelete: Cascade)
+  project    Project  @relation(fields: [projectId, companyId], references: [id, companyId], onDelete: Cascade)
+
+  @@id([employeeId, projectId])
+  @@map("employee_projects")
+}
+
 model Project {
-  id          String          @id @default(dbgenerated("gen_random_uuid()"))
+  memberships EmployeeProject[]
+  id          String            @id @default(dbgenerated("gen_random_uuid()"))
   title       String
   description String
-  ownerId     String?         @map("owner_id")
-  budget      Decimal?        @db.Decimal(12, 2)
-  deadline    DateTime?       @db.Date
-  owner       Employee?       @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  links       ProjectLink[]
-  members     ProjectMember[]
+  companyId   String            @map("company_id")
 
-  @@index([ownerId])
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@index([companyId])
   @@map("projects")
 }
 
-model ProjectLink {
-  id        String  @id @default(dbgenerated("gen_random_uuid()"))
-  projectId String  @map("project_id")
-  url       String  @db.VarChar(2048)
-  sortOrder Int     @default(0) @map("sort_order")
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+model Estimate {
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
+  name        String   @db.VarChar(100)
+  description String   @db.VarChar(1000)
+  time        Float?
+  payment     Decimal? @db.Decimal(12, 2)
 
-  @@index([projectId, sortOrder])
-  @@map("project_links")
-}
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
 
-model ProjectMember {
-  projectId  String   @map("project_id")
-  employeeId String   @map("employee_id")
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdBy String @map("created_by")
+  companyId String @map("company_id")
 
-  @@id([projectId, employeeId])
-  @@index([employeeId, projectId])
-  @@map("project_members")
+  company Company     @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  creator UserAccount @relation(fields: [createdBy, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@index([companyId, deletedAt])
+  @@index([createdBy])
+  @@map("estimates")
 }

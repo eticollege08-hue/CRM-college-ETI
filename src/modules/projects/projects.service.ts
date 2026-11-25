@@ -10,17 +10,16 @@ import type { ProjectCreateInput, ProjectUpdateInput } from "./projects.types.js
 export class ProjectsService {
     constructor(private readonly repository: ProjectsRepository = projectsRepository) {}
 
-    async create(data: ProjectCreateInput) {
-        await this.validateEmployees(data.ownerId, data.memberIds);
-        return await this.repository.create(data);
+    async create(data: ProjectCreateInput, companyId: string) {
+        return await this.repository.create(data, companyId);
     }
 
-    async getAll() {
-        return await this.repository.getAll();
+    async getAll(companyId: string) {
+        return await this.repository.getAll(companyId);
     }
 
-    async getById(id: string) {
-        const project = await this.repository.getById(id);
+    async getById(id: string, companyId: string) {
+        const project = await this.repository.getById(id, companyId);
         if (!project) {
             throw new ApiError(HttpStatus.NOT_FOUND, PROJECT_MESSAGES.NOT_FOUND);
         }
@@ -28,28 +27,32 @@ export class ProjectsService {
         return project;
     }
 
-    async update(id: string, data: ProjectUpdateInput) {
-        await this.getById(id);
-        await this.validateEmployees(data.ownerId, data.memberIds);
-        return await this.repository.update(id, data);
+    async update(id: string, companyId: string, data: ProjectUpdateInput) {
+        await this.getById(id, companyId);
+        return await this.repository.update(id, companyId, data);
     }
 
-    async delete(id: string) {
-        await this.getById(id);
-        return await this.repository.delete(id);
-    }
-
-    private async validateEmployees(ownerId?: string | null, memberIds?: string[]) {
-        const requestedIds = [...new Set([...(ownerId ? [ownerId] : []), ...(memberIds ?? [])])];
-        if (!requestedIds.length) return;
-        const employees = await this.repository.getEmployeesByIds(requestedIds);
-        if (employees.length !== requestedIds.length) {
-            throw new ApiError(
-                HttpStatus.UNPROCESSABLE_ENTITY,
-                "One or more employees were not found.",
-                [{ field: "ownerId/memberIds", message: "Select existing employees." }],
-            );
+    async delete(id: string, companyId: string, confirmName: string) {
+        if (typeof confirmName !== "string" || confirmName.trim().length === 0) {
+            throw new ApiError(HttpStatus.BAD_REQUEST, PROJECT_MESSAGES.CONFIRM_NAME_REQUIRED, [
+                { field: "confirmName", message: PROJECT_MESSAGES.CONFIRM_NAME_REQUIRED },
+            ]);
         }
+
+        return await this.repository.transaction(async (tx) => {
+            const project = await this.repository.getById(id, companyId, tx);
+            if (!project) {
+                throw new ApiError(HttpStatus.NOT_FOUND, PROJECT_MESSAGES.NOT_FOUND);
+            }
+
+            if (confirmName.trim() !== project.title) {
+                throw new ApiError(HttpStatus.BAD_REQUEST, PROJECT_MESSAGES.CONFIRM_NAME_MISMATCH, [
+                    { field: "confirmName", message: PROJECT_MESSAGES.CONFIRM_NAME_MISMATCH },
+                ]);
+            }
+
+            return await this.repository.delete(id, companyId, tx);
+        });
     }
 }
 
