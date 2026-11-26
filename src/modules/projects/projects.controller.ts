@@ -59,8 +59,8 @@ export class ProjectsController {
             body &&
             typeof body === "object" &&
             "confirmName" in body &&
-            typeof (body as Record<string, unknown>).confirmName === "string"
-                ? (body as Record<string, string>).confirmName
+            typeof body.confirmName === "string"
+                ? body.confirmName
                 : "";
 
         await this.service.delete(id, companyId, confirmName);

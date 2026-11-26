@@ -5,8 +5,69 @@ export const MOCK_SEED_COMPANY_NAME = "Default company";
 // A second tenant so local checks can confirm that companies never see each other's data.
 export const MOCK_SEED_SECOND_COMPANY_NAME = "Second company";
 
+export type MockSeedAccount = {
+    name: string;
+    email: string;
+    password: string;
+    roleKey: Role;
+    companyName: string;
+    managerEmail?: string;
+};
+
+function createAdditionalAccounts(
+    companyName: string,
+    namePrefix: string,
+    firstAccountNumber: number,
+    rootEmail: string,
+): MockSeedAccount[] {
+    const accounts: MockSeedAccount[] = [];
+    let accountNumber = firstAccountNumber;
+
+    for (let group = 2; group <= 4; group += 1) {
+        const ownerEmail = `example${accountNumber}@example.com`;
+        accounts.push({
+            name: `${namePrefix} Owner ${group}`,
+            email: ownerEmail,
+            password: `somepassWord${accountNumber}`,
+            roleKey: Role.OWNER,
+            companyName,
+            managerEmail: rootEmail,
+        });
+        accountNumber += 1;
+
+        const managerEmail = `example${accountNumber}@example.com`;
+        accounts.push({
+            name: `${namePrefix} Manager ${group}`,
+            email: managerEmail,
+            password: `somepassWord${accountNumber}`,
+            roleKey: Role.MANAGER,
+            companyName,
+            managerEmail: ownerEmail,
+        });
+        accountNumber += 1;
+
+        for (const [roleKey, roleName] of [
+            [Role.RECRUITER, "Recruiter"],
+            [Role.HR, "HR"],
+            [Role.WORKER, "Worker"],
+        ] as const) {
+            accounts.push({
+                name: `${namePrefix} ${roleName} ${group}`,
+                email: `example${accountNumber}@example.com`,
+                password: `somepassWord${accountNumber}`,
+                roleKey,
+                companyName,
+                managerEmail,
+            });
+            accountNumber += 1;
+        }
+    }
+
+    return accounts;
+}
+
 // Public mock credentials for local role testing, never for production.
-export const MOCK_SEED_ACCOUNTS = [
+export const MOCK_SEED_ACCOUNTS: MockSeedAccount[] = [
     {
         name: "Example Owner",
         email: "example1@example.com",
@@ -20,6 +81,7 @@ export const MOCK_SEED_ACCOUNTS = [
         password: "somepassWord2",
         roleKey: Role.MANAGER,
         companyName: MOCK_SEED_COMPANY_NAME,
+        managerEmail: "example1@example.com",
     },
     {
         name: "Example Recruiter",
@@ -27,6 +89,7 @@ export const MOCK_SEED_ACCOUNTS = [
         password: "somepassWord3",
         roleKey: Role.RECRUITER,
         companyName: MOCK_SEED_COMPANY_NAME,
+        managerEmail: "example2@example.com",
     },
     {
         name: "Example HR",
@@ -34,6 +97,7 @@ export const MOCK_SEED_ACCOUNTS = [
         password: "somepassWord4",
         roleKey: Role.HR,
         companyName: MOCK_SEED_COMPANY_NAME,
+        managerEmail: "example2@example.com",
     },
     {
         name: "Example Worker",
@@ -41,6 +105,7 @@ export const MOCK_SEED_ACCOUNTS = [
         password: "somepassWord5",
         roleKey: Role.WORKER,
         companyName: MOCK_SEED_COMPANY_NAME,
+        managerEmail: "example2@example.com",
     },
     {
         name: "Second Owner",
@@ -55,6 +120,7 @@ export const MOCK_SEED_ACCOUNTS = [
         password: "somepassWord7",
         roleKey: Role.MANAGER,
         companyName: MOCK_SEED_SECOND_COMPANY_NAME,
+        managerEmail: "example6@example.com",
     },
     {
         name: "Second Recruiter",
@@ -62,6 +128,7 @@ export const MOCK_SEED_ACCOUNTS = [
         password: "somepassWord8",
         roleKey: Role.RECRUITER,
         companyName: MOCK_SEED_SECOND_COMPANY_NAME,
+        managerEmail: "example7@example.com",
     },
     {
         name: "Second HR",
@@ -69,6 +136,7 @@ export const MOCK_SEED_ACCOUNTS = [
         password: "somepassWord9",
         roleKey: Role.HR,
         companyName: MOCK_SEED_SECOND_COMPANY_NAME,
+        managerEmail: "example7@example.com",
     },
     {
         name: "Second Worker",
@@ -76,5 +144,13 @@ export const MOCK_SEED_ACCOUNTS = [
         password: "somepassWord10",
         roleKey: Role.WORKER,
         companyName: MOCK_SEED_SECOND_COMPANY_NAME,
+        managerEmail: "example7@example.com",
     },
+    ...createAdditionalAccounts(MOCK_SEED_COMPANY_NAME, "Example", 11, "example1@example.com"),
+    ...createAdditionalAccounts(
+        MOCK_SEED_SECOND_COMPANY_NAME,
+        "Second",
+        26,
+        "example6@example.com",
+    ),
 ];

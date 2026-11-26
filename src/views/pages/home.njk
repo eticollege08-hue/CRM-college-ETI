@@ -1,28 +1,17 @@
 {% extends "base/base.njk" %}
 {% block title %}Home · CRM{% endblock %}
+{% block head %}<link rel="stylesheet" href="/css/coming-soon.css">{% endblock %}
 {% block content %}
-  {% include "partials/header.njk" %}
-  <div class="app-shell">
-    {% include "partials/sidebar.njk" %}
-    <main class="workspace">
-      <header class="page-heading">
-        <div><h1>Home</h1><p>Your events for today</p></div>
-      </header>
-      <section class="card" aria-labelledby="today-events-title">
-        <h2 id="today-events-title">Today's events</h2>
-        {% if todayEvents.length %}
-          <ul>
-            {% for event in todayEvents %}
-              <li>
-                <strong>{{ event.name }}</strong>
-                <span>{{ event.startTime }} – {{ event.endTime }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p>No events scheduled for today.</p>
-        {% endif %}
-      </section>
-    </main>
-  </div>
+{% include "partials/header.njk" %}
+<div class="app-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace coming-soon-workspace">
+    <header class="page-heading"><div><h1>Home</h1><p>CRM workspace</p></div></header>
+    <section class="coming-soon-card card" aria-live="polite">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="19"/><path d="M24 14v12l8 5"/></svg>
+      <h2>Home</h2>
+      <p>Coming soon</p>
+    </section>
+  </main>
+</div>
 {% endblock %}

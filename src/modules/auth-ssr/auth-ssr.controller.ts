@@ -12,10 +12,6 @@ export const authPageController = {
         const data = await authPageService.getHomePageData(req.user?.userId);
         res.render(PAGE_PATH.HOME, data);
     },
-    async register(_req: Request, res: Response) {
-        const data = await authPageService.getRegisterPageData();
-        res.render(PAGE_PATH.REGISTER, data);
-    },
     async profile(req: Request, res: Response) {
         const accountId = req.user?.userId;
         if (!accountId) return res.redirect("/login");

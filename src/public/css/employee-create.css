@@ -11,9 +11,19 @@ body {
     margin-bottom: 20px;
 }
 .page-heading h1 {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     margin: 0;
     color: var(--color-primary-700);
     font-size: 20px;
+}
+.employee-create-page .page-heading h1 .heading-icon {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    margin: 0;
+    vertical-align: middle;
 }
 .page-heading p,
 .muted {
@@ -44,10 +54,24 @@ body {
     display: grid;
     gap: 6px;
     color: var(--color-primary-700);
-    font-size: 11px;
+    font-size: 12px;
 }
 #employee-form .field-title {
+    display: flex;
+    min-height: 18px;
+    align-items: center;
+    gap: 7px;
+}
+#employee-form .field-title svg {
     display: block;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    fill: none;
+    stroke: var(--color-primary-700);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
 }
 #employee-form .field-title > span {
     color: var(--color-danger);
@@ -97,6 +121,10 @@ body {
 .button-secondary {
     background: white;
     color: var(--color-primary);
+}
+.button:disabled {
+    cursor: wait;
+    opacity: 0.65;
 }
 .form-message {
     margin: 0;
