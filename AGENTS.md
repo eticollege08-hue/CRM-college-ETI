@@ -28,7 +28,7 @@
 - `src/modules/hierarchy-ssr/` — GET /hierarchy формує реальне дерево; пошук, фільтри й керування зв'язками; вкладка Leave використовує /api/events.
 - `src/modules/teams/` — CRUD команд і учасників компанії; читання для всіх ролей, зміни для OWNER/MANAGER із перевіркою Origin. GET /api/employees приймає teamId. POST /api/projects/:id/teams додає поточний активний склад в одній транзакції.
 - `src/modules/projects/` та `src/modules/projects-ssr/` — мультитенантний CRUD проєктів; SSR-сторінки списку, створення й деталей використовують лише поля title та description.
-- 
+-
 - `src/routes/api/index.ts` — /auth, /about-us, /docs, /employees, /events, /hierarchy, /profile, /projects; `src/routes/ssr/index.ts` реєструє сторінки під /.
 
 - `docs/openapi.yaml` — єдиний контракт API, Swagger UI /api/docs; `docs/auth-integration.md` — конфігурація, seed та dev-перевірка. JSON login/logout: success і message, без JWT/строку дії.
