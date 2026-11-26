@@ -1,5 +1,6 @@
 import express from "express";
 
+import teamsRouter from "#modules/teams/teams.router.js";
 import authRoutes from "#modules/auth/auth.routes.js";
 import aboutUsRouter from "#modules/about-us/about-us.router.js";
 import docsRouter from "#modules/docs/docs.router.js";
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.use("/docs", accessFor("PUBLIC"), docsRouter);
 router.use("/auth", authRoutes);
+router.use("/teams", isAuth, accessFor(ALL_ROLES), teamsRouter);
 router.use("/events", isAuth, accessFor(ALL_ROLES), eventRouter);
 router.use("/about-us", isAuth, accessFor(ALL_ROLES), aboutUsRouter);
 router.use("/employees", isAuth, accessFor(ALL_ROLES), employeeRouter);
