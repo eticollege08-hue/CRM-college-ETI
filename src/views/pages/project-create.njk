@@ -1,0 +1,20 @@
+{% extends "base/base.njk" %}
+{% block title %}Create project · CRM{% endblock %}
+{% block content %}
+{% include "partials/header.njk" %}
+<div class="app-shell project-create-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace project-create-workspace">
+    <form class="project-create-card" data-project-create-form>
+      <a class="project-create-back" href="/projects"><span aria-hidden="true">←</span>Back to projects</a>
+      <header class="project-create-heading"><h1>Create project</h1><p>Add a project to your company</p></header>
+      <div class="project-create-fields">
+        <label class="project-create-field project-create-full" data-field="title"><span>Title <b>*</b></span><input name="title" required maxlength="120" placeholder="Enter project name"></label>
+        <label class="project-create-field project-create-full" data-field="description"><span>Description <b>*</b></span><textarea name="description" rows="4" required maxlength="1000" placeholder="Describe the project"></textarea><small class="project-description-count"><span data-description-count>0</span>/1000</small></label>
+      </div>
+      <p class="project-create-error" role="alert" data-create-error></p>
+      <div class="project-create-actions"><a class="project-create-cancel" href="/projects">Cancel</a><button class="primary-button" type="submit" data-create-submit>Create project</button></div>
+    </form>
+  </main>
+</div>
+{% endblock %}

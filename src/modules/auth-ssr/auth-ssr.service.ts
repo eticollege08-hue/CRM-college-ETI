@@ -29,9 +29,6 @@ export const authPageService = {
 
         return { ...pageData, profile: profileData.profile, todayEvents };
     },
-    async getRegisterPageData() {
-        return { ...PAGE_DATA.REGISTER };
-    },
     async getProfilePageData(accountId: string) {
         const account = await userAccountService.getProfileById(accountId);
         const initials = (account.employee.fullName ?? "?")

@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import { hashPassword } from "#utils/password.util.js";
 import { HttpStatus } from "#constants/http-status.constants.js";
 import { hierarchyService } from "#modules/hierarchy/hierarchy.service.js";
@@ -88,11 +87,12 @@ export class EmployeeService {
     async create(actor: EmployeeActor, data: EmployeeCreateInput) {
         if (actor.role !== "OWNER" && (actor.role !== "RECRUITER" || data.role === "OWNER"))
             throw new ApiError(HttpStatus.NOT_FOUND, EMPLOYEE_MESSAGES.NOT_FOUND);
+        const { password, ...employeeData } = data;
         try {
             return await this.repository.create(
                 actor.companyId,
-                data,
-                await hashPassword(randomBytes(32).toString("hex")),
+                employeeData,
+                await hashPassword(password),
             );
         } catch (error) {
             if (error && typeof error === "object" && "code" in error && error.code === "P2002")

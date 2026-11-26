@@ -532,6 +532,34 @@ body {
     font-size: 10px;
     line-height: 1.4;
 }
+.detail-card dt:has(.home-detail-icon) {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.detail-card .home-detail-icon,
+.contact-line .home-detail-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    fill: none;
+    stroke: #064b8e;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
+    vertical-align: middle;
+}
+.detail-card dd:has(.home-detail-icon) {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.contact-line a,
+.contact-line span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
 
 .detail-card dd {
     grid-column: 1 / -1;

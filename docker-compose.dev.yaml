@@ -5,7 +5,7 @@ services:
             dockerfile: Dockerfile.dev
         container_name: app-crm-dev
         ports:
-            - "3000:3000"
+            - "${APP_PORT:-3000}:3000"
         environment:
             DATABASE_URL: postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@db:5432/${DATABASE_DB}?schema=public
         volumes:

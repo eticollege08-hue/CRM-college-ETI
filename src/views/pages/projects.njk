@@ -1,0 +1,49 @@
+{% extends "base/base.njk" %}
+{% block title %}Projects · CRM{% endblock %}
+{% block content %}
+{% include "partials/header.njk" %}
+<div class="app-shell projects-shell">
+  {% include "partials/sidebar.njk" %}
+  <main class="workspace projects-workspace">
+    <header class="page-heading projects-heading">
+      <div><h1>Projects</h1><p>Manage company projects and track their progress</p></div>
+      <a class="primary-button projects-create-button" href="/projects/create"><span aria-hidden="true">＋</span> Create project</a>
+    </header>
+    <nav class="projects-tabs" aria-label="Project filters"><button type="button" class="is-active" aria-current="page">All projects <span>({{ projects.length }})</span></button></nav>
+    <section class="projects-list" aria-label="Projects">
+      {% for project in projects %}
+        <article class="project-row" data-project-row data-title="{{ project.title | lower }}" data-description="{{ project.description | lower }}">
+          <span class="project-mark project-mark-{{ loop.index0 % 5 }}" aria-hidden="true">
+            {% if loop.index0 % 5 == 0 %}<svg viewBox="0 0 24 24"><path d="m8 6-6 6 6 6M16 6l6 6-6 6M14 4l-4 16"/></svg>
+            {% elif loop.index0 % 5 == 1 %}<svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>
+            {% elif loop.index0 % 5 == 2 %}<svg viewBox="0 0 24 24"><path d="m3 17 6-6 4 3 8-9M15 5h6v6M4 21h16"/></svg>
+            {% elif loop.index0 % 5 == 3 %}<svg viewBox="0 0 24 24"><path d="M6 11h4l2-5 3 12 2-7h3M4 4h16v16H4z"/></svg>
+            {% else %}<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>{% endif %}
+          </span>
+          <div class="project-copy"><h2><a href="/projects/{{ project.id }}">{{ project.title }}</a></h2><p>{{ project.description }}</p></div>
+          <span class="project-status" aria-label="Status not set">—</span>
+          <span class="project-team" aria-label="Team assignment is not available">—</span>
+          <span class="project-deadline" aria-label="No deadline is recorded"><span>—</span></span>
+          <button class="project-menu" type="button" aria-label="Edit {{ project.title }}" data-project-edit="{{ project.id }}" data-project-title="{{ project.title }}" data-project-description="{{ project.description }}">⋮</button>
+        </article>
+      {% else %}
+        <div class="projects-empty"><span aria-hidden="true">▱</span><h2>No projects yet</h2><p>Create a project to start organizing company work.</p><a class="primary-button" href="/projects/create">Create project</a></div>
+      {% endfor %}
+    </section>
+    <div class="projects-footer">
+      <nav class="projects-pagination" aria-label="Projects pages" data-project-pagination></nav>
+      <span data-project-count>Showing {{ 1 if projects.length else 0 }}-{{ 5 if projects.length > 5 else projects.length }} of {{ projects.length }}</span>
+    </div>
+  </main>
+</div>
+<dialog class="project-dialog" data-project-dialog>
+  <form data-project-form>
+    <div class="project-dialog-heading"><div><h2 data-dialog-heading>Edit project</h2><p>Update the project name and description.</p></div><button type="button" class="project-dialog-close" aria-label="Close" data-project-close>×</button></div>
+    <label>Project name<input name="title" required maxlength="120" placeholder="e.g. CRM Platform"></label>
+    <label>Description<textarea name="description" required maxlength="2000" rows="4" placeholder="What is this project about?"></textarea></label>
+    <p class="project-form-error" role="alert" data-project-error></p>
+    <div class="project-dialog-actions"><button type="button" class="secondary-button" data-project-close>Cancel</button><button class="primary-button" type="submit" data-project-submit>Save changes</button></div>
+  </form>
+</dialog>
+<div class="project-toast" role="status" aria-live="polite" data-project-toast></div>
+{% endblock %}

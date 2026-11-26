@@ -1,4 +1,4 @@
-ALTER TABLE employees ADD COLUMN deleted_at TIMESTAMPTZ(3), ADD COLUMN experience DOUBLE PRECISION, ADD COLUMN certifications TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE employees ADD COLUMN deleted_at TIMESTAMPTZ(3), ALTER COLUMN experience TYPE DOUBLE PRECISION, ADD COLUMN certifications TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE employee_compensations ALTER COLUMN salary DROP NOT NULL;
 CREATE UNIQUE INDEX "projects_id_company_id_key" ON projects(id, company_id);
 CREATE TABLE employee_projects (
