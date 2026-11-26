@@ -29,17 +29,10 @@ router.get(
     asyncCatch((req, res) => authPageController.comingSoon(req, res, "Salary", "salary")),
 );
 router.get(
-    "/projects",
-    isAuth,
-    accessFor(ALL_ROLES),
-    asyncCatch((req, res) => authPageController.comingSoon(req, res, "Projects", "projects")),
-);
-router.get(
     "/settings",
     isAuth,
     accessFor(ALL_ROLES),
     asyncCatch((req, res) => authPageController.comingSoon(req, res, "Settings", "settings")),
 );
 router.get("/design-preview", accessFor("PUBLIC"), asyncCatch(authPageController.home));
-router.get("/registration-preview", accessFor("PUBLIC"), asyncCatch(authPageController.register));
 export default router;

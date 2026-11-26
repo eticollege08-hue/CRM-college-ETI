@@ -1,4 +1,4 @@
-﻿openapi: 3.0.3
+openapi: 3.0.3
 info:
     title: CRM API
     version: 0.3.0
@@ -32,6 +32,483 @@ tags:
     - name: Estimates
       description: Estimate management and calculations
 paths:
+    /teams:
+        get:
+            operationId: listTeams
+            summary: List company teams with their active member counts
+            tags:
+                - Teams
+            description: Available to all authenticated roles in the company.
+            security:
+                - cookieAuth: []
+            responses:
+                "200":
+                    description: List company teams with their active member counts
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - teams
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    teams:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/TeamSummary"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+        post:
+            operationId: createTeam
+            summary: Create a team
+            tags:
+                - Teams
+            description: OWNER and MANAGER in the authenticated company. A trusted Origin is required.
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: Origin
+                  in: header
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "201":
+                    description: Create a team
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                    - team
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                                    team:
+                                        $ref: "#/components/schemas/TeamSummary"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "409":
+                    description: Duplicate name or membership.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - name
+                            properties:
+                                name:
+                                    type: string
+                                    minLength: 1
+                                    maxLength: 100
+                            additionalProperties: false
+    /teams/{id}:
+        get:
+            operationId: getTeam
+            summary: Get a company team
+            tags:
+                - Teams
+            description: Available to all authenticated roles in the company.
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            responses:
+                "200":
+                    description: Get a company team
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - team
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    team:
+                                        $ref: "#/components/schemas/TeamSummary"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+        patch:
+            operationId: renameTeam
+            summary: Rename a team
+            tags:
+                - Teams
+            description: OWNER and MANAGER in the authenticated company. A trusted Origin is required.
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                - name: Origin
+                  in: header
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Rename a team
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                    - team
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                                    team:
+                                        $ref: "#/components/schemas/TeamSummary"
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "409":
+                    description: Duplicate name or membership.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - name
+                            properties:
+                                name:
+                                    type: string
+                                    minLength: 1
+                                    maxLength: 100
+                            additionalProperties: false
+        delete:
+            operationId: deleteTeam
+            summary: Delete a team and its memberships
+            tags:
+                - Teams
+            description: OWNER and MANAGER in the authenticated company. A trusted Origin is required.
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                - name: Origin
+                  in: header
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Delete a team and its memberships
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+    /teams/{id}/members:
+        get:
+            operationId: listTeamMembers
+            summary: List active employees in a team
+            tags:
+                - Teams
+            description: Available to all authenticated roles in the company.
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            responses:
+                "200":
+                    description: List active employees in a team
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - members
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    members:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/TeamMemberSummary"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+        post:
+            operationId: addTeamMember
+            summary: Add an active employee to a team
+            tags:
+                - Teams
+            description: OWNER and MANAGER in the authenticated company. A trusted Origin is required.
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                - name: Origin
+                  in: header
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "201":
+                    description: Add an active employee to a team
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "409":
+                    description: Duplicate name or membership.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - employeeId
+                            properties:
+                                employeeId:
+                                    type: string
+                                    format: uuid
+                            additionalProperties: false
+    /teams/{id}/members/{employeeId}:
+        delete:
+            operationId: removeTeamMember
+            summary: Remove an employee from a team
+            tags:
+                - Teams
+            description: OWNER and MANAGER in the authenticated company. A trusted Origin is required.
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                - name: employeeId
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                - name: Origin
+                  in: header
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Remove an employee from a team
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+    /projects/{id}/teams:
+        post:
+            operationId: addTeamToProject
+            summary: Add the current team members to a project
+            tags:
+                - Projects
+            description: OWNER and MANAGER in the authenticated company. A trusted Origin is required.
+            security:
+                - cookieAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+                - name: Origin
+                  in: header
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Add the current team members to a project
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - success
+                                    - message
+                                    - addedCount
+                                    - skipped
+                                properties:
+                                    success:
+                                        type: boolean
+                                        enum:
+                                            - true
+                                    message:
+                                        type: string
+                                    addedCount:
+                                        type: integer
+                                        minimum: 0
+                                    skipped:
+                                        type: array
+                                        items:
+                                            type: object
+                                            required:
+                                                - employeeId
+                                                - reason
+                                            properties:
+                                                employeeId:
+                                                    type: string
+                                                    format: uuid
+                                                reason:
+                                                    type: string
+                                                    enum:
+                                                        - ALREADY_MEMBER
+                                                        - DISMISSED
+                "400":
+                    $ref: "#/components/responses/BadRequest"
+                "401":
+                    $ref: "#/components/responses/EmployeeUnauthorized"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "422":
+                    $ref: "#/components/responses/ValidationError"
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - teamId
+                            properties:
+                                teamId:
+                                    type: string
+                                    format: uuid
+                            additionalProperties: false
     /estimates:
         get:
             tags:
@@ -1158,6 +1635,7 @@ paths:
                   }
                 - { in: query, name: position, schema: { type: string } }
                 - { in: query, name: level, schema: { type: string } }
+                - { in: query, name: teamId, schema: { type: string, format: uuid } }
                 - { in: query, name: projectId, schema: { type: string, format: uuid } }
             responses:
                 "200":
@@ -1192,7 +1670,7 @@ paths:
                 - Employees
             operationId: createEmployee
             summary: Create an employee
-            description: OWNER and RECRUITER create an employee and linked account. Email is required. RECRUITER may assign every role except OWNER.
+            description: OWNER and RECRUITER create an employee and linked account. Email and password are required. The password is stored as a bcrypt hash. RECRUITER may assign every role except OWNER.
             security:
                 - cookieAuth: []
             requestBody:
@@ -1904,6 +2382,41 @@ components:
                 used. Use credentials: include / withCredentials: true. Deploy same-origin, or
                 explicitly configure credentialed CORS for separate origins."
     schemas:
+        TeamSummary:
+            type: object
+            required:
+                - id
+                - name
+                - memberCount
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                name:
+                    type: string
+                memberCount:
+                    type: integer
+                    minimum: 0
+        TeamMemberSummary:
+            type: object
+            required:
+                - id
+                - name
+                - position
+                - photo
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                name:
+                    type: string
+                    nullable: true
+                position:
+                    type: string
+                    nullable: true
+                photo:
+                    type: string
+                    nullable: true
         EventFields:
             type: object
             additionalProperties: false
@@ -2427,9 +2940,13 @@ components:
         EmployeeInput:
             type: object
             additionalProperties: false
-            required: [email]
+            required: [email, password]
             properties:
                 email: { type: string, format: email }
+                password:
+                    type: string
+                    minLength: 1
+                    description: UTF-8 encoded password must not exceed 72 bytes.
                 role:
                     { type: string, enum: [WORKER, MANAGER, HR, RECRUITER, OWNER], default: WORKER }
                 fullName: { type: string }

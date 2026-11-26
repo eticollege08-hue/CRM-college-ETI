@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { z } from "zod";
 
 const optionalTextSchema = z
@@ -33,6 +34,10 @@ export const employeeCreateSchema = z.strictObject({
         .email()
         .max(254)
         .transform((value) => value.toLowerCase()),
+    password: z
+        .string()
+        .min(1)
+        .refine((value) => Buffer.byteLength(value, "utf8") <= 72, "Password is too long."),
     role: z.enum(["OWNER", "WORKER", "HR", "MANAGER", "RECRUITER"]).default("WORKER"),
     fullName: z.string().trim().min(1).max(150).optional(),
     phoneNumber: z.string().trim().max(40).optional(),
@@ -47,6 +52,7 @@ export const employeeListSchema = z.strictObject({
     limit: z.coerce.number().int().min(1).max(100).default(25),
     position: z.string().trim().min(1).max(100).optional(),
     level: z.string().trim().min(1).max(100).optional(),
+    teamId: z.uuid().optional(),
     projectId: z.uuid().optional(),
 });
 export const dismissalSchema = z.strictObject({

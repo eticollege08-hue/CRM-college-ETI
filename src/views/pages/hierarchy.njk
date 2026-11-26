@@ -4,12 +4,12 @@
 {% include "partials/header.njk" %}
 {% macro employeeRows(nodes, depth) %}
   {% for employee in nodes %}
-    <li class="tree-item" data-tree-item data-employee-id="{{ employee.id }}" data-name="{{ employee.fullName or 'Unnamed employee' }}" data-position="{{ employee.position or '' }}" data-level="{{ employee.level or '' }}" data-email="{{ employee.userAccount.email if employee.userAccount else '' }}" data-phone="{{ employee.phoneNumber or '+380 00 000 00 00' }}" data-role="{{ employee.userAccount.roleKey if employee.userAccount else '' }}" data-manager-names="{{ employee.managerNames | join(', ') }}" data-manager-ids="{{ employee.managerIds | join(',') }}" data-manager-relationship-ids="{{ employee.managerRelationshipIds | join(',') }}" data-projects="" data-location="Kropyvnytskyi, Ukraine" data-depth="{{ depth }}">
+    <li class="tree-item" data-tree-item data-employee-id="{{ employee.id }}" data-name="{{ employee.fullName or 'Unnamed employee' }}" data-position="{{ employee.position or '' }}" data-email="{{ employee.email or (employee.userAccount.email if employee.userAccount else '') }}" data-phone="{{ employee.phoneNumber or '' }}" data-experience="{{ employee.experience if employee.experience is not none else '' }}" data-salary="{{ employee.salary if employee.salary is not none else '' }}" data-role="{{ employee.userAccount.roleKey if employee.userAccount else '' }}" data-manager-names="{{ employee.managerNames | join(', ') }}" data-manager-ids="{{ employee.managerIds | join(',') }}" data-manager-relationship-ids="{{ employee.managerRelationshipIds | join(',') }}" data-projects="{{ employee.projects or '' }}" data-location="Kropyvnytskyi, Ukraine" data-depth="{{ depth }}">
       <div class="tree-row" style="--depth: {{ depth }}">
         {% if employee.subordinates.length %}<button class="tree-toggle" type="button" aria-label="Collapse team" aria-expanded="true">⌄</button>{% else %}<span class="tree-spacer"></span>{% endif %}
         <button class="employee-select" type="button" aria-pressed="false">
           <span class="avatar" aria-hidden="true">{{ employee.initials }}</span>
-          <span class="member-copy"><strong>{{ employee.fullName or "Unnamed employee" }}</strong><small>{{ employee.position or "Position not set" }}{% if employee.levelLabel %} · {{ employee.levelLabel }}{% endif %}</small></span>
+          <span class="member-copy"><strong>{{ employee.fullName or "Unnamed employee" }}</strong><small>{{ employee.position or "Position not set" }}</small></span>
           {% if employee.userAccount %}<span class="role-badge role-{{ employee.userAccount.roleKey | lower }}">{{ roleBadgeName(employee.userAccount.roleKey) | trim }}</span>{% endif %}
         </button>
       </div>
@@ -24,7 +24,7 @@
   {% include "partials/sidebar.njk" %}
   <main class="workspace">
     <header class="page-heading">
-      <div><h1><svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v5M5 16v-3h14v3"/></svg>Employees Hierarchy</h1><p>Manage and view your team structure</p></div>
+      <div><h1 class="hierarchy-title"><svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v5M5 16v-3h14v3"/></svg>Employees Hierarchy</h1><p>Manage and view your team structure</p></div>
       <a class="primary-button" href="/employees/create">＋ Add employee</a>
     </header>
     <div class="hierarchy-layout">
@@ -32,7 +32,6 @@
         <label class="search-box"><span aria-hidden="true">⌕</span><input id="employee-search" type="search" placeholder="Search by employee name…" autocomplete="off"></label>
         <div class="filter-row">
           <label>Team<select id="team-filter"><option value="">All teams</option>{% for employee in hierarchyTree %}<option value="{{ employee.id }}">{{ employee.fullName or "Unnamed employee" }}</option>{% endfor %}</select></label>
-          <label>Level<select id="level-filter"><option value="">All levels</option>{% for employee in employees %}{% if employee.level %}<option value="{{ employee.level }}">{{ employee.levelLabel }}</option>{% endif %}{% endfor %}</select></label>
           <label>Position<select id="position-filter"><option value="">All positions</option>{% for employee in employees %}{% if employee.position %}<option value="{{ employee.position }}">{{ employee.position }}</option>{% endif %}{% endfor %}</select></label>
           <label>Project<select id="project-filter"><option value="">All projects</option><option value="none">No project assigned</option></select></label>
           <button id="clear-filters" class="text-button" type="button">Clear</button>

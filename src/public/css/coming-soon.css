@@ -26,7 +26,7 @@
     stroke: var(--color-primary-700);
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 1.7;
+    stroke-width: 2;
 }
 
 .coming-soon-card h2 {

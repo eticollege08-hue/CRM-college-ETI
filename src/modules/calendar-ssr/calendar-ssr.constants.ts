@@ -1,1 +1,1 @@
-export const PAGE_PATH = { CALENDAR: "pages/coming-soon" };
+export const PAGE_PATH = { CALENDAR: "pages/calendar" };

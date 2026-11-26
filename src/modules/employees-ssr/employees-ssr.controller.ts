@@ -1,3 +1,4 @@
+import { teamsService } from "#modules/teams/teams.service.js";
 import { projectsService } from "#modules/projects/projects.service.js";
 import { employeeListSchema } from "#modules/employees/employee.schema.js";
 import { employeeService } from "#modules/employees/employee.service.js";
@@ -29,6 +30,7 @@ export const employeesPageController = {
         const payload = {
             ...list,
             query,
+            teams: await teamsService.list(actor.companyId),
             projects: await projectsService.getAll(actor.companyId),
             profile: (await authPageService.getProfilePageData(actor.userId)).profile,
             previous: query.page > 1 ? link(query.page - 1) : null,

@@ -20,6 +20,7 @@ export class EmployeeRepository {
                 deletedAt: null,
                 level: query?.level,
                 position: query?.position,
+                ...(query?.teamId ? { teamMemberships: { some: { teamId: query.teamId } } } : {}),
                 ...(query?.projectId
                     ? { memberships: { some: { projectId: query.projectId } } }
                     : {}),
@@ -111,7 +112,11 @@ export class EmployeeRepository {
         }
     }
 
-    async create(companyId: string, data: EmployeeCreateInput, passwordHash: string) {
+    async create(
+        companyId: string,
+        data: Omit<EmployeeCreateInput, "password">,
+        passwordHash: string,
+    ) {
         const { email, role, salary, managerId, ...fields } = data;
         return this.db.$transaction(
             async (tx) => {
