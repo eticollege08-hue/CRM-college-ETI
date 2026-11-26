@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import prisma from "../../src/config/prisma.config.js";
 import {
     MOCK_SEED_ACCOUNTS,
     MOCK_SEED_COMPANY_NAME,
@@ -11,7 +12,12 @@ import { userAccountService } from "../../src/modules/user-accounts/user-account
 import { seedMockAccounts } from "../../src/scripts/auth-seed.script.js";
 import { hashPassword } from "../../src/utils/password.util.js";
 
-vi.mock("#config/prisma.config.js", () => ({ default: { $disconnect: vi.fn() } }));
+vi.mock("#config/prisma.config.js", () => ({
+    default: {
+        $disconnect: vi.fn(),
+        employeeCompensation: { findUnique: vi.fn(), create: vi.fn() },
+    },
+}));
 vi.mock("#modules/hierarchy/hierarchy.service.js", () => ({
     hierarchyService: { getAll: vi.fn(), create: vi.fn() },
 }));
@@ -131,6 +137,27 @@ describe("seedMockAccounts", () => {
                         ?.companyName !== account.companyName,
             ),
         ).toHaveLength(0);
+    });
+
+    it("creates a compensation for each seeded employee without one", async () => {
+        vi.mocked(prisma.employeeCompensation.findUnique).mockImplementation((async (args: {
+            where: { employeeId: string };
+        }) =>
+            args.where.employeeId === accounts.get("example1@example.com")?.employeeId
+                ? { employeeId: args.where.employeeId, salary: 9999 }
+                : null) as never);
+
+        await seedMockAccounts();
+
+        expect(prisma.employeeCompensation.create).toHaveBeenCalledTimes(
+            MOCK_SEED_ACCOUNTS.length - 1,
+        );
+        expect(prisma.employeeCompensation.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ salary: 6000, currency: "USD" }),
+        });
+        expect(prisma.employeeCompensation.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ salary: 2500 }),
+        });
     });
 
     it("does not change existing credentials or add duplicate hierarchy links on reruns", async () => {

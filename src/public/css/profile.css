@@ -149,54 +149,6 @@ body {
 .profile-shell {
     min-height: calc(100vh - 64px);
 }
-.profile-shell {
-    display: grid;
-    grid-template-columns: 190px minmax(0, 1fr);
-}
-.profile-shell .sidebar {
-    padding: 22px 12px;
-    border-right: 1px solid var(--color-border);
-    background: #eaf3fc;
-}
-.profile-shell .sidebar nav {
-    display: grid;
-    gap: 5px;
-}
-.profile-shell .sidebar-group {
-    color: var(--color-primary-700);
-}
-.profile-shell .sidebar-group summary {
-    display: flex;
-    min-height: 38px;
-    align-items: center;
-    gap: 12px;
-    padding: 7px 12px;
-    border-radius: 9px;
-    cursor: pointer;
-    list-style: none;
-    font-size: 13px;
-}
-.profile-shell .sidebar-group summary span:last-child {
-    margin-left: auto;
-}
-.profile-shell .sidebar-group > a {
-    margin-left: 20px;
-}
-.profile-shell .sidebar a {
-    display: flex;
-    min-height: 38px;
-    align-items: center;
-    gap: 12px;
-    padding: 7px 12px;
-    border-radius: 9px;
-    color: var(--color-primary-700);
-    text-decoration: none;
-    font-size: 11px;
-}
-.profile-shell .sidebar a:hover,
-.profile-shell .sidebar a.is-active {
-    background: #dceafa;
-}
 .profile-workspace {
     width: 100%;
     max-width: 1420px;
@@ -561,39 +513,7 @@ body {
 .account-card dd a {
     color: var(--color-info);
 }
-@media (max-width: 1000px) {
-    .profile-shell {
-        grid-template-columns: 64px minmax(0, 1fr);
-    }
-    .profile-shell .sidebar a {
-        justify-content: center;
-        padding: 8px;
-        font-size: 0;
-    }
-    .profile-shell .sidebar a span {
-        display: none;
-    }
-}
 @media (max-width: 800px) {
-    .profile-shell {
-        display: block;
-    }
-    .profile-shell .sidebar {
-        border-right: 0;
-        border-bottom: 1px solid var(--color-border);
-        padding: 7px 10px;
-    }
-    .profile-shell .sidebar nav {
-        display: flex;
-        overflow-x: auto;
-    }
-    .profile-shell .sidebar a {
-        min-width: 40px;
-    }
-    .profile-shell .sidebar a span {
-        display: inline;
-        font-size: 12px;
-    }
     .profile-page-grid {
         grid-template-columns: 1fr;
     }

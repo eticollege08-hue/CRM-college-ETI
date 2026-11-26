@@ -29,15 +29,13 @@ export class EmployeePersonalDataService {
         if (field !== "salary" || employee.companyId !== actor.companyId) return false;
         if (actor.role === "OWNER" || actor.role === "HR") return true;
 
+        if (action !== "view" || actor.role !== "MANAGER") return false;
+
         const actorEmployee = await this.userAccounts.getEmployeeByAccountId(actor.userId);
         if (!actorEmployee || actorEmployee.companyId !== actor.companyId) return false;
-        if (actorEmployee.id === employee.id) return action === "view";
+        if (actorEmployee.id === employee.id) return false;
 
-        return (
-            action === "view" &&
-            actor.role === "MANAGER" &&
-            (await this.hierarchy.isManager(employee.id, actorEmployee.id, actor.companyId))
-        );
+        return await this.hierarchy.isManager(employee.id, actorEmployee.id, actor.companyId);
     }
 
     async serialize<T extends EmployeeWithCompensation>(

@@ -32,10 +32,10 @@ function setup({ directManager = false, ownEmployeeId = viewerEmployeeId } = {})
 }
 
 describe("EmployeePersonalDataService", () => {
-    it.each<Role>(["OWNER", "HR"])("returns salary for %s", async (role) => {
+    it("returns salary for OWNER without hierarchy lookups", async () => {
         const { service, hierarchy, userAccounts } = setup();
 
-        await expect(service.serialize(employee, actor(role))).resolves.toMatchObject({
+        await expect(service.serialize(employee, actor("OWNER"))).resolves.toMatchObject({
             salary: 4200.5,
             currency: "USD",
         });
@@ -43,13 +43,22 @@ describe("EmployeePersonalDataService", () => {
         expect(hierarchy.isManager).not.toHaveBeenCalled();
     });
 
-    it("returns salary to the employee but does not allow self-editing", async () => {
-        const { service } = setup({ ownEmployeeId: targetId });
+    it("returns salary for HR without hierarchy lookups", async () => {
+        const { service, hierarchy } = setup();
 
-        await expect(service.serialize(employee, actor("WORKER"))).resolves.toMatchObject({
+        await expect(service.serialize(employee, actor("HR"))).resolves.toMatchObject({
             salary: 4200.5,
         });
-        await expect(service.mayAccess(actor("WORKER"), employee, "salary", "edit")).resolves.toBe(
+        expect(hierarchy.isManager).not.toHaveBeenCalled();
+    });
+
+    it("omits salary from the employee's own record", async () => {
+        const { service } = setup({ ownEmployeeId: targetId });
+
+        const result = await service.serialize(employee, actor("MANAGER"));
+
+        expect(result).not.toHaveProperty("salary");
+        await expect(service.mayAccess(actor("WORKER"), employee, "salary", "view")).resolves.toBe(
             false,
         );
     });

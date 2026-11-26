@@ -156,25 +156,26 @@
 .app-shell {
     display: grid;
     min-height: calc(100vh - 44px);
-    grid-template-columns: clamp(150px, 12vw, 210px) minmax(0, 1fr);
+    grid-template-columns: 165px minmax(0, 1fr);
 }
 
 .app-shell.profile-shell {
-    grid-template-columns: clamp(150px, 12vw, 210px) minmax(0, 1fr);
+    grid-template-columns: 165px minmax(0, 1fr);
 }
 
 .app-shell > .sidebar {
     min-width: 0;
     min-height: calc(100vh - 44px);
-    padding: 14px 8px;
-    border-right: 1px solid var(--color-border);
-    background: #eaf3fc;
+    padding: 14px 2px 14px 3px;
+    border-right: 1px solid #e2e8f0;
+    background: #ebf3fa;
 }
 
+/* Item metrics follow the Figma "menu-left" frame: 32px pills on a 36px step, 12px text. */
 .sidebar .primary-nav {
     display: grid;
     align-content: start;
-    gap: 3px;
+    gap: 4px;
 }
 
 .sidebar .primary-nav > a,
@@ -184,28 +185,84 @@
     min-width: 0;
     min-height: 32px;
     align-items: center;
-    gap: 9px;
-    padding: 6px 8px;
-    border-radius: 9px;
-    color: var(--color-primary-700);
-    font-size: var(--font-size-sm);
-    line-height: 1.2;
+    gap: 12px;
+    padding: 0 12px 0 19px;
+    border-radius: 100px;
+    color: #0a4275;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
     text-decoration: none;
 }
 
 .app-shell > .sidebar .primary-nav > a,
 .app-shell > .sidebar .sidebar-parent > a {
     min-height: 32px;
-    padding: 6px 8px;
-    font-size: var(--font-size-sm);
+    padding: 0 12px 0 19px;
+    font-size: 12px;
 }
 
 .sidebar .primary-nav > a:hover,
 .sidebar-parent:hover,
+.sidebar-parent:has(> a.is-active),
 .sidebar-submenu > a:hover,
 .sidebar .primary-nav > a.is-active,
 .sidebar-submenu > a.is-active {
-    background: #dceafa;
+    background: #e2e8f0;
+}
+
+/* Icons are crops of the Figma sprite sheets; sizes and offsets come from the design frame. */
+.nav-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    background: url("/icons/sidebar/nav-icons.png") no-repeat;
+    background-size: 100.5px 67px;
+}
+
+.nav-icon-home {
+    background-position: -11.25px -4px;
+}
+
+.nav-icon-calendar {
+    background-position: -40.25px -4px;
+}
+
+.nav-icon-documents {
+    background-position: -69.25px -25px;
+}
+
+.nav-icon-allowance {
+    background-position: -11.25px -25px;
+}
+
+.nav-icon-salary {
+    background-position: -41.25px -25px;
+}
+
+.nav-icon-projects {
+    background-position: -70.24px -4.8px;
+}
+
+.nav-icon-employees {
+    width: 20px;
+    flex-basis: 20px;
+    background-position: -29.25px -45px;
+}
+
+.nav-icon-profile {
+    background-position: -55.26px -45.55px;
+}
+
+.nav-icon-settings {
+    background-position: -79.11px -46.04px;
+}
+
+.nav-icon-create-employee {
+    height: 17px;
+    background-image: url("/icons/sidebar/create-employee-icon.png");
+    background-size: 18px 17px;
+    background-position: 0 0;
 }
 
 .sidebar .primary-nav svg {
@@ -234,7 +291,7 @@
     display: flex;
     min-width: 0;
     align-items: center;
-    border-radius: 9px;
+    border-radius: 100px;
 }
 
 .sidebar-parent > a {
@@ -270,18 +327,12 @@
 }
 
 .sidebar-submenu {
-    padding-left: 10px;
+    margin-top: 4px;
 }
 
 .sidebar-submenu > a {
-    min-height: 30px;
-    font-size: var(--font-size-sm);
-}
-
-.sidebar-submenu > a svg {
-    width: 14px;
-    height: 14px;
-    flex-basis: 14px;
+    min-height: 32px;
+    font-size: 12px;
 }
 
 .sidebar-submenu[hidden] {

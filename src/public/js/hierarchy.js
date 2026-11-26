@@ -72,10 +72,9 @@ function makeIcon(name) {
 
 function addInfoCard(parent, title, rows) {
     const card = document.createElement("article");
-    card.className = "detail-card card";
+    card.className = title === "Salary" ? "detail-card card" : "detail-card card info-card";
     const titleIcons = {
         "Personal information": "person",
-        "Contact information": "phone",
         Salary: "chart",
     };
     const heading = addTextElement(card, "h3", "", title);

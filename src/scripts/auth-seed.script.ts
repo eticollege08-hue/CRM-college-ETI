@@ -1,11 +1,22 @@
 import "dotenv/config";
 import { pathToFileURL } from "node:url";
 
+import { Role } from "@prisma/client";
+
 import prisma from "#config/prisma.config.js";
 import { MOCK_SEED_ACCOUNTS } from "#config/seed.config.js";
 import { hierarchyService } from "#modules/hierarchy/hierarchy.service.js";
 import { userAccountService } from "#modules/user-accounts/user-account.service.js";
 import { hashPassword } from "#utils/password.util.js";
+
+// Monthly salaries for local checks; they are written only when an employee has no compensation yet.
+const SEED_SALARY_BY_ROLE: Record<Role, number> = {
+    [Role.OWNER]: 6000,
+    [Role.MANAGER]: 4500,
+    [Role.HR]: 3500,
+    [Role.RECRUITER]: 3200,
+    [Role.WORKER]: 2500,
+};
 
 export async function seedMockAccounts() {
     if (process.env.NODE_ENV !== "development") {
@@ -35,6 +46,25 @@ export async function seedMockAccounts() {
         accountsByEmail.set(config.email, {
             employeeId: account.employeeId,
             companyId: account.companyId,
+        });
+    }
+
+    for (const config of MOCK_SEED_ACCOUNTS) {
+        const account = accountsByEmail.get(config.email);
+        if (!account) continue;
+
+        const existing = await prisma.employeeCompensation.findUnique({
+            where: { employeeId: account.employeeId },
+        });
+        if (existing) continue;
+
+        await prisma.employeeCompensation.create({
+            data: {
+                employeeId: account.employeeId,
+                companyId: account.companyId,
+                salary: SEED_SALARY_BY_ROLE[config.roleKey],
+                currency: "USD",
+            },
         });
     }
 
